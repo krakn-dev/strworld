@@ -1,0 +1,69 @@
+ @font-face {
+  font-family: game_font;
+  src: url(icomoon/fonts/icomoon.ttf);
+}
+
+
+body, div, html,span {
+    margin: 0px;
+    padding: 0px;
+}
+
+#z-0, #z-1, #z-2, #world-view{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+
+#world-view {
+    font-size: 40px;
+    width: 400px;
+    height: 400px;
+    font-family: game_font;
+    perspective: 500px;
+}
+
+.grass {
+//    transform: rotateX(50deg);
+
+}
+
+#g-0 {
+  z-index: 0;
+    transform: translateZ(-250px);
+}
+#g-1 {
+  transform: translateZ(-200px);
+  z-index: 2;
+}
+#g-2 {
+  transform: translateZ(-150px);
+  z-index: 4;
+}
+#g-3 {
+  transform: translateZ(-100px);
+  z-index: 6;
+}
+#g-4 {
+  transform: translateZ(-50px);
+  z-index: 8;
+}
+
+#z-0 {
+    color: red;
+ /*   z-index: 1; */
+  /*  transform: translateY(-200px) translateX(-200px);*/
+}
+#z-1 {
+    color: blue;
+ /*   z-index: 1; */
+    transform: rotateX(0deg);
+
+}
+#z-2 {
+    color: green;
+  /* z-index: 2;*/
+    transform: rotateX(75deg);
+}

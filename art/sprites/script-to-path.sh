@@ -1,0 +1,119 @@
+#!/usr/bin/env sh
+
+#!/bin/sh
+
+display_help() {
+    echo
+    echo "Usage: svg-stroke-to-path select_attr file ..."
+    echo
+    echo "  select_attr can be"
+    echo "    * 'all' to select all elements"
+    echo
+    echo "  or, it can be a variety of CSS selectors, for example:"
+    echo "    * 'path' to select only <path> objects"
+    echo "    * 'rect,circle' to select both <rect> and <circle> elements"
+    echo "    * '[stroke=\"#000000\"]' to select elements with specific attributes"
+    echo "    * 'path[stroke=\"#000000\"]' to select only paths with specific attributes"
+    echo "    * '[stroke=\"#000000\"][stroke-weight=\"0.5\"]' to select multiple attributes"
+    echo
+}
+
+if [[ "$1" == "-h" ]]; then
+  display_help
+  exit 0
+fi
+
+inkscape_bin=NULL
+inkscape_bin_version=NULL
+inkscape_bin_name=inkscape
+inkscape_bin_macos_path=\
+"/Applications/Inkscape.app/Contents/MacOS/Inkscape"
+
+verify_inkscape_is_installed() {
+    if [[ -x "$(command -v ${inkscape_bin_name})" ]]; then
+        inkscape_bin=${inkscape_bin_name}
+        return
+    elif [[ -f ${inkscape_bin_macos_path} ]]; then
+        inkscape_bin=${inkscape_bin_macos_path}
+        return
+    fi
+
+    echo 'Error: inkscape is not installed.' >&2
+    exit 1
+}
+
+verify_inkscape_is_installed
+
+read_inkscape_version() {
+    inkscape_bin_version=`${inkscape_bin} -V | grep -o "[0-9]\+\.[0-9.]\+"`
+}
+
+read_inkscape_version
+
+# Used later to distinguish between 1.1 and 1.2+
+semver_greater_than() {
+    test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1";
+}
+
+# Require that Inkscape 1.2 or higher is installed
+if ! semver_greater_than ${inkscape_bin_version} 1.1.999; then
+    echo "Error: Inkscape Version ${inkscape_bin_version} not supported."
+    echo "Please upgrade to Inkscape 1.2 or higher, or use an older version of svg-stroke-to-path at the commit 56ee0fc."
+fi
+
+# Read the arguments
+select_attr=$1
+shift 1
+
+# Validate that the select attr is set
+if [[ -z "$select_attr" ]]; then
+    display_help
+    echo "Error: select_attr required"
+    exit 1
+fi
+
+select_method='select-by-selector'
+if [[ "$select_attr" == "all" ]]; then
+  select_method='select-all'
+fi
+
+validate_file() {
+    # Validate that input_filename exists
+    if [[ ! -f "$1" ]]; then
+        display_help
+        echo "Error: input_filename '$1' not found"
+        exit 1
+    fi
+
+    # Validate that content contains closing `svg` tag
+    if ! grep -q "</svg>" "$1"; then
+        display_help
+        echo "Error: input_filename '$1' not valid SVG"
+        exit 1
+    fi
+}
+
+for file in "$@"
+do
+    validate_file "$file"
+done
+
+convert_file() {
+    select_attr=$1
+    input_filename=$2
+
+    # Convert stroke to path by selecting the "selector" element and use
+    # Inkscape's selector query to select similar objects and convert
+    # stroke to path
+    # For more information on Inkscape's command line, see:
+    # http://wiki.inkscape.org/wiki/index.php/Using_the_Command_Line
+    ${inkscape_bin} \
+        --actions="$select_method:$select_attr;object-stroke-to-path" \
+        --export-filename="$input_filename" \
+        "$input_filename"
+}
+
+for file in "$@"
+do
+    convert_file "$select_attr" `pwd`"/$file"
+done

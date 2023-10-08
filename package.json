@@ -1,0 +1,18 @@
+{
+  "name": "strworld",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsc -w --p src/ --outDir out &node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "serve-favicon": "^2.5.0",
+    "typescript": "^5.2.2"
+  }
+}

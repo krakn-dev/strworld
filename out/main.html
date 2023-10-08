@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>strworld</title>
+    </head>
+    <body>
+        <div id="game">
+            <div id="world-view" >
+                <div id="z-2">
+                </div>
+                <div id="z-1"></div>
+                <div id="z-0">
+<div class="grass" id="g-0"></div>
+<div class="grass" id="g-1"></div>
+<div class="grass" id="g-2"></div>
+<div class="grass" id="g-3"></div>
+<div class="grass" id="g-4"></div>
+                </div>
+
+            </div>
+        </div>
+<object id="stickman" data="stickman.svg" width="50" height="50"> </object>
+<script>
+    document.getElementById("stickman").addEventListener("load", function() {
+        var doc = this.getSVGDocument();
+        var arm = doc.getElementById("path5-5-9"); 
+        var pathList = arm.getAttribute("d").split(",")
+        var lastPath = pathList[pathList.length - 1]
+
+        console.log(lastPath)
+    })
+</script>
+
+    </body>
+    <link rel="stylesheet" href="main.css" type="text/css" media="screen" />
+
+
+    <link rel="stylesheet" href="icomoon/style.css" type="text/css" media="screen" />
+    <script type="module" src="utils.js"></script>
+    <script type="module" src="ecs_engine.js"></script>
+    <script type="module" src="graphic_engine.js"></script>
+    <script type="module" src="main.js"></script>
+</html>

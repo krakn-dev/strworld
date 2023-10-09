@@ -1,29 +1,34 @@
 import * as Utils from "./utils.js";
 export var EntityStates;
 (function (EntityStates) {
-    EntityStates[EntityStates["WalkLeft"] = 0] = "WalkLeft";
-    EntityStates[EntityStates["WalkRight"] = 1] = "WalkRight";
-    EntityStates[EntityStates["Idle"] = 2] = "Idle";
-    EntityStates[EntityStates["Death"] = 3] = "Death";
-    EntityStates[EntityStates["WindLeft"] = 4] = "WindLeft";
-    EntityStates[EntityStates["WindRight"] = 5] = "WindRight";
+    EntityStates[EntityStates["Idle"] = 0] = "Idle";
+    EntityStates[EntityStates["Dead"] = 1] = "Dead";
+    EntityStates[EntityStates["WindLeft"] = 2] = "WindLeft";
+    EntityStates[EntityStates["WindRight"] = 3] = "WindRight";
+    EntityStates[EntityStates["Shooting"] = 4] = "Shooting";
+    EntityStates[EntityStates["Running"] = 5] = "Running";
 })(EntityStates || (EntityStates = {}));
 export var Components;
 (function (Components) {
     Components[Components["Health"] = 0] = "Health";
     Components[Components["Name"] = 1] = "Name";
     Components[Components["Position"] = 2] = "Position";
+    Components[Components["SpriteDirection"] = 3] = "SpriteDirection";
+    Components[Components["EntityState"] = 4] = "EntityState";
 })(Components || (Components = {}));
 export var Entities;
 (function (Entities) {
     Entities[Entities["Human"] = 0] = "Human";
     Entities[Entities["Fox"] = 1] = "Fox";
+    Entities[Entities["Grass"] = 2] = "Grass";
 })(Entities || (Entities = {}));
 export var Get;
 (function (Get) {
     Get[Get["One"] = 0] = "One";
-    Get[Get["All"] = 1] = "All";
-    Get[Get["None"] = 2] = "None";
+    Get[Get["OneOfEach"] = 1] = "OneOfEach";
+    Get[Get["All"] = 2] = "All";
+    Get[Get["AllOfEach"] = 3] = "AllOfEach";
+    Get[Get["None"] = 4] = "None";
 })(Get || (Get = {}));
 export var By;
 (function (By) {
@@ -39,7 +44,8 @@ export var Commands;
     Commands[Commands["GetFoxHealth"] = 1] = "GetFoxHealth";
     Commands[Commands["PrintEveryField"] = 2] = "PrintEveryField";
     Commands[Commands["SyncGraphicEntity"] = 3] = "SyncGraphicEntity";
-    Commands[Commands["MovePlayer"] = 4] = "MovePlayer";
+    Commands[Commands["SpawnGrass"] = 4] = "SpawnGrass";
+    Commands[Commands["MovePlayer"] = 5] = "MovePlayer";
 })(Commands || (Commands = {}));
 export class RunBeforeFoxHealth {
     constructor() {
@@ -60,7 +66,7 @@ export class GetFoxHealth {
         this.timesTried = 0;
         this.commandtype = Commands.GetFoxHealth;
         this.get = Get.One;
-        this.component = Components.Health;
+        this.component = [Components.Health];
         this.by = By.EntityType;
         this.byArgs = Entities.Fox;
     }
@@ -92,6 +98,12 @@ export class PrintEveryField {
         }
     }
 }
+export class Grass {
+    constructor() {
+        this.entityType = Entities.Grass;
+        this.entityUid = Utils.newUid();
+    }
+}
 export class Fox {
     constructor() {
         this.entityType = Entities.Fox;
@@ -102,6 +114,22 @@ export class Human {
     constructor() {
         this.entityType = Entities.Human;
         this.entityUid = Utils.newUid();
+    }
+}
+export class SpriteDirection {
+    constructor(newOwnerUid) {
+        this.isLookingRight = true;
+        this.ownerUid = newOwnerUid;
+        this.componentUid = Utils.newUid();
+        this.componentType = Components.SpriteDirection;
+    }
+}
+export class EntityState {
+    constructor(newCurrentState, newOwnerUid) {
+        this.currentState = newCurrentState;
+        this.ownerUid = newOwnerUid;
+        this.componentUid = Utils.newUid();
+        this.componentType = Components.EntityState;
     }
 }
 export class Position {
@@ -206,6 +234,64 @@ export class EcsEngine {
                 if (get == Get.None) {
                     c.command.run([]);
                 }
+                if (get == Get.OneOfEach) {
+                    let toFind = component.length;
+                    let foundComponents = [];
+                    switch (by) {
+                        case By.EntityType:
+                            for (var comp of EcsEngine.components) {
+                                for (var qcomp of component) {
+                                    if (comp.componentType == qcomp) {
+                                        for (var e of EcsEngine.entities) {
+                                            if (byArg == e.entityType) {
+                                                foundComponents.push(comp);
+                                                toFind--;
+                                                if (toFind == 0)
+                                                    c.command.run(foundComponents);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (toFind == 0)
+                                        break;
+                                }
+                                if (toFind == 0)
+                                    break;
+                            }
+                            break;
+                        case By.EntityUid:
+                            for (var comp of EcsEngine.components) {
+                                for (var e of EcsEngine.entities) {
+                                    if (byArg == e.entityUid) {
+                                        for (var qcomp of component) {
+                                            if (comp.componentType == qcomp) {
+                                                foundComponents.push(comp);
+                                                toFind--;
+                                                if (toFind == 0) {
+                                                    c.command.run(foundComponents);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        if (toFind == 0)
+                                            break;
+                                    }
+                                }
+                                if (toFind == 0)
+                                    break;
+                            }
+                            break;
+                        case By.ComponentUid:
+                            console.log("bad use of OneOfEach");
+                            break;
+                        case By.Everything:
+                            console.log("bad use of OneOfEach");
+                            break;
+                        case By.Random:
+                            console.log("bad use of OneOfEach");
+                            break;
+                    }
+                }
                 if (get == Get.One) {
                     switch (by) {
                         case By.ComponentUid:
@@ -217,9 +303,13 @@ export class EcsEngine {
                             }
                             break;
                         case By.EntityType:
+                            if (component == null) {
+                                console.log("component not supplied");
+                                break;
+                            }
                             let found = false;
                             for (var comp of EcsEngine.components) {
-                                if (comp.componentType == component) {
+                                if (comp.componentType == component[0]) {
                                     for (var e of EcsEngine.entities) {
                                         if (byArg == e.entityType) {
                                             found = true;
@@ -251,6 +341,37 @@ export class EcsEngine {
                             break;
                     }
                 }
+                if (get == Get.AllOfEach) {
+                    switch (by) {
+                        case By.ComponentUid:
+                            console.log("bad use of componentUid");
+                            break;
+                        case By.EntityType:
+                            console.log("Entities only have one component of each type");
+                            break;
+                        case By.EntityUid:
+                            console.log("bad use of entityuid");
+                            break;
+                        case By.Everything:
+                            let collected = [];
+                            if (component == null) {
+                                console.log("components not supplied");
+                                break;
+                            }
+                            for (var comp of EcsEngine.components) {
+                                for (var qcomp of component) {
+                                    if (comp.componentType == qcomp) {
+                                        collected.push(comp);
+                                    }
+                                }
+                            }
+                            c.command.run(collected);
+                            break;
+                        case By.Random:
+                            console.log("bad use of random");
+                            break;
+                    }
+                }
                 if (get == Get.All) {
                     let collected = [];
                     switch (by) {
@@ -258,8 +379,12 @@ export class EcsEngine {
                             console.log("bad use of componentUid");
                             break;
                         case By.EntityType:
+                            if (component == null) {
+                                console.log("component not supplied");
+                                break;
+                            }
                             for (var comp of EcsEngine.components) {
-                                if (comp.componentType == component) {
+                                if (comp.componentType == component[0]) {
                                     for (var e of EcsEngine.entities) {
                                         if (byArg == e.entityType) {
                                             collected.push(comp);

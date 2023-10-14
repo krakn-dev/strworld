@@ -5,9 +5,11 @@ export enum EntityStates {
     Dead,
     WindLeft,
     WindRight,
-    Shooting,
-    Running,
+    Shoot,
+    Reload,
+    Run,
 }
+
 export interface Component {
     componentType: Components
     ownerUid: number
@@ -18,7 +20,7 @@ export enum Components {
     Health,
     Name,
     Position,
-    SpriteDirection,
+    LookingDirection,
     EntityState,
 }
 
@@ -29,7 +31,6 @@ interface Entity {
 
 export enum Entities {
     Human,
-    Fox,
     Grass,
 }
 
@@ -50,9 +51,7 @@ export enum By {
 }
 
 export enum Commands {
-    RunBeforeFoxHealth,
-    GetFoxHealth,
-    PrintEveryField,
+    SyncWeaponsWithOwners,
     SyncGraphicEntity,
     SpawnGrass,
     MovePlayer
@@ -69,84 +68,6 @@ export interface Command {
 }
 
 
-export class RunBeforeFoxHealth implements Command {
-    get: Get
-    component: Components[] | null
-    by: By | null
-    byArgs: number | Entities | null
-    commandtype: Commands
-
-    constructor() {
-        this.commandtype = Commands.RunBeforeFoxHealth
-        this.component = null
-        this.get = Get.None
-        this.byArgs = null
-        this.by = null
-
-    }
-
-    run(args: Component[]): void {
-        console.log("before 'health'")
-    }
-}
-
-export class GetFoxHealth implements Command {
-    get: Get
-    component: Components[] | null
-    by: By | null
-    byArgs: number | Entities | null
-    commandtype: Commands
-
-    constructor() {
-        this.commandtype = Commands.GetFoxHealth
-        this.get = Get.One
-        this.component = [Components.Health]
-        this.by = By.EntityType
-        this.byArgs = Entities.Fox
-    }
-
-    found = false
-    dead = false
-    timesTried = 0
-
-    run(args: Component[]): void {
-        if (args.length == 0) {
-            this.timesTried++
-            console.log("wtf")
-            return;
-        }
-
-        console.log((args[0] as Health).health, " health")
-    }
-
-}
-export class PrintEveryField implements Command {
-    get: Get
-    component: Components[] | null
-    by: By | null
-    byArgs: number | Entities | null
-    commandtype: Commands
-
-    constructor() {
-        this.commandtype = Commands.PrintEveryField
-        this.get = Get.All
-        this.component = null
-        this.by = By.Everything
-        this.byArgs = null
-    }
-
-    run(args: Component[]): void {
-        for (var c of args) {
-            if (c.componentType == Components.Health) {
-                console.log((c as Health).health, " h")
-            }
-            if (c.componentType == Components.Name) {
-                console.log((c as Name).name, " n")
-            }
-        }
-    }
-
-}
 
 export class Grass implements Entity {
     entityType: Entities
@@ -157,14 +78,6 @@ export class Grass implements Entity {
     }
 }
 
-export class Fox implements Entity {
-    entityType: Entities
-    entityUid: number
-    constructor() {
-        this.entityType = Entities.Fox
-        this.entityUid = Utils.newUid()
-    }
-}
 
 export class Human implements Entity {
     entityType: Entities
@@ -176,7 +89,7 @@ export class Human implements Entity {
 }
 
 
-export class SpriteDirection implements Component {
+export class LookingDirection implements Component {
     isLookingRight: boolean
     componentType: Components
     ownerUid: number
@@ -186,7 +99,7 @@ export class SpriteDirection implements Component {
         this.isLookingRight = true
         this.ownerUid = newOwnerUid
         this.componentUid = Utils.newUid()
-        this.componentType = Components.SpriteDirection
+        this.componentType = Components.LookingDirection
     }
 }
 

@@ -16,7 +16,6 @@ html, body {
     height: 100%;
 }
 #game {
-    user-select:none;
     overflow: hidden;
     display: flex;
     justify-content: center;
@@ -27,8 +26,8 @@ html, body {
 
 #world-view {
     font-size: 10vmin;
-    width: 100vmin;
-    height: 100vmin;
+    width: 100%;
+    height: 100%;
 }
 .rel {
     position: relative;

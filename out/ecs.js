@@ -24,15 +24,15 @@ export class ComponentAndIndex {
     }
 }
 export class PropertyChange {
-    constructor(newIndex, newProperty, newValue) {
+    constructor(newIndex, newProperty, newValue, newComponentUid) {
         this.index = newIndex;
         this.property = newProperty;
         this.value = newValue;
+        this.componentUid = newComponentUid;
     }
 }
 export class System {
     constructor() {
-        this.counter = 0;
         this.commands = [];
         this.components = [];
         this.state = new Map();
@@ -41,6 +41,7 @@ export class System {
         this.componentsToRemove = [];
         this.propertiesToChange = [];
         this.componentsToAdd = [];
+        this.input = new Utils.Input(new Utils.Vector2(0, 0));
     }
     setState(key, value) {
         let changes = this.state.get(Utils.CHANGES_KEY);
@@ -54,32 +55,33 @@ export class System {
     removeComponent(component) {
         this.componentsToRemove.push(component.index);
     }
+    removeCommand(command) {
+        this.commandsToRemove.push(command);
+    }
     addComponent(newComponent) {
         this.componentsToAdd.push(newComponent);
-    }
-    setProperty(component, property, value) {
-        this.propertiesToChange.push(new PropertyChange(component.index, property, value));
     }
     addCommand(command) {
         this.commandsToAdd.push(command);
     }
-    removeCommand(command) {
-        this.commandsToRemove.push(command);
+    setProperty(component, property, value) {
+        if (component == undefined) {
+            console.log("no component at such index");
+            return;
+        }
+        this.propertiesToChange.push(new PropertyChange(component.index, property, value, component.component.componentUid));
     }
-    update(newComponents, newCommands, newState) {
+    update(newComponents, newCommands, newState, newInput) {
         this.components = newComponents;
         this.commands = [];
-        for (let cT of newCommands) {
-            switch (cT) {
-                case Cmds.Commands.ShowHealth:
-                    this.commands.push(new Cmds.ShowHealth());
-                    break;
-                case Cmds.Commands.CreateHealth:
-                    this.commands.push(new Cmds.CreateHealth());
-                    break;
-            }
-        }
         this.state = newState;
+        this.input = newInput;
+        if (newCommands == null)
+            return;
+        this.commands = [];
+        for (let cT of newCommands) {
+            this.commands.push(Cmds.getInstanceFromEnum(cT));
+        }
     }
     find(query) {
         // Comment on production !TODO
@@ -115,7 +117,7 @@ export class System {
                 if (query[2] == By.ComponentId) {
                     for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.componentUid) {
-                            collected[qci].push(new ComponentAndIndex(c, [qci, cI]));
+                            collected[qci].push(new ComponentAndIndex(c, [qc, cI]));
                             break;
                         }
                     }
@@ -124,7 +126,7 @@ export class System {
                 else if (query[2] == By.EntityId) {
                     for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.entityUid) {
-                            collected[qci].push(new ComponentAndIndex(c, [qci, cI]));
+                            collected[qci].push(new ComponentAndIndex(c, [qc, cI]));
                             break;
                         }
                     }
@@ -135,14 +137,14 @@ export class System {
                 if (query[2] == By.EntityId) {
                     for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.entityUid) {
-                            collected[qci].push(new ComponentAndIndex(c, [qci, cI]));
+                            collected[qci].push(new ComponentAndIndex(c, [qc, cI]));
                         }
                     }
                     continue;
                 }
                 else if (query[2] == By.Any) {
-                    for (let [cI, c] of this.components[qci].entries()) {
-                        collected[qci].push(new ComponentAndIndex(c, [qci, cI]));
+                    for (let [cI, c] of this.components[qc].entries()) {
+                        collected[qci].push(new ComponentAndIndex(c, [qc, cI]));
                     }
                     continue;
                 }
@@ -165,16 +167,10 @@ export class System {
     }
     run() {
         for (let c of this.commands) {
-            if (this.counter == 1000) {
-                console.log("command run this many times", this.counter);
-            }
-            this.counter++;
-            let foundComponents = [];
-            if (c.query != null)
-                foundComponents = this.find(c.query);
-            c.run(foundComponents, this);
+            if (c.type != Cmds.Commands.PingPong)
+                c.run(this);
         }
-        this.workerManager.postMessage(new Utils.Message(Utils.Messages.Done, new Utils.WorkerOutput(this.propertiesToChange, this.componentsToRemove, this.componentsToAdd, this.state, this.commandsToRemove, this.commandsToAdd)));
+        this.workerManager.postMessage(new Utils.Message(Utils.Messages.Done, new Utils.WorkerOutput(this.propertiesToChange, this.componentsToRemove, this.componentsToAdd, this.state, this.commandsToRemove, this.commandsToAdd, this.workerUid)));
         this.commandsToAdd = [];
         this.commandsToRemove = [];
         this.componentsToAdd = [];

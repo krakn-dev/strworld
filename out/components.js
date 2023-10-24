@@ -9,16 +9,49 @@ export var Components;
     Components[Components["ComputedElement"] = 5] = "ComputedElement";
     Components[Components["EntityType"] = 6] = "EntityType";
 })(Components || (Components = {}));
-export var Entities;
-(function (Entities) {
-    Entities[Entities["Human"] = 0] = "Human";
-    Entities[Entities["Grass"] = 1] = "Grass";
-})(Entities || (Entities = {}));
+export var EntityTypes;
+(function (EntityTypes) {
+    EntityTypes[EntityTypes["Human"] = 0] = "Human";
+    EntityTypes[EntityTypes["Grass"] = 1] = "Grass";
+})(EntityTypes || (EntityTypes = {}));
+export class Position {
+    constructor(newPosition, newEntityUid) {
+        this.componentUid = Utils.newUid();
+        this.entityUid = newEntityUid;
+        this.type = Components.Position;
+        this.position = newPosition;
+    }
+}
 export class Health {
     constructor(newHealth, newEntityUid) {
         this.componentUid = Utils.newUid();
         this.entityUid = newEntityUid;
         this.type = Components.Health;
         this.health = newHealth;
+    }
+}
+export var Properties;
+(function (Properties) {
+    Properties[Properties["Classes"] = 0] = "Classes";
+    Properties[Properties["Left"] = 1] = "Left";
+    Properties[Properties["Top"] = 2] = "Top";
+    Properties[Properties["ZIndex"] = 3] = "ZIndex";
+    Properties[Properties["Color"] = 4] = "Color";
+    Properties[Properties["DisplayElement"] = 5] = "DisplayElement";
+})(Properties || (Properties = {}));
+export class ClassesDiff {
+    constructor() {
+        this.deleted = [];
+        this.added = [];
+    }
+}
+export class ComputedElement {
+    constructor(newEntityUid) {
+        this.properties = [["state"], 0, 0, 0, "#000000", "?"];
+        this.changedProperties = [new ClassesDiff(), false, false, false, false, false];
+        this.isChanged = false;
+        this.type = Components.ComputedElement;
+        this.entityUid = newEntityUid;
+        this.componentUid = Utils.newUid();
     }
 }

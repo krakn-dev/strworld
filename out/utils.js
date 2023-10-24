@@ -6,9 +6,6 @@ export function randomNumber(max) {
 export function newUid() {
     return randomNumber(100000000);
 }
-export function property(name) {
-    return name;
-}
 export const NUMBER_OF_COMPONENTS = (() => {
     let n = 0;
     for (let i = 0; i < Object.keys(Comps.Components).length / 2; i++) {
@@ -32,20 +29,51 @@ export var Messages;
     // if workers are ready to do work
     Messages[Messages["AyeAyeCaptain"] = 4] = "AyeAyeCaptain";
     // means that they able to do work
+    Messages[Messages["WakeUp"] = 5] = "WakeUp";
+    Messages[Messages["BdsabasdmbswhaWhat"] = 6] = "BdsabasdmbswhaWhat";
+    Messages[Messages["PlayerInput"] = 7] = "PlayerInput";
+    Messages[Messages["RenderIt"] = 8] = "RenderIt";
 })(Messages || (Messages = {}));
+export class WorkerInfo {
+    constructor(newMessagePort, newUid) {
+        this.isProcessing = false;
+        this.messagePort = newMessagePort;
+        this.uid = newUid;
+    }
+}
+export class GraphicDiff {
+    constructor(newChangedComputedElements = [], newAddedComputedElements = [], newRemovedComputedElements = []) {
+        this.changedComputedElements = newChangedComputedElements;
+        this.addedComputedElements = newAddedComputedElements;
+        this.removedComputedElements = newRemovedComputedElements;
+    }
+}
 export class WorkerOutput {
-    constructor(newPropertiesToChange = null, newComponentsToRemove = null, newComponentsToAdd = null, newState = null, newCommandsToRemove = null, newCommandsToAdd = null) {
-        this.state = null;
+    constructor(newPropertiesToChange, newComponentsToRemove, newComponentsToAdd, newState, newCommandsToRemove, newCommandsToAdd, newWorkerUid) {
         this.state = newState;
         this.propertiesToChange = newPropertiesToChange;
         this.componentsToRemove = newComponentsToRemove;
         this.componentsToAdd = newComponentsToAdd;
         this.commandsToRemove = newCommandsToRemove;
         this.commandsToAdd = newCommandsToAdd;
+        this.workerUid = newWorkerUid;
+    }
+}
+export class Input {
+    constructor(newMovementDirection) {
+        this.movementDirection = newMovementDirection;
+    }
+}
+export class WorkerUids {
+    constructor() {
+        this.w0Uid = newUid();
+        this.w1Uid = newUid();
+        this.w2Uid = newUid();
     }
 }
 export class WorkerInput {
-    constructor(newState, newComponents, newCommands) {
+    constructor(newState, newComponents, newCommands, newInput) {
+        this.input = newInput;
         this.state = newState;
         this.commands = newCommands;
         this.components = newComponents;
@@ -82,3 +110,9 @@ export function delay(delay) {
     });
 }
 ;
+export class Vector2 {
+    constructor(newX, newY) {
+        this.x = newX;
+        this.y = newY;
+    }
+}

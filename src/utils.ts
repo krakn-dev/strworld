@@ -9,10 +9,6 @@ export function newUid() {
     return randomNumber(100000000);
 }
 
-export function property<TObj>(name: keyof TObj) {
-    return name;
-}
-
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
     let n: number = 0
@@ -40,23 +36,63 @@ export enum Messages {
 
     AyeAyeCaptain,   // response from workers
     // means that they able to do work
+    WakeUp,
+
+    BdsabasdmbswhaWhat,
+
+    PlayerInput,
+
+    RenderIt,
+}
+
+export class WorkerInfo {
+    messagePort: MessagePort
+    isProcessing: boolean
+    uid: number
+    constructor(
+        newMessagePort: MessagePort,
+        newUid: number
+    ) {
+        this.isProcessing = false
+        this.messagePort = newMessagePort
+        this.uid = newUid
+    }
+
+}
+
+
+export class GraphicDiff {
+    changedComputedElements: Comps.ComputedElement[]
+    addedComputedElements: Comps.ComputedElement[]
+    removedComputedElements: Comps.ComputedElement[]
+    constructor(
+        newChangedComputedElements: Comps.ComputedElement[] = [],
+        newAddedComputedElements: Comps.ComputedElement[] = [],
+        newRemovedComputedElements: Comps.ComputedElement[] = []
+    ) {
+        this.changedComputedElements = newChangedComputedElements
+        this.addedComputedElements = newAddedComputedElements
+        this.removedComputedElements = newRemovedComputedElements
+    }
 }
 
 export class WorkerOutput {
-    propertiesToChange: ECS.PropertyChange[] | null
-    componentsToRemove: [number, number][] | null
-    componentsToAdd: ECS.Component[] | null
-    commandsToRemove: Cmds.Commands[] | null
-    commandsToAdd: Cmds.Commands[] | null
-    state: Map<string, any> | null = null
+    propertiesToChange: ECS.PropertyChange[]
+    componentsToRemove: [number, number][]
+    componentsToAdd: ECS.Component[]
+    commandsToRemove: Cmds.Commands[]
+    commandsToAdd: Cmds.Commands[]
+    state: Map<string, any>
+    workerUid: number
 
     constructor(
-        newPropertiesToChange: ECS.PropertyChange[] | null = null,
-        newComponentsToRemove: [number, number][] | null = null,
-        newComponentsToAdd: ECS.Component[] | null = null,
-        newState: Map<string, any> | null = null,
-        newCommandsToRemove: Cmds.Commands[] | null = null,
-        newCommandsToAdd: Cmds.Commands[] | null = null,
+        newPropertiesToChange: ECS.PropertyChange[],
+        newComponentsToRemove: [number, number][],
+        newComponentsToAdd: ECS.Component[],
+        newState: Map<string, any>,
+        newCommandsToRemove: Cmds.Commands[],
+        newCommandsToAdd: Cmds.Commands[],
+        newWorkerUid: number
     ) {
         this.state = newState
         this.propertiesToChange = newPropertiesToChange
@@ -64,6 +100,27 @@ export class WorkerOutput {
         this.componentsToAdd = newComponentsToAdd
         this.commandsToRemove = newCommandsToRemove
         this.commandsToAdd = newCommandsToAdd
+        this.workerUid = newWorkerUid
+    }
+}
+
+export class Input {
+    movementDirection: Vector2
+    constructor(
+        newMovementDirection: Vector2
+    ) {
+        this.movementDirection = newMovementDirection
+    }
+}
+
+export class WorkerUids {
+    w0Uid: number
+    w1Uid: number
+    w2Uid: number
+    constructor() {
+        this.w0Uid = newUid()
+        this.w1Uid = newUid()
+        this.w2Uid = newUid()
     }
 }
 
@@ -71,11 +128,14 @@ export class WorkerInput {
     state: Map<string, any>
     components: ECS.Component[][]
     commands: Cmds.Commands[]
+    input: Input
     constructor(
         newState: Map<string, any>,
         newComponents: ECS.Component[][],
-        newCommands: Cmds.Commands[]
+        newCommands: Cmds.Commands[],
+        newInput: Input,
     ) {
+        this.input = newInput
         this.state = newState
         this.commands = newCommands
         this.components = newComponents
@@ -88,10 +148,10 @@ export interface IIndexable {
 
 export class Message {
     message: Messages
-    data: WorkerInput | WorkerOutput | null
+    data: WorkerInput | WorkerOutput | WorkerUids | Input | GraphicDiff | number | null
     constructor(
         newMessage: Messages,
-        newData: WorkerInput | WorkerOutput | null = null
+        newData: WorkerInput | WorkerOutput | WorkerUids | Input | number | GraphicDiff | null = null
     ) {
         this.message = newMessage
         this.data = newData
@@ -130,3 +190,15 @@ export function delay(delay: number) {
         setTimeout(resolve, delay);
     });
 };
+
+export class Vector2 {
+    x: number
+    y: number
+    constructor(
+        newX: number,
+        newY: number
+    ) {
+        this.x = newX
+        this.y = newY
+    }
+}

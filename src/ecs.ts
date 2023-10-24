@@ -36,9 +36,8 @@ export class ComponentAndIndex {
 }
 
 export interface Command {
-    query: [Get, Comps.Components[], By, null | number | Comps.Entities] | null
     type: Cmds.Commands
-    run(foundComponents: ComponentAndIndex[][], system: System): void
+    run(system: System): void
 }
 
 
@@ -46,25 +45,26 @@ export class PropertyChange {
     index: number[]
     property: string
     value: any
+    componentUid: number
 
     constructor(
         newIndex: number[],
         newProperty: string,
         newValue: any,
+        newComponentUid: number,
     ) {
         this.index = newIndex
         this.property = newProperty
         this.value = newValue
+        this.componentUid = newComponentUid
     }
 }
-
 
 export class System {
     private commands: Command[]
     private components: Component[][]
 
     private state: Map<string, any>
-
 
     private commandsToRemove: Cmds.Commands[]
     private commandsToAdd: Cmds.Commands[]
@@ -74,6 +74,9 @@ export class System {
     private propertiesToChange: PropertyChange[]
 
     workerManager!: MessagePort
+    workerUid!: number
+
+    input: Utils.Input
 
     constructor() {
         this.commands = []
@@ -84,7 +87,9 @@ export class System {
         this.componentsToRemove = []
         this.propertiesToChange = []
         this.componentsToAdd = []
+        this.input = new Utils.Input(new Utils.Vector2(0, 0))
     }
+
 
     setState(key: string, value: any) {
         let changes: string[] = this.state.get(Utils.CHANGES_KEY)
@@ -100,47 +105,59 @@ export class System {
     removeComponent(component: ComponentAndIndex) {
         this.componentsToRemove.push(component.index)
     }
-    addComponent(newComponent: Component) {
-        this.componentsToAdd.push(newComponent)
-    }
 
-    setProperty(component: ComponentAndIndex, property: string, value: any) {
-        this.propertiesToChange.push(new PropertyChange(component.index, property, value))
-    }
-
-    addCommand(command: Cmds.Commands) {
-        this.commandsToAdd.push(command)
-    }
     removeCommand(command: Cmds.Commands) {
         this.commandsToRemove.push(command)
     }
+    addComponent(newComponent: Component) {
+        this.componentsToAdd.push(newComponent)
+    }
+    addCommand(command: Cmds.Commands) {
+        this.commandsToAdd.push(command)
+    }
+
+    setProperty<TObj>(component: ComponentAndIndex, property: keyof TObj, value: any) {
+        if (component == undefined) {
+            console.log("no component at such index")
+            return
+        }
+
+        this.propertiesToChange.push(
+            new PropertyChange(
+                component.index,
+                property as string,
+                value,
+                component.component.componentUid
+            )
+        )
+    }
+
     update(
         newComponents: Component[][],
-        newCommands: Cmds.Commands[],
-        newState: Map<string, any>
+        newCommands: Cmds.Commands[] | null,
+        newState: Map<string, any>,
+        newInput: Utils.Input
     ) {
         this.components = newComponents
         this.commands = []
-        for (let cT of newCommands) {
-            switch (cT) {
-                case Cmds.Commands.ShowHealth:
-                    this.commands.push(new Cmds.ShowHealth())
-                    break;
-                case Cmds.Commands.CreateHealth:
-                    this.commands.push(new Cmds.CreateHealth())
-                    break;
-            }
-        }
         this.state = newState
+        this.input = newInput
+
+        if (newCommands == null)
+            return
+        this.commands = []
+        for (let cT of newCommands) {
+            this.commands.push(Cmds.getInstanceFromEnum(cT))
+        }
     }
 
-    private find(query: [Get, Comps.Components[], By, null | number | Comps.Entities]): ComponentAndIndex[][] {
+    find(query: [Get, Comps.Components[], By, null | number | Comps.EntityTypes]): ComponentAndIndex[][] {
         // Comment on production !TODO
         if (query[1].length == 0) {
             console.log("no components expecified")
             return []
         }
-        if (query[2] == By.EntityType && (query[3] as Comps.Entities) == undefined ||
+        if (query[2] == By.EntityType && (query[3] as Comps.EntityTypes) == undefined ||
             query[2] == By.ComponentId && typeof query[3] != "number" ||
             query[2] == By.EntityId && typeof query[3] != "number") {
             console.log('argument does not match "By" enum')
@@ -174,7 +191,7 @@ export class System {
                 if (query[2] == By.ComponentId) {
                     for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.componentUid) {
-                            collected[qci].push(new ComponentAndIndex(c, [qci, cI]))
+                            collected[qci].push(new ComponentAndIndex(c, [qc, cI]))
                             break;
                         }
                     }
@@ -183,7 +200,7 @@ export class System {
                 else if (query[2] == By.EntityId) {
                     for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.entityUid) {
-                            collected[qci].push(new ComponentAndIndex(c, [qci, cI]))
+                            collected[qci].push(new ComponentAndIndex(c, [qc, cI]))
                             break;
                         }
                     }
@@ -194,14 +211,14 @@ export class System {
                 if (query[2] == By.EntityId) {
                     for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.entityUid) {
-                            collected[qci].push(new ComponentAndIndex(c, [qci, cI]))
+                            collected[qci].push(new ComponentAndIndex(c, [qc, cI]))
                         }
                     }
                     continue;
                 }
                 else if (query[2] == By.Any) {
-                    for (let [cI, c] of this.components[qci].entries()) {
-                        collected[qci].push(new ComponentAndIndex(c, [qci, cI]))
+                    for (let [cI, c] of this.components[qc].entries()) {
+                        collected[qci].push(new ComponentAndIndex(c, [qc, cI]))
                     }
                     continue;
                 }
@@ -225,18 +242,10 @@ export class System {
         return collected
     }
 
-    counter = 0
     run() {
         for (let c of this.commands) {
-            if (this.counter == 1000) {
-                console.log("command run this many times", this.counter)
-
-            }
-            this.counter++
-
-            let foundComponents: ComponentAndIndex[][] = []
-            if (c.query != null) foundComponents = this.find(c.query)
-            c.run(foundComponents, this)
+            if (c.type != Cmds.Commands.PingPong)
+                c.run(this)
         }
 
         this.workerManager.postMessage(
@@ -248,7 +257,8 @@ export class System {
                     this.componentsToAdd,
                     this.state,
                     this.commandsToRemove,
-                    this.commandsToAdd
+                    this.commandsToAdd,
+                    this.workerUid
                 )
             )
         )
@@ -258,5 +268,6 @@ export class System {
         this.componentsToAdd = []
         this.componentsToRemove = []
         this.propertiesToChange = []
+
     }
 }

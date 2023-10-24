@@ -3,52 +3,137 @@ import * as Utils from "./utils.js"
 import * as Comps from "./components.js"
 
 export enum Commands {
-    ShowHealth = 0,
-    CreateHealth
+    TheFirst = 0,
+    PingPong,
+    CreatePlayer,
+    MovePlayer,
+    SyncComputedElementPosition
 }
 
-export class CreateHealth implements ECS.Command {
-    readonly query: [ECS.Get, Comps.Components[], ECS.By, null | number | Comps.Entities] | null
+//        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null])
+export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
+    switch (commandEnum) {
+        case Commands.TheFirst:
+            return new TheFirst()
+        case Commands.PingPong:
+            return new PingPong()
+        case Commands.CreatePlayer:
+            return new CreatePlayer()
+        case Commands.MovePlayer:
+            return new MovePlayer()
+        case Commands.SyncComputedElementPosition:
+            return new SyncComputedElementPosition()
+    }
+}
+
+export class TheFirst implements ECS.Command {
     readonly type: Commands
     constructor() {
-        this.query = null
-        this.type = Commands.CreateHealth
+        this.type = Commands.TheFirst
     }
 
-    run(_: ECS.ComponentAndIndex[][], system: ECS.System) {
-        console.log("moooo")
-        let entityUid = 1
-        system.addComponent(new Comps.Health(10, entityUid))
-        system.removeCommand(Commands.CreateHealth)
+    run(system: ECS.System) {
+        system.addCommand(Commands.CreatePlayer)
+        system.addCommand(Commands.SyncComputedElementPosition)
+        system.removeCommand(Commands.TheFirst)
+    }
+}
+
+export class PingPong implements ECS.Command {
+    readonly type: Commands
+    constructor() {
+        this.type = Commands.PingPong
+    }
+
+    run(_: ECS.System) {}
+}
+
+export class CreatePlayer implements ECS.Command {
+    readonly type: Commands
+    constructor() {
+        this.type = Commands.CreatePlayer
+    }
+
+    run(system: ECS.System) {
+        for (let x = 0; x < 20; x++) {
+            for (let y = 0; y < 20; y++) {
+                let player = Utils.newUid()
+                system.addComponent(new Comps.Health(10, player))
+                system.addComponent(new Comps.Position(new Utils.Vector2(x * 40, y * 40), player))
+                system.addComponent(new Comps.ComputedElement(player))
+
+                //                console.log("player created")
+            }
+        }
+        system.addCommand(Commands.MovePlayer)
+        system.removeCommand(Commands.CreatePlayer)
     }
 }
 
 
-export class ShowHealth implements ECS.Command {
-    readonly query: [ECS.Get, Comps.Components[], ECS.By, null | number | Comps.Entities] | null
+export class MovePlayer implements ECS.Command {
     readonly type: Commands
     constructor() {
-        this.query = [ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null]
-        this.type = Commands.ShowHealth
+        this.type = Commands.MovePlayer
     }
 
-    run(foundComponents: ECS.ComponentAndIndex[][], system: ECS.System) {
+    run(system: ECS.System) {
+        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Position], ECS.By.Any, null])
 
-        if (system.getState("solved") == undefined) {
-            console.log("not found, but i am solving this right now")
-            system.addCommand(Commands.CreateHealth)
-            system.setState("solved", true)
-            return
-        }
+        for (let fC of foundComponents[0]) {
 
-        if (foundComponents[0][0] == undefined) {
-            console.log("hold on..")
-            return
+            let newPosition = (fC.component as Comps.Position).position
+            newPosition.x += system.input.movementDirection.x
+            newPosition.y += system.input.movementDirection.y
+            system.setProperty<Comps.Position>(
+                fC,
+                "position",
+                newPosition
+            )
         }
+    }
+}
 
-        if (foundComponents[0][0] != undefined) {
-            system.setProperty(foundComponents[0][0], Utils.property<Comps.Health>("health"), 15)
+export class SyncComputedElementPosition implements ECS.Command {
+    readonly type: Commands
+    constructor() {
+        this.type = Commands.SyncComputedElementPosition
+    }
+
+    run(system: ECS.System) {
+        let foundComponents =
+            system.find(
+                [
+                    ECS.Get.All,
+                    [
+                        Comps.Components.ComputedElement,
+                        Comps.Components.Position
+                    ],
+                    ECS.By.Any,
+                    null
+                ])
+
+        for (let cE of foundComponents[0]) {
+            for (let p of foundComponents[1]) {
+                if (cE.component.entityUid ==
+                    p.component.entityUid) {
+                    let position = (p.component as Comps.Position).position
+                    let computedElement = cE.component as Comps.ComputedElement
+
+                    computedElement.properties[Comps.Properties.Top] = position.y
+                    computedElement.properties[Comps.Properties.Left] = position.x
+
+                    computedElement.changedProperties[Comps.Properties.Left] = true
+                    computedElement.changedProperties[Comps.Properties.Top] = true
+
+                    system.setProperty<Comps.ComputedElement>(cE, "properties", computedElement.properties)
+                    system.setProperty<Comps.ComputedElement>(cE, "changedProperties", computedElement.changedProperties)
+                    system.setProperty<Comps.ComputedElement>(cE, "isChanged", true)
+
+                    break;
+                }
+            }
+
         }
-        console.log(foundComponents[0])
     }
 }

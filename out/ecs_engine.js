@@ -1,14 +1,4 @@
 import * as Utils from "./utils.js";
-export var EntityStates;
-(function (EntityStates) {
-    EntityStates[EntityStates["Idle"] = 0] = "Idle";
-    EntityStates[EntityStates["Dead"] = 1] = "Dead";
-    EntityStates[EntityStates["WindLeft"] = 2] = "WindLeft";
-    EntityStates[EntityStates["WindRight"] = 3] = "WindRight";
-    EntityStates[EntityStates["Shoot"] = 4] = "Shoot";
-    EntityStates[EntityStates["Reload"] = 5] = "Reload";
-    EntityStates[EntityStates["Run"] = 6] = "Run";
-})(EntityStates || (EntityStates = {}));
 export var Components;
 (function (Components) {
     Components[Components["Health"] = 0] = "Health";
@@ -17,11 +7,6 @@ export var Components;
     Components[Components["LookingDirection"] = 3] = "LookingDirection";
     Components[Components["EntityState"] = 4] = "EntityState";
 })(Components || (Components = {}));
-export var Entities;
-(function (Entities) {
-    Entities[Entities["Human"] = 0] = "Human";
-    Entities[Entities["Grass"] = 1] = "Grass";
-})(Entities || (Entities = {}));
 export var Get;
 (function (Get) {
     Get[Get["One"] = 0] = "One";

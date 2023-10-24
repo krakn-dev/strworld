@@ -1,122 +1,80 @@
-import * as ECS from "./ecs_engine.js";
 import * as Utils from "./utils.js";
-import * as Graphics from "./graphic_engine.js";
-ECS.EcsEngine.BindCommand(new Graphics.SyncGraphicEntity(), ECS.Frequency.EveryStep, ECS.Order.First, null);
-let human = new ECS.Human();
-ECS.EcsEngine.entities.push(human);
-let lookingDirection = new ECS.LookingDirection(human.entityUid);
-ECS.EcsEngine.components.push(lookingDirection);
-ECS.EcsEngine.components.push(new ECS.Health(10, human.entityUid));
-ECS.EcsEngine.components.push(new ECS.EntityState(ECS.EntityStates.Idle, human.entityUid));
-let position = new ECS.Position(new Utils.Vector2(0, 0), human.entityUid);
-ECS.EcsEngine.components.push(position);
-let graphicEntity = new Graphics.GraphicEntity([new Graphics.StickmanRun(), new Graphics.StickmanIdle()], position.position, human.entityUid, lookingDirection.isLookingRight, 2);
-Graphics.GraphicEngine.graphicEntities.push(graphicEntity);
-export class SpawnGrass {
-    constructor() {
-        this.get = ECS.Get.None;
-        this.commandtype = ECS.Commands.SpawnGrass;
-        this.component = null;
-        this.by = null;
-        this.byArgs = null;
+import * as Graphics from "./graphics.js";
+import * as Comps from "./components.js";
+const LOOP_DURATION = 1;
+let componentsAndEntities;
+let documentEntities = [];
+// post message manually
+function mainLoop() {
+    console.log(componentsAndEntities);
+    brainWorker.postMessage([false, componentsAndEntities]);
+    brainWorker.postMessage([true, Input.input]);
+    graphicsWorker.postMessage(componentsAndEntities);
+    setInterval(mainLoop, LOOP_DURATION);
+}
+function addDocumentEntities(newComputedElements) {
+    for (let nCE of newComputedElements) {
+        documentEntities.push(new Graphics.DocumentEntity(nCE.ownerUid));
     }
-    run(_) {
-        for (var yI = 0; yI < 20; yI++) {
-            for (var xI = 0; xI < 20; xI++) {
-                let shouldSpawn = Utils.randomNumber(2);
-                if (shouldSpawn == 1) {
-                    continue;
-                }
-                let grass = new ECS.Grass();
-                ECS.EcsEngine.entities.push(grass);
-                ECS.EcsEngine.components.push(new ECS.Health(1, grass.entityUid));
-                let position = new ECS.Position(new Utils.Vector2(xI * 10, yI * 10), grass.entityUid);
-                ECS.EcsEngine.components.push(position);
-                ECS.EcsEngine.components.push(new ECS.EntityState(ECS.EntityStates.Idle, grass.entityUid));
-                let graphicEntity = new Graphics.GraphicEntity([new Graphics.PlantIdle()], position.position, grass.entityUid, true, 0);
-                Graphics.GraphicEngine.graphicEntities.push(graphicEntity);
-            }
+}
+function deleteDocumentEntities(computedElementsOwnerUid) {
+    for (let [dEI, dE] of documentEntities.entries()) {
+        if (dE.entityUid == computedElementsOwnerUid) {
+            documentEntities[dEI].dispose();
+            documentEntities.splice(dEI, 1);
         }
     }
 }
-ECS.EcsEngine.BindCommand(new SpawnGrass(), ECS.Frequency.Startup, ECS.Order.First, null);
-export class SyncWeaponsWithOwners {
-    constructor() {
-        this.get = ECS.Get.All;
-        this.commandtype = ECS.Commands.SyncWeaponsWithOwners;
-        this.component = [ECS.Components.LookingDirection, ECS.Components.Position, ECS.Components.EntityState];
-        this.by = ECS.By.Everything;
-        this.byArgs = null;
-    }
-    run(args) {
-        for (var comp of args) {
-            for (var ge of Graphics.GraphicEngine.graphicEntities) {
-                if (comp.ownerUid == ge.entityUid) {
-                    switch (comp.componentType) {
-                        case ECS.Components.LookingDirection:
-                            ge.isEntityLookingRight = comp.isLookingRight;
-                            break;
-                        case ECS.Components.Position:
-                            ge.entityPosition = comp.position;
-                            break;
-                        case ECS.Components.EntityState:
-                            ge.entityState = comp.currentState;
-                            break;
+function updateDocumentEntities(updatedComputedElements) {
+    for (let uCE of updatedComputedElements) {
+        for (let dE of documentEntities) {
+            if (uCE.ownerUid == dE.entityUid) {
+                for (let [i, pC] of uCE.changedProperties.entries()) {
+                    if (pC) {
+                        switch (i) {
+                            case Comps.Properties.Classes:
+                                dE.setClasses(uCE.classes);
+                                break;
+                            case Comps.Properties.Color:
+                                dE.setColor(uCE.color);
+                                break;
+                            case Comps.Properties.DisplayElement:
+                                dE.setDisplayElement(uCE.displayElement);
+                                break;
+                            case Comps.Properties.Left:
+                                dE.setLeft(uCE.left);
+                                break;
+                            case Comps.Properties.Top:
+                                dE.setTop(uCE.top);
+                                break;
+                            case Comps.Properties.ZIndex:
+                                dE.setZIndex(uCE.zIndex);
+                                break;
+                        }
                     }
                 }
             }
         }
     }
 }
-export class MovePlayer {
-    constructor(newEntityUid) {
-        this.commandtype = ECS.Commands.MovePlayer;
-        this.component = [ECS.Components.Position, ECS.Components.LookingDirection, ECS.Components.EntityState];
-        this.get = ECS.Get.OneOfEach;
-        this.by = ECS.By.EntityUid;
-        this.byArgs = newEntityUid;
-    }
-    run(args) {
-        if (!(Input.up || Input.down) && !(Input.left || Input.right)) {
-            for (var a of args) {
-                if (a.componentType == ECS.Components.EntityState) {
-                    a.currentState = ECS.EntityStates.Idle;
-                    break;
-                }
-            }
-            return;
-        }
-        let wentRight = null;
-        if (Input.left)
-            wentRight = false;
-        if (Input.right)
-            wentRight = true;
-        for (var a of args) {
-            switch (a.componentType) {
-                case ECS.Components.Position:
-                    if (Input.up)
-                        a.position.y -= 1;
-                    if (Input.down)
-                        a.position.y += 1;
-                    if (Input.right)
-                        a.position.x += 1;
-                    if (Input.left)
-                        a.position.x -= 1;
-                    break;
-                case ECS.Components.LookingDirection:
-                    if (wentRight != null)
-                        a.isLookingRight = wentRight;
-                    break;
-                case ECS.Components.EntityState:
-                    a.currentState = ECS.EntityStates.Run;
-                    break;
-            }
-        }
-    }
-}
-ECS.EcsEngine.BindCommand(new MovePlayer(human.entityUid), ECS.Frequency.EveryStep, ECS.Order.First, null);
-let ecs = new ECS.EcsEngine();
-let graphics = new Graphics.GraphicEngine(new Utils.Vector2(10, 10));
+const managerWorker = new Worker("manager-worker.js", { type: 'module' });
+managerWorker.onerror = (e) => console.log(e);
+managerWorker.onmessage = (e) => {
+    componentsAndEntities = e.data[0];
+    addDocumentEntities(e.data[1].new);
+    deleteDocumentEntities(e.data[1].toDelete);
+    updateDocumentEntities(e.data[1].updated);
+};
+managerWorker.postMessage([]);
+const worldWorker = new Worker("world-worker.js", { type: 'module' });
+worldWorker.onerror = (e) => console.log(e);
+worldWorker.onmessage = (e) => managerWorker.postMessage(e.data);
+const brainWorker = new Worker("brain-worker.js", { type: 'module' });
+brainWorker.onerror = (e) => console.log(e);
+brainWorker.onmessage = (e) => managerWorker.postMessage(e.data);
+const graphicsWorker = new Worker("graphics-worker.js", { type: 'module' });
+graphicsWorker.onerror = (e) => console.log(e);
+graphicsWorker.onmessage = (e) => managerWorker.postMessage(e.data);
 class Input {
     static onKeyDown(event) {
         if (event.key == "w" || event.key == "ArrowUp")
@@ -127,6 +85,7 @@ class Input {
             Input.left = true;
         if (event.key == "d" || event.key == "ArrowRight")
             Input.right = true;
+        Input.setPlayerInput();
     }
     static onKeyUp(event) {
         if (event.key == "w" || event.key == "ArrowUp")
@@ -137,17 +96,26 @@ class Input {
             Input.left = false;
         if (event.key == "d" || event.key == "ArrowRight")
             Input.right = false;
+        Input.setPlayerInput();
+    }
+    static setPlayerInput() {
+        Input.input.x = 0;
+        Input.input.y = 0;
+        if (Input.down)
+            Input.input.y--;
+        if (Input.up)
+            Input.input.y++;
+        if (Input.left)
+            Input.input.x--;
+        if (Input.right)
+            Input.input.x++;
     }
 }
 Input.up = false;
 Input.down = false;
 Input.left = false;
 Input.right = false;
+Input.input = new Utils.Vector2(0, 0);
 document.addEventListener("keyup", Input.onKeyUp);
 document.addEventListener("keydown", Input.onKeyDown);
-function run() {
-    ecs.step();
-    graphics.render();
-}
-run();
-window.setInterval(run, 20);
+mainLoop();

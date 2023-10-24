@@ -307,7 +307,7 @@ export class DocumentEntity {
         this.stateElement.style.left = `${newPosition.x * 0.4}vmin`;
         this.stateElement.style.top = `${newPosition.y * 0.4}vmin`;
         this.stateElement.style.transform = `translateZ(${newPosition.y * 0.2}vmin)`;
-        //        this.stateElement.style.scale = `${1 + (newPosition.y / 50) * 0.15}`
+        this.stateElement.style.scale = `${1 + (newPosition.y / 50) * 0.15}`;
     }
 }
 export class GraphicEngine {

@@ -78,11 +78,7 @@ function onWorkerMessage(data: any) {
             }
 
             // check if is last worker
-            numberOfMessages++
-            if (numberOfMessages == 1) {
-                numberOfMessages = 0
-                step()
-            }
+            step()
             break;
 
         case Utils.Messages.AyeAyeCaptain:

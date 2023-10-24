@@ -1,8 +1,81 @@
 import * as ECS from "./ecs_engine.js"
 import * as Utils from "./utils.js"
 
-
 let flower = '<span class="icon-flower"><span class="path1"></span><span class="path2"></span><span class="path3"></span></span>'
+
+class AnimationManager {
+    private static animationTree: Array<Array<Array<Array<Array<Array<string> | string> | string> | string> | string>> = [
+        [ // stickman
+            "",
+            [ // running
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+            [ // knocked down
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+            [ // dying
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+            [ // aiming
+                "",
+                "",
+                "",
+                [""], // shooting
+                ["", "", "", ""] // reloading
+            ]
+        ],
+        [ // gun
+            "a",
+            ["b"], [], []],
+        [ // grass types
+            ",", [], [], [], [], [], [],],
+        [ // grass types
+            ",", [], [], [], [], [], [],],
+    ]
+    static play(currentAnimationNode: number[]): string {
+        let can = currentAnimationNode
+
+        switch (can.length) {
+            case 1:
+                return this.animationTree[can[0]][0] as string // select idle list's first element
+            case 2:
+                can.push(0)
+                return this.animationTree[can[0]][can[1]][can[2]] as string
+            case 3:
+                can[2] += 1
+                return this.animationTree[can[0]][can[1]][can[2]] as string
+
+            case 0:
+                console.log("nothing to play")
+                throw ""
+            default:
+                throw "no node avaible at such position"
+
+        }
+    }
+}
+
 export class SyncGraphicEntity implements ECS.Command {
     get: ECS.Get
     component: ECS.Components[] | null
@@ -12,7 +85,7 @@ export class SyncGraphicEntity implements ECS.Command {
 
     constructor() { //entitty direction component
         this.commandtype = ECS.Commands.SyncGraphicEntity
-        this.component = [ECS.Components.Position, ECS.Components.SpriteDirection]
+        this.component = [ECS.Components.Position, ECS.Components.LookingDirection, ECS.Components.EntityState]
         this.get = ECS.Get.AllOfEach
         this.by = ECS.By.Everything
         this.byArgs = null
@@ -21,21 +94,21 @@ export class SyncGraphicEntity implements ECS.Command {
     run(args: ECS.Component[]): void {
         for (var a of args) {
             for (var e of GraphicEngine.graphicEntities) {
-                if (a.ownerUid == e.ecsEntityUid) {
+                if (a.ownerUid == e.entityUid) {
                     switch (a.componentType) {
-                        case ECS.Components.SpriteDirection:
-                            let direction = a as ECS.SpriteDirection;
-                            (e as any).isLookingRight = direction.isLookingRight
+                        case ECS.Components.LookingDirection:
+                            let direction = a as ECS.LookingDirection;
+                            e.isEntityLookingRight = direction.isLookingRight
                             break;
 
                         case ECS.Components.Position:
                             let position = a as ECS.Position;
-                            e.position = position.position
+                            e.entityPosition = position.position
                             break;
 
                         case ECS.Components.EntityState:
                             let state = a as ECS.EntityState;
-                            e.currentEntityState = state.currentState
+                            e.entityState = state.currentState
                             break;
                     }
                 }
@@ -44,255 +117,311 @@ export class SyncGraphicEntity implements ECS.Command {
     }
 }
 
-interface AnimalBehavior {
-    isRunningAnimation: boolean
-    entityDisplay: string | null
-    onIdle(): Promise<void>
-    onDead(): Promise<void>
-    onRun(): Promise<void>
+export class Str {
+    str: string
+    constructor(newStr: string) {
+        this.str = newStr
+    }
 }
 
-interface PlantBehavior {
-    isRunningAnimation: boolean
-    entityDisplay: string | null
-    onIdle(): Promise<void>
-    onDead(): Promise<void>
-    onWindLeft(): Promise<void>
-    onWindRight(): Promise<void>
+export class Bool {
+    bool: boolean
+    constructor(newBool: boolean) {
+        this.bool = newBool
+    }
 }
 
-interface GraphicEntity {
-    isRunningAnimation: boolean
-    stateBuffer: ECS.EntityStates | null
-    position: Utils.Vector2 | null
-    ecsEntityUid: number
-    depth: number
-    displayState: string | null
-    currentEntityState: ECS.EntityStates
-    behavior: PlantBehavior | AnimalBehavior
+export class GraphicEntity {
+    animations: Animation[]
+    currentPlaying: Animation | null
+    finishedPlaying: Bool
+    entityState: ECS.EntityStates
+    displayElement: Str
+    entityPosition: Utils.Vector2
+    documentEntity: DocumentEntity
+    entityUid: number
+    isEntityLookingRight: boolean
+    z: number
+
+    constructor(
+        newAnimations: Animation[],
+        newEntityPosition: Utils.Vector2,
+        newEntityUid: number,
+        newIsEntityLookingRight: boolean,
+        newZ: number
+    ) {
+        this.finishedPlaying = new Bool(false)
+        this.entityUid = newEntityUid
+        this.z = newZ;
+        this.animations = newAnimations
+        this.currentPlaying = null
+        this.entityState = ECS.EntityStates.Idle
+        this.displayElement = new Str("?")
+        this.entityPosition = newEntityPosition
+        this.isEntityLookingRight = newIsEntityLookingRight
+        this.documentEntity = new DocumentEntity(this.entityUid, this.displayElement, this.z)
+        if (!this.isEntityLookingRight)
+            this.documentEntity.lookLeft()
+        for (var a of newAnimations) {
+            a.displayElement = this.displayElement
+            a.finished = this.finishedPlaying
+        }
+    }
+
+    doTasks() {
+        this.syncEntityStateWithAnimation()
+        this.deleteCurrentPlayingAnimation()
+        this.syncDocument()
+    }
+
+    deleteCurrentPlayingAnimation() {
+        if (this.finishedPlaying.bool) {
+            this.currentPlaying = null
+        }
+    }
+
+    syncDocument() {
+        this.documentEntity.setPosition(this.entityPosition)
+        this.documentEntity.setDisplayElement(this.displayElement)
+
+        if (this.isEntityLookingRight) {
+            this.documentEntity.lookRight()
+        }
+        else
+            this.documentEntity.lookLeft()
+    }
+
+    syncEntityStateWithAnimation() {
+        for (var a of this.animations) {
+            if (a.runOnEntityState == this.entityState) {
+                if (a.runOnEntityState == this.currentPlaying?.runOnEntityState) {
+                    return;
+                }
+
+                if (this.currentPlaying?.cancel)
+                    this.currentPlaying.cancel()
+
+                this.currentPlaying = a
+                this.finishedPlaying.bool = false
+                a.run()
+            }
+        }
+    }
 }
 
-export class GraphicFox implements GraphicEntity {
-    isRunningAnimation: boolean
-    stateBuffer: ECS.EntityStates | null
-    isLookingRight: boolean
-    position: Utils.Vector2 | null
-    ecsEntityUid: number
-    depth: number
-    displayState: string | null
-    currentEntityState: ECS.EntityStates
-    behavior: PlantBehavior | AnimalBehavior
+interface Animation {
+    finished: Bool
+    cancel: Function | null;
+    runOnEntityState: ECS.EntityStates
+    currentAnimationNode: number[]
+    displayElement: Str
 
-    constructor(newPosition: Utils.Vector2, newEcsEntityUid: number) {
+    run(): Promise<void>
+}
+
+
+export class PlantIdle implements Animation {
+    finished!: Bool
+    cancel: Function | null;
+    runOnEntityState: ECS.EntityStates
+    displayElement!: Str
+    currentAnimationNode: number[]
+
+    constructor() {
+        this.cancel = null
+        this.runOnEntityState = ECS.EntityStates.Idle
+        this.currentAnimationNode = []
+    }
+
+    async run(): Promise<void> {
+        let currentAnimationNode = [2]
+        this.displayElement.str =
+            AnimationManager.play(currentAnimationNode)
+        this.finished.bool = true
+    }
+
+}
+export class StickmanIdle implements Animation {
+    finished!: Bool
+    cancel: Function | null;
+    runOnEntityState: ECS.EntityStates
+    displayElement!: Str
+    currentAnimationNode: number[]
+
+    constructor() {
+        this.cancel = null
+        this.runOnEntityState = ECS.EntityStates.Idle
+        this.currentAnimationNode = []
+    }
+
+    async run(): Promise<void> {
+        let currentAnimationNode = [0]
+        this.displayElement.str =
+            AnimationManager.play(currentAnimationNode)
+        this.finished.bool = true
+    }
+
+}
+export class StickmanRun implements Animation {
+    finished!: Bool
+    cancel: Function | null;
+    runOnEntityState: ECS.EntityStates
+    displayElement!: Str
+    currentAnimationNode: number[]
+
+    constructor() {
+        this.cancel = null
+        this.runOnEntityState = ECS.EntityStates.Run
+        this.currentAnimationNode = []
+    }
+
+    async run(): Promise<void> {
+        console.log("played running")
+        let currentAnimationNode = [0, 1]
+
+        this.displayElement.str =
+            AnimationManager.play(currentAnimationNode)
+
+        if (this.finished.bool) return;
+
+        let { promise, cancel } = Utils.delay(80)
+        this.cancel = cancel
+        await promise
+
+        this.displayElement.str =
+            AnimationManager.play(currentAnimationNode)
+
+        if (this.finished.bool) return;
+
+        ({ promise, cancel } = Utils.delay(80))
+        this.cancel = cancel
+        await promise
+
+        this.displayElement.str =
+            AnimationManager.play(currentAnimationNode)
+
+        if (this.finished.bool) return;
+
+        ({ promise, cancel } = Utils.delay(80))
+        this.cancel = cancel
+        await promise
+
+        this.displayElement.str =
+            AnimationManager.play(currentAnimationNode)
+
+        if (this.finished.bool) return;
+
+
+        ({ promise, cancel } = Utils.delay(80))
+        this.cancel = cancel
+        await promise
+
+        this.displayElement.str =
+            AnimationManager.play(currentAnimationNode)
+
+        if (this.finished.bool) return;
+
+        ({ promise, cancel } = Utils.delay(80))
+        this.cancel = cancel
+        await promise
+
+        this.displayElement.str =
+            AnimationManager.play(currentAnimationNode)
+
+        this.finished.bool = true
+    }
+
+}
+
+export class DocumentEntity {
+    private documentEntityReference: HTMLElement
+    private stateElement: HTMLElement
+    private _doNotDisturb: boolean
+    private isLookingRight: boolean
+
+    constructor(entityUid: number, newDisplayElement: Str, z: number) {
+        if (z < 0 || z > 2) {
+            console.log("z is too high or too low")
+            throw ""
+        }
+
+        let zElement = document.getElementById("z-" + z)
+        zElement!.insertAdjacentHTML("beforeend", `<div class="rel" id="${entityUid}"><div class="state">${newDisplayElement.str}</div></div>`);
+
+
+        this.documentEntityReference = document.getElementById(entityUid.toString())!
+        this.stateElement = this.documentEntityReference.firstElementChild! as HTMLElement
+
+        this._doNotDisturb = false
         this.isLookingRight = true
-        this.isRunningAnimation = false
-        this.stateBuffer = null
-        this.position = newPosition
-        this.ecsEntityUid = newEcsEntityUid
-        this.depth = 2
-        this.displayState = ""
-        //this.displayState = "#"
-        this.currentEntityState = ECS.EntityStates.Idle
-        this.behavior = new FoxBehavior(this.displayState, this.isRunningAnimation, this.isLookingRight)
     }
-}
-export class GraphicGrass implements GraphicEntity {
-    isRunningAnimation: boolean
-    stateBuffer: ECS.EntityStates | null
-    position: Utils.Vector2 | null
-    ecsEntityUid: number
-    depth: number
-    displayState: string | null
-    currentEntityState: ECS.EntityStates
-    behavior: PlantBehavior | AnimalBehavior
-
-    constructor(newEcsEntityUid: number) {
-        this.isRunningAnimation = false
-        this.stateBuffer = null
-        this.position = null
-        this.ecsEntityUid = newEcsEntityUid
-        this.depth = 0
-        this.displayState = ""
-        this.currentEntityState = ECS.EntityStates.Idle
-        this.behavior = new GrassBehavior(this.displayState, this.isRunningAnimation)
-    }
-}
-export class GrassBehavior implements PlantBehavior {
-    isRunningAnimation: boolean
-    entityDisplay: string | null
-
-
-    constructor(newEntityDisplay: string | null, newIsRunningAnimation: boolean) {
-        this.isRunningAnimation = newIsRunningAnimation
-        this.entityDisplay = newEntityDisplay
-    }
-
-    async onIdle(): Promise<void> {
-        this.isRunningAnimation = true
-        //        if (this.isLookingRight) {
-        //            this.entityDisplay = ""
-        //        }
-        //        else {
-        //            this.entityDisplay = "L"
-        //        }
-        this.isRunningAnimation = false
-    }
-    async onDead(): Promise<void> {
-        this.isRunningAnimation = true
-        this.entityDisplay = ""
-        this.isRunningAnimation = false
-    }
-    async onWindLeft(): Promise<void> {
-        this.isRunningAnimation = true
-        this.entityDisplay = "R"
-        this.isRunningAnimation = false
-    }
-    async onWindRight(): Promise<void> {
-        this.isRunningAnimation = true
-        this.entityDisplay = "R"
-        this.isRunningAnimation = false
-    }
-}
-export class FoxBehavior implements AnimalBehavior {
-    isRunningAnimation: boolean
-    isLookingRight: boolean
-    entityDisplay: string | null
-
-
-    constructor(newEntityDisplay: string | null, newIsRunningAnimation: boolean, newIsLookingRight: boolean) {
-        this.isLookingRight = newIsLookingRight
-        this.isRunningAnimation = newIsRunningAnimation
-        this.entityDisplay = newEntityDisplay
-    }
-
-    async onIdle(): Promise<void> {
-        this.isRunningAnimation = true
+    lookRight() {
         if (this.isLookingRight) {
-            this.entityDisplay = ""
+            return;
         }
-        else {
-            this.entityDisplay = "L"
+        this.isLookingRight = true
+        this.stateElement.classList.remove("look-left")
+        this.stateElement.classList.add("look-right")
+    }
+
+    lookLeft() {
+        if (!this.isLookingRight) {
+            return;
         }
-        this.isRunningAnimation = false
+        this.isLookingRight = false
+        this.stateElement.classList.remove("look-right")
+        this.stateElement.classList.add("look-left")
     }
-    async onDead(): Promise<void> {
-        this.isRunningAnimation = true
-        this.entityDisplay = ""
-        this.isRunningAnimation = false
+
+    toggleDoNotDisturb() {
+        this._doNotDisturb = !this._doNotDisturb
+        if (this._doNotDisturb)
+            this.stateElement.classList.add("do-not-disturb")
+        if (!this._doNotDisturb)
+            this.stateElement.classList.remove("do-not-disturb")
     }
-    async onRun(): Promise<void> {
-        this.isRunningAnimation = true
-        this.entityDisplay = "R"
-        this.isRunningAnimation = false
+
+    get doNotDisturb(): boolean {
+        return this._doNotDisturb
+    }
+    dispose() {
+        this.documentEntityReference.remove()
+    }
+    setDisplayElement(newDisplayElement: Str) {
+        this.stateElement.innerHTML = newDisplayElement.str
+    }
+    setPosition(newPosition: Utils.Vector2) {
+        this.stateElement.style.left = `${newPosition.x * 0.4}vmin`
+        this.stateElement.style.top = `${newPosition.y * 0.4}vmin`
+        this.stateElement.style.transform = `translateZ(${newPosition.y * 0.2}vmin)`
+        //        this.stateElement.style.scale = `${1 + (newPosition.y / 50) * 0.15}`
     }
 }
+
 
 
 export class GraphicEngine {
     static graphicEntities: GraphicEntity[] = []
-
     viewSize: Utils.Vector2
-    emptyView: string[][][]
 
     constructor(newViewSize: Utils.Vector2) {
-
         this.viewSize = newViewSize
-        this.emptyView = []
-
-        for (var i = 0; i < 3; i++) {
-            this.emptyView[i] = []
-            for (var x = 0; x < this.viewSize.x; x++) {
-                this.emptyView[i][x] = []
-                for (var y = 0; y < this.viewSize.y; y++) {
-                    this.emptyView[i][x][y] = "" // Fill with space
-                }
-            }
-        }
     }
 
     render() {
-        this.bufferSync()
-        let world: string[][][] = JSON.parse(JSON.stringify(this.emptyView))
 
         for (var e of GraphicEngine.graphicEntities) {
-            if (e.displayState == null || e.position == null) {
-                continue;
-            }
-
-            if (e.position.x > 9 || e.position.y > 9 ||
-                e.position.x < 0 || e.position.y < 0
-            ) {
-                continue
-            }
-
-            world[e.depth][e.position.y][e.position.x] = e.displayState;
+            //            if (e.entityPosition.x > 9 || e.entityPosition.y > 9 ||
+            //                e.entityPosition.x < 0 || e.entityPosition.y < 0
+            //            ) {
+            //                continue
+            //            }
+            e.doTasks()
         }
 
-
-
-        for (var zI = 0; zI < 3; zI++) {                                     //  [..]
-            for (var colI = 0; colI < this.viewSize.y; colI++) {
-                let rowElement = document.getElementById("p-" + zI + "-" + colI)!  //  [..]
-                rowElement.innerHTML = ""
-                let tempRow = world[zI][colI].join("")
-                rowElement.innerHTML = tempRow
-                rowElement.innerHTML += "<br>"
-            }
-        }
     }
 
 
-    bufferSync() {
-        for (var e of GraphicEngine.graphicEntities) {
-            switch (e.stateBuffer) {
-                case ECS.EntityStates.Idle:
-                    if (!e.isRunningAnimation) {
-                        e.currentEntityState = e.stateBuffer
-                        e.stateBuffer = null
-                    }
-                    break;
-                case ECS.EntityStates.Dead:
-                    e.currentEntityState = e.stateBuffer
-                    e.stateBuffer = null
-                    break;
-                case ECS.EntityStates.Running:
-                    e.currentEntityState = e.stateBuffer
-                    e.stateBuffer = null
-                    break;
-                case ECS.EntityStates.WindLeft:
-                    if (!e.isRunningAnimation) {
-                        e.currentEntityState = e.stateBuffer
-                        e.stateBuffer = null
-                    }
-                    break;
-                case ECS.EntityStates.WindRight:
-                    if (!e.isRunningAnimation) {
-                        e.currentEntityState = e.stateBuffer
-                        e.stateBuffer = null
-                    }
-                    break;
-            }
-
-            switch (e.currentEntityState) {
-                case ECS.EntityStates.Dead:
-                    (e.behavior as any).onDead()
-                    break;
-                case ECS.EntityStates.Running:
-                    (e.behavior as AnimalBehavior).onRun()
-                    break;
-                case ECS.EntityStates.WindLeft:
-                    (e.behavior as PlantBehavior).onWindLeft()
-                    break;
-                case ECS.EntityStates.WindRight:
-                    (e.behavior as PlantBehavior).onWindRight()
-                    break;
-                case ECS.EntityStates.Idle:
-                    (e.behavior as any).onIdle()
-                    break;
-            }
-
-        }
-    }
 }
 
 enum Colors {

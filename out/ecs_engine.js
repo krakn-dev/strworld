@@ -5,22 +5,22 @@ export var EntityStates;
     EntityStates[EntityStates["Dead"] = 1] = "Dead";
     EntityStates[EntityStates["WindLeft"] = 2] = "WindLeft";
     EntityStates[EntityStates["WindRight"] = 3] = "WindRight";
-    EntityStates[EntityStates["Shooting"] = 4] = "Shooting";
-    EntityStates[EntityStates["Running"] = 5] = "Running";
+    EntityStates[EntityStates["Shoot"] = 4] = "Shoot";
+    EntityStates[EntityStates["Reload"] = 5] = "Reload";
+    EntityStates[EntityStates["Run"] = 6] = "Run";
 })(EntityStates || (EntityStates = {}));
 export var Components;
 (function (Components) {
     Components[Components["Health"] = 0] = "Health";
     Components[Components["Name"] = 1] = "Name";
     Components[Components["Position"] = 2] = "Position";
-    Components[Components["SpriteDirection"] = 3] = "SpriteDirection";
+    Components[Components["LookingDirection"] = 3] = "LookingDirection";
     Components[Components["EntityState"] = 4] = "EntityState";
 })(Components || (Components = {}));
 export var Entities;
 (function (Entities) {
     Entities[Entities["Human"] = 0] = "Human";
-    Entities[Entities["Fox"] = 1] = "Fox";
-    Entities[Entities["Grass"] = 2] = "Grass";
+    Entities[Entities["Grass"] = 1] = "Grass";
 })(Entities || (Entities = {}));
 export var Get;
 (function (Get) {
@@ -40,73 +40,14 @@ export var By;
 })(By || (By = {}));
 export var Commands;
 (function (Commands) {
-    Commands[Commands["RunBeforeFoxHealth"] = 0] = "RunBeforeFoxHealth";
-    Commands[Commands["GetFoxHealth"] = 1] = "GetFoxHealth";
-    Commands[Commands["PrintEveryField"] = 2] = "PrintEveryField";
-    Commands[Commands["SyncGraphicEntity"] = 3] = "SyncGraphicEntity";
-    Commands[Commands["SpawnGrass"] = 4] = "SpawnGrass";
-    Commands[Commands["MovePlayer"] = 5] = "MovePlayer";
+    Commands[Commands["SyncWeaponsWithOwners"] = 0] = "SyncWeaponsWithOwners";
+    Commands[Commands["SyncGraphicEntity"] = 1] = "SyncGraphicEntity";
+    Commands[Commands["SpawnGrass"] = 2] = "SpawnGrass";
+    Commands[Commands["MovePlayer"] = 3] = "MovePlayer";
 })(Commands || (Commands = {}));
-export class RunBeforeFoxHealth {
-    constructor() {
-        this.commandtype = Commands.RunBeforeFoxHealth;
-        this.component = null;
-        this.get = Get.None;
-        this.byArgs = null;
-        this.by = null;
-    }
-    run(args) {
-        console.log("before 'health'");
-    }
-}
-export class GetFoxHealth {
-    constructor() {
-        this.found = false;
-        this.dead = false;
-        this.timesTried = 0;
-        this.commandtype = Commands.GetFoxHealth;
-        this.get = Get.One;
-        this.component = [Components.Health];
-        this.by = By.EntityType;
-        this.byArgs = Entities.Fox;
-    }
-    run(args) {
-        if (args.length == 0) {
-            this.timesTried++;
-            console.log("wtf");
-            return;
-        }
-        console.log(args[0].health, " health");
-    }
-}
-export class PrintEveryField {
-    constructor() {
-        this.commandtype = Commands.PrintEveryField;
-        this.get = Get.All;
-        this.component = null;
-        this.by = By.Everything;
-        this.byArgs = null;
-    }
-    run(args) {
-        for (var c of args) {
-            if (c.componentType == Components.Health) {
-                console.log(c.health, " h");
-            }
-            if (c.componentType == Components.Name) {
-                console.log(c.name, " n");
-            }
-        }
-    }
-}
 export class Grass {
     constructor() {
         this.entityType = Entities.Grass;
-        this.entityUid = Utils.newUid();
-    }
-}
-export class Fox {
-    constructor() {
-        this.entityType = Entities.Fox;
         this.entityUid = Utils.newUid();
     }
 }
@@ -116,12 +57,12 @@ export class Human {
         this.entityUid = Utils.newUid();
     }
 }
-export class SpriteDirection {
+export class LookingDirection {
     constructor(newOwnerUid) {
         this.isLookingRight = true;
         this.ownerUid = newOwnerUid;
         this.componentUid = Utils.newUid();
-        this.componentType = Components.SpriteDirection;
+        this.componentType = Components.LookingDirection;
     }
 }
 export class EntityState {

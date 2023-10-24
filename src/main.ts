@@ -4,13 +4,22 @@ import * as Graphics from "./graphic_engine.js"
 
 ECS.EcsEngine.BindCommand(new Graphics.SyncGraphicEntity(), ECS.Frequency.EveryStep, ECS.Order.First, null)
 
-let fox = new ECS.Fox()
-ECS.EcsEngine.entities.push(fox)
-ECS.EcsEngine.components.push(new ECS.Name("foxo", fox.entityUid))
-ECS.EcsEngine.components.push(new ECS.SpriteDirection(fox.entityUid))
-ECS.EcsEngine.components.push(new ECS.Health(10, fox.entityUid))
-let position = new ECS.Position(new Utils.Vector2(4, 6), fox.entityUid)
+let human = new ECS.Human()
+ECS.EcsEngine.entities.push(human)
+let lookingDirection = new ECS.LookingDirection(human.entityUid)
+ECS.EcsEngine.components.push(lookingDirection)
+ECS.EcsEngine.components.push(new ECS.Health(10, human.entityUid))
+ECS.EcsEngine.components.push(new ECS.EntityState(ECS.EntityStates.Idle, human.entityUid))
+let position = new ECS.Position(new Utils.Vector2(0, 0), human.entityUid)
 ECS.EcsEngine.components.push(position)
+
+let graphicEntity = new Graphics.GraphicEntity([new Graphics.StickmanRun(), new Graphics.StickmanIdle()], position.position, human.entityUid, lookingDirection.isLookingRight, 2)
+Graphics.GraphicEngine.graphicEntities.push(graphicEntity)
+
+
+
+
+
 
 
 
@@ -30,19 +39,65 @@ export class SpawnGrass implements ECS.Command {
         this.byArgs = null
     }
     run(_: ECS.Component[]): void {
-        for (var yI = 0; yI < 10; yI++) {
-            for (var xI = 0; xI < 10; xI++) {
+        for (var yI = 0; yI < 20; yI++) {
+            for (var xI = 0; xI < 20; xI++) {
+                let shouldSpawn = Utils.randomNumber(2)
+                if (shouldSpawn == 1) {
+                    continue
+                }
                 let grass = new ECS.Grass()
                 ECS.EcsEngine.entities.push(grass)
                 ECS.EcsEngine.components.push(new ECS.Health(1, grass.entityUid))
-                ECS.EcsEngine.components.push(new ECS.Position(new Utils.Vector2(xI, yI), grass.entityUid))
-                Graphics.GraphicEngine.graphicEntities.push(new Graphics.GraphicGrass(grass.entityUid))
+                let position = new ECS.Position(new Utils.Vector2(xI * 10, yI * 10), grass.entityUid)
+                ECS.EcsEngine.components.push(position)
+                ECS.EcsEngine.components.push(new ECS.EntityState(ECS.EntityStates.Idle, grass.entityUid))
+                let graphicEntity = new Graphics.GraphicEntity([new Graphics.PlantIdle()], position.position, grass.entityUid, true, 0)
+                Graphics.GraphicEngine.graphicEntities.push(graphicEntity)
             }
         }
     }
 }
 
 ECS.EcsEngine.BindCommand(new SpawnGrass(), ECS.Frequency.Startup, ECS.Order.First, null)
+
+
+
+
+export class SyncWeaponsWithOwners implements ECS.Command {
+    get: ECS.Get
+    component: ECS.Components[] | null
+    by: ECS.By | null
+    byArgs: number | ECS.Entities | null
+    commandtype: ECS.Commands
+
+    constructor() {
+        this.get = ECS.Get.All
+        this.commandtype = ECS.Commands.SyncWeaponsWithOwners
+        this.component = [ECS.Components.LookingDirection, ECS.Components.Position, ECS.Components.EntityState]
+        this.by = ECS.By.Everything
+        this.byArgs = null
+    }
+    run(args: ECS.Component[]): void {
+        for (var comp of args) {
+            for (var ge of Graphics.GraphicEngine.graphicEntities) {
+                if (comp.ownerUid == ge.entityUid) {
+                    switch (comp.componentType) {
+                        case ECS.Components.LookingDirection:
+                            ge.isEntityLookingRight = (comp as ECS.LookingDirection).isLookingRight
+                            break;
+                        case ECS.Components.Position:
+                            ge.entityPosition = (comp as ECS.Position).position
+                            break;
+                        case ECS.Components.EntityState:
+                            ge.entityState = (comp as ECS.EntityState).currentState
+                            break;
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 
 
@@ -57,70 +112,106 @@ export class MovePlayer implements ECS.Command {
 
     constructor(newEntityUid: number) {
         this.commandtype = ECS.Commands.MovePlayer
-        this.component = [ECS.Components.Position, ECS.Components.SpriteDirection]
+        this.component = [ECS.Components.Position, ECS.Components.LookingDirection, ECS.Components.EntityState]
         this.get = ECS.Get.OneOfEach
         this.by = ECS.By.EntityUid
         this.byArgs = newEntityUid
     }
     run(args: ECS.Component[]): void {
-        let wentRight = true
+        if (!(Input.up || Input.down) && !(Input.left || Input.right)) {
+            for (var a of args) {
+                if (a.componentType == ECS.Components.EntityState) {
+                    (a as ECS.EntityState).currentState = ECS.EntityStates.Idle
+                    break;
+                }
+            }
 
-        if (Input.direction.x == 1)
-            wentRight = true;
-        if (Input.direction.x == -1)
+            return
+        }
+
+        let wentRight: boolean | null = null;
+        if (Input.left)
             wentRight = false
+        if (Input.right)
+            wentRight = true;
+
         for (var a of args) {
             switch (a.componentType) {
                 case ECS.Components.Position:
-                    (a as ECS.Position).position.x += Input.direction.x;
-                    (a as ECS.Position).position.y += Input.direction.y;
-                    Input.direction = new Utils.Vector2(0, 0)
+                    if (Input.up)
+                        (a as ECS.Position).position.y -= 1;
 
+                    if (Input.down)
+                        (a as ECS.Position).position.y += 1;
+
+                    if (Input.right)
+                        (a as ECS.Position).position.x += 1;
+
+                    if (Input.left)
+                        (a as ECS.Position).position.x -= 1;
                     break;
-                case ECS.Components.SpriteDirection:
-                    (a as ECS.SpriteDirection).isLookingRight = wentRight
+
+                case ECS.Components.LookingDirection:
+                    if (wentRight != null)
+                        (a as ECS.LookingDirection).isLookingRight = wentRight
+                    break;
+
+                case ECS.Components.EntityState:
+                    (a as ECS.EntityState).currentState = ECS.EntityStates.Run
                     break;
             }
 
         }
     }
 }
-ECS.EcsEngine.BindCommand(new MovePlayer(fox.entityUid), ECS.Frequency.EveryStep, ECS.Order.First, null)
+ECS.EcsEngine.BindCommand(new MovePlayer(human.entityUid), ECS.Frequency.EveryStep, ECS.Order.First, null)
 
 let ecs = new ECS.EcsEngine();
 let graphics = new Graphics.GraphicEngine(new Utils.Vector2(10, 10));
-Graphics.GraphicEngine.graphicEntities.push(new Graphics.GraphicFox(position.position, fox.entityUid))
 
 class Input {
-    static direction = new Utils.Vector2(0, 0)
-    static onInput(event: any) {
-        switch (event.key) {
-            case "j":
-                Input.direction.y += 1
-                break;
-            case "k":
-                Input.direction.y -= 1
-                break;
-            case "h":
-                Input.direction.x -= 1
-                break;
-            case "l":
-                Input.direction.x += 1
-                break;
-        }
+    static up = false
+    static down = false
+    static left = false
+    static right = false
+
+    static onKeyDown(event: any) {
+        if (event.key == "w" || event.key == "ArrowUp")
+            Input.up = true
+
+        if (event.key == "s" || event.key == "ArrowDown")
+            Input.down = true
+
+        if (event.key == "a" || event.key == "ArrowLeft")
+            Input.left = true
+
+        if (event.key == "d" || event.key == "ArrowRight")
+            Input.right = true
+    }
+    static onKeyUp(event: any) {
+
+        if (event.key == "w" || event.key == "ArrowUp")
+            Input.up = false
+
+        if (event.key == "s" || event.key == "ArrowDown")
+            Input.down = false
+
+        if (event.key == "a" || event.key == "ArrowLeft")
+            Input.left = false
+
+        if (event.key == "d" || event.key == "ArrowRight")
+            Input.right = false
     }
 }
+
+document.addEventListener(
+    "keyup",
+    Input.onKeyUp,
+);
 document.addEventListener(
     "keydown",
-    Input.onInput,
+    Input.onKeyDown,
 );
-
-
-
-
-
-
-
 
 
 
@@ -134,4 +225,4 @@ function run(): void {
 }
 run()
 
-window.setInterval(run, 100)
+window.setInterval(run, 20)

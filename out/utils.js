@@ -1,227 +1,84 @@
+import * as Cmds from "./commands.js";
+import * as Comps from "./components.js";
 export function randomNumber(max) {
     return Math.floor(Math.random() * max) + 1;
 }
 export function newUid() {
     return randomNumber(100000000);
 }
-//export async function delay(ms: number): Promise<void> { return new Promise(res => setTimeout(res, ms)) }
-export class Str {
-    constructor(newStr) {
-        this.str = newStr;
+export function property(name) {
+    return name;
+}
+export const NUMBER_OF_COMPONENTS = (() => {
+    let n = 0;
+    for (let i = 0; i < Object.keys(Comps.Components).length / 2; i++) {
+        n++;
+    }
+    return n;
+})();
+export const NUMBER_OF_COMMANDS = (() => {
+    let n = 0;
+    for (let i = 0; i < Object.keys(Cmds.Commands).length / 2; i++) {
+        n++;
+    }
+    return n;
+})();
+export var Messages;
+(function (Messages) {
+    Messages[Messages["Work"] = 0] = "Work";
+    Messages[Messages["Start"] = 1] = "Start";
+    Messages[Messages["Done"] = 2] = "Done";
+    Messages[Messages["AreYouReadyKids"] = 3] = "AreYouReadyKids";
+    // if workers are ready to do work
+    Messages[Messages["AyeAyeCaptain"] = 4] = "AyeAyeCaptain";
+    // means that they able to do work
+})(Messages || (Messages = {}));
+export class WorkerOutput {
+    constructor(newPropertiesToChange = null, newComponentsToRemove = null, newComponentsToAdd = null, newState = null, newCommandsToRemove = null, newCommandsToAdd = null) {
+        this.state = null;
+        this.state = newState;
+        this.propertiesToChange = newPropertiesToChange;
+        this.componentsToRemove = newComponentsToRemove;
+        this.componentsToAdd = newComponentsToAdd;
+        this.commandsToRemove = newCommandsToRemove;
+        this.commandsToAdd = newCommandsToAdd;
     }
 }
-export class Bool {
-    constructor(newBool) {
-        this.bool = newBool;
+export class WorkerInput {
+    constructor(newState, newComponents, newCommands) {
+        this.state = newState;
+        this.commands = newCommands;
+        this.components = newComponents;
     }
 }
-export function canRun(queriedComponents, foundComponents) {
-    //    for (let qCI = 0; qCI < queriedComponents.length; qCI++) {
-    //        if (foundComponents.length != foundComponents.length) {
-    //            console.log("found and queried components mismatch -> ", queriedComponents.length, " and ", foundComponents.length, "\n")
-    //            console.log("q -> ", queriedComponents, " f -> ", foundComponents)
-    //            return false
-    //        }
-    //    }
-    for (let [fCLI, fCL] of foundComponents.entries()) {
-        if (fCL.length == 0) {
-            console.log("components are missing to run this command. Missing component -> ", queriedComponents[fCLI]);
-            return false;
+export class Message {
+    constructor(newMessage, newData = null) {
+        this.message = newMessage;
+        this.data = newData;
+    }
+}
+export function divideList(arr, n) {
+    var rest = arr.length % n, // how much to divide
+    restUsed = rest, // to keep track of the division over the elements
+    partLength = Math.floor(arr.length / n), result = [];
+    for (var i = 0; i < arr.length; i += partLength) {
+        var end = partLength + i, add = false;
+        if (rest !== 0 && restUsed) { // should add one element for the division
+            end++;
+            restUsed--; // we've used one division element now
+            add = true;
+        }
+        result.push(arr.slice(i, end)); // part of the array
+        if (add) {
+            i++; // also increment i in the case we added an extra element for division
         }
     }
-    return true;
+    return result;
 }
-export const delay = (delay) => {
-    let timeout = 0;
-    let _resolve;
-    const promise = new Promise((resolve, _) => {
-        _resolve = resolve;
-        timeout = setTimeout(resolve, delay);
+export const CHANGES_KEY = "_c";
+export function delay(delay) {
+    return new Promise((resolve, _) => {
+        setTimeout(resolve, delay);
     });
-    return {
-        promise,
-        cancel() {
-            if (timeout) {
-                clearTimeout(timeout);
-                timeout = null;
-                if (_resolve)
-                    _resolve(null);
-            }
-        }
-    };
-};
-export function reverseCopyArray(input) {
-    var ret = new Array;
-    for (var i = input.length - 1; i >= 0; i--) {
-        ret.push(input[i]);
-    }
-    return ret;
 }
-export class Vector3 {
-    get x() { return this._x; }
-    get y() { return this._y; }
-    get z() { return this._z; }
-    set x(newX) {
-        this.isChanged.bool = true;
-        this._x = newX;
-    }
-    set y(newY) {
-        this.isChanged.bool = true;
-        this._y = newY;
-    }
-    set z(newZ) {
-        this.isChanged.bool = true;
-        this._z = newZ;
-    }
-    constructor(newX, newY, newZ) {
-        this.isChanged = new Bool(true);
-        this._x = newX;
-        this._y = newY;
-        this._z = newZ;
-    }
-    sum(rightHand) {
-        let result = new Vector3(this._x, this._y, this._z);
-        if (typeof rightHand == "number") {
-            result.x += rightHand;
-            result.y += rightHand;
-            result.z += rightHand;
-        }
-        else {
-            result.x += rightHand.x;
-            result.y += rightHand.y;
-            result.z += rightHand.z;
-        }
-        return result;
-    }
-    substract(rightHand) {
-        let result = new Vector3(this._x, this._y, this._z);
-        if (typeof rightHand == "number") {
-            result.x -= rightHand;
-            result.y -= rightHand;
-            result.z -= rightHand;
-        }
-        else {
-            result.x -= rightHand.x;
-            result.y -= rightHand.y;
-            result.z -= rightHand.z;
-        }
-        return result;
-    }
-    normalize() {
-        let result = new Vector3(this._x, this._y, this._z);
-        let hypotenuse = Math.hypot(result.x, result.y, result.z);
-        result.x /= hypotenuse;
-        result.y /= hypotenuse;
-        result.z /= hypotenuse;
-        return result;
-    }
-    multiply(rightHand) {
-        let result = new Vector3(this._x, this._y, this._z);
-        if (typeof rightHand == "number") {
-            result.x *= rightHand;
-            result.y *= rightHand;
-            result.z *= rightHand;
-        }
-        else {
-            result.x *= rightHand.x;
-            result.y *= rightHand.y;
-            result.z *= rightHand.z;
-        }
-        return result;
-    }
-    divide(rightHand) {
-        let result = new Vector3(this._x, this._y, this._z);
-        if (typeof rightHand == "number") {
-            result.x /= rightHand;
-            result.y /= rightHand;
-            result.z /= rightHand;
-        }
-        else {
-            result.x /= rightHand.x;
-            result.y /= rightHand.y;
-            result.z /= rightHand.z;
-        }
-        return result;
-    }
-    assign(newVector) {
-        this.x = newVector.x;
-        this.y = newVector.y;
-        this.z = newVector.z;
-    }
-}
-export class Vector2 {
-    get x() { return this._x; }
-    get y() { return this._y; }
-    set x(newX) {
-        this.isChanged.bool = true;
-        this._x = newX;
-    }
-    set y(newY) {
-        this.isChanged.bool = true;
-        this._y = newY;
-    }
-    constructor(newX, newY) {
-        this._x = newX;
-        this._y = newY;
-        this.isChanged = new Bool(true);
-    }
-    sum(rightHand) {
-        let result = new Vector2(this._x, this._y);
-        if (typeof rightHand == "number") {
-            result.x += rightHand;
-            result.y += rightHand;
-        }
-        else {
-            result.x += rightHand.x;
-            result.y += rightHand.y;
-        }
-        return result;
-    }
-    substract(rightHand) {
-        let result = new Vector2(this._x, this._y);
-        if (typeof rightHand == "number") {
-            result.x -= rightHand;
-            result.y -= rightHand;
-        }
-        else {
-            result.x -= rightHand.x;
-            result.y -= rightHand.y;
-        }
-        return result;
-    }
-    normalize() {
-        let result = new Vector2(this._x, this._y);
-        let hypotenuse = Math.hypot(result.x, result.y);
-        result.x /= hypotenuse;
-        result.y /= hypotenuse;
-        return result;
-    }
-    multiply(rightHand) {
-        let result = new Vector2(this._x, this._y);
-        if (typeof rightHand == "number") {
-            result.x *= rightHand;
-            result.y *= rightHand;
-        }
-        else {
-            result.x *= rightHand.x;
-            result.y *= rightHand.y;
-        }
-        return result;
-    }
-    divide(rightHand) {
-        let result = new Vector2(this._x, this._y);
-        if (typeof rightHand == "number") {
-            result.x /= rightHand;
-            result.y /= rightHand;
-        }
-        else {
-            result.x /= rightHand.x;
-            result.y /= rightHand.y;
-        }
-        return result;
-    }
-    assign(newVector) {
-        this.x = newVector.x;
-        this.y = newVector.y;
-    }
-}
+;

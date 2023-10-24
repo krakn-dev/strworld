@@ -1,21 +1,12 @@
-import * as Utils from "./utils.js"
 import * as Comps from "./components.js"
-import * as Ents from "./entities.js"
+import * as Utils from "./utils.js"
+import * as Cmds from "./commands.js"
 
-export interface Entity {
-    entityType: Ents.Entities
+export interface Component {
     entityUid: number
-    isNew: boolean
-}
-
-export interface Component { //implement this...
-    ownerUid: number
     componentUid: number
     type: Comps.Components
-    getIsChanged(): boolean
-    setUnchanged(): void
 }
-
 
 export enum Get {
     One,
@@ -35,304 +26,121 @@ export enum Run {
 }
 
 
-export interface Command {
-    query: [Get, Comps.Components[], By, null | number | Ents.Entities] | null
-    type: number
-    frequency: Run
-    run(foundComponents: Component[][]): void
+export class ComponentAndIndex {
+    component: Component
+    index: [number, number]
+    constructor(newComponent: Component, newIndex: [number, number]) {
+        this.component = newComponent
+        this.index = newIndex
+    }
 }
 
-export class System {
-    private entities!: Entity[]
-    private components!: Component[][]
-    private commands: Command[]
+export interface Command {
+    query: [Get, Comps.Components[], By, null | number | Comps.Entities] | null
+    type: Cmds.Commands
+    run(foundComponents: ComponentAndIndex[][], system: System): void
+}
 
-    getComponents() {
-        return this.components
+
+export class PropertyChange {
+    index: number[]
+    property: string
+    value: any
+
+    constructor(
+        newIndex: number[],
+        newProperty: string,
+        newValue: any,
+    ) {
+        this.index = newIndex
+        this.property = newProperty
+        this.value = newValue
     }
-    getEntities() {
-        return this.entities
-    }
+}
+
+
+export class System {
+    private commands: Command[]
+    private components: Component[][]
+
+    private state: Map<string, any>
+
+
+    private commandsToRemove: Cmds.Commands[]
+    private commandsToAdd: Cmds.Commands[]
+
+    private componentsToRemove: [number, number][]
+    private componentsToAdd: Component[]
+    private propertiesToChange: PropertyChange[]
+
+    workerManager!: MessagePort
 
     constructor() {
         this.commands = []
+        this.components = []
+        this.state = new Map()
+        this.commandsToRemove = []
+        this.commandsToAdd = []
+        this.componentsToRemove = []
+        this.propertiesToChange = []
+        this.componentsToAdd = []
     }
 
-    addEntity(newEntity: Entity) {
-        this.entities.push(newEntity)
+    setState(key: string, value: any) {
+        let changes: string[] = this.state.get(Utils.CHANGES_KEY)
+        changes.push(key)
+        this.state.set(Utils.CHANGES_KEY, changes)
+        this.state.set(key, value)
     }
 
-    removeEntity(entityUid: number) {
-        this.removeComponent([Get.All, null, By.EntityId, entityUid])
-        for (let [i, e] of this.entities.entries()) {
-            if (e.entityUid == entityUid) {
-                this.entities.splice(i, 1)
-                return;
-            }
-
-        }
+    getState(key: string): any {
+        return this.state.get(key)
     }
 
+    removeComponent(component: ComponentAndIndex) {
+        this.componentsToRemove.push(component.index)
+    }
     addComponent(newComponent: Component) {
-        this.components[newComponent.type].push(newComponent)
+        this.componentsToAdd.push(newComponent)
     }
 
-    removeComponent(query: [Get, Comps.Components[] | null, By, null | number | Ents.Entities]) {
-        if (query[1] == null) { // null == all
-            query[1] = []
-            for (let i = 0; i < Object.keys(Comps.Components).length / 2; i++) {
-                query[1][i] = i
-            }
-        }
-
-        // Comment on production !TODO
-        if (query[1].length == 0) {
-            console.log("no components expecified")
-            return []
-        }
-
-        if (query[2] == By.EntityType && (query[3] as Ents.Entities) == undefined ||
-            query[2] == By.ComponentId && typeof query[3] != "number" ||
-            query[2] == By.EntityId && typeof query[3] != "number" ||
-            query[2] == By.Any && typeof query[3] != null
-        ) {
-            console.log('argument does not match "By" enum')
-            return []
-        }
-
-        if (query[0] == Get.All && query[2] == By.ComponentId) {
-            console.log('cannot get all by component id')
-            return []
-        }
-
-        if (query[0] == Get.One && query[2] == By.EntityType) {
-            console.log("query Get.One By.EntityType is not supported yet")
-            return []
-        }
-
-        if (query[0] == Get.One && query[2] == By.Any) {
-            console.log("query Get.One By.Any is not supported yet")
-            return []
-        }
-        // Comment on production !TODO
-
-        if (query[0] == Get.One) {
-            for (let qc of query[1]) {
-                if (query[2] == By.ComponentId) {
-                    for (let [i, c] of this.components[qc].entries()) {
-                        if (query[3] == c.componentUid) {
-                            this.components[qc].splice(i, 1)
-                            break;
-                        }
-                    }
-                    continue;
-                }
-                else if (query[2] == By.EntityId) {
-                    for (let [i, c] of this.components[qc].entries()) {
-                        if (query[3] == c.ownerUid) {
-                            this.components[qc].splice(i, 1)
-                            break;
-                        }
-                    }
-                    continue;
-                }
-            }
-        }
-        else { // Get.All
-            for (let qc of query[1]) {
-                if (query[2] == By.EntityId) {
-                    for (let [i, c] of this.components[qc].entries()) {
-                        if (query[3] == c.ownerUid) {
-                            this.components[qc].splice(i, 1)
-                        }
-                    }
-                    continue;
-                }
-                if (query[2] == By.Any) {
-                    for (let qc = 0; qc < this.components.length; qc++) {
-                        for (let [i, c] of this.components[qc].entries()) {
-                            this.components[qc].splice(i, 1)
-                        }
-                    }
-                    continue;
-                }
-                else { // By.EntityType
-                    for (let e of this.entities) {
-                        if (query[3] == e.entityType) {
-                            for (let qc of query[1]) {
-                                for (let [i, c] of this.components[qc].entries()) {
-                                    if (e.entityUid == c.ownerUid) {
-                                        this.components[qc].splice(i, 1)
-                                    }
-                                }
-                            }
-                            break;
-                        }
-                    }
-                    continue;
-                }
-
-            }
-        }
-    }
-    addCommand(newCommand: Command) {
-        this.commands.push(newCommand)
+    setProperty(component: ComponentAndIndex, property: string, value: any) {
+        this.propertiesToChange.push(new PropertyChange(component.index, property, value))
     }
 
-    removeCommand(commandType: number) {
-        for (let [i, c] of this.commands.entries()) {
-            if (c.type == commandType) {
-                this.commands.splice(i, 1)
-            }
-        }
+    addCommand(command: Cmds.Commands) {
+        this.commandsToAdd.push(command)
     }
-    filterUpdate(newData: [Component[][], Entity[]]) {
-
-
-        let start = performance.now()
-        let isInitialized = false
-        for (let ctI = 0; ctI < this.components.length; ctI++) {
-            if (newData[0][ctI].length != 0) {
-                isInitialized = true
-            }
-        }
-        if (!isInitialized) {
-            console.log("is not initialized yet")
-            return
-        }
-
-        let isFound = false
-        for (let ctI = 0; ctI < this.components.length; ctI++) {
-            for (let cI = this.components[ctI].length - 1; cI >= 0; cI--) {
-                for (let newC of newData[0][ctI]) {
-                    if (newC.componentUid == this.components[ctI][cI].componentUid) {
-                        isFound = true
-                        break;
-                    }
-                }
-                if (!isFound) {
-                    this.components[ctI].splice(cI, 1)
-                }
-                isFound = false
-            }
-        }
-        // for entities
-        isFound = false
-        for (let eI = this.entities.length - 1; eI >= 0; eI--) {
-            for (let newE of newData[1]) {
-                if (newE.entityUid == this.entities[eI].entityUid) {
-                    isFound = true
+    removeCommand(command: Cmds.Commands) {
+        this.commandsToRemove.push(command)
+    }
+    update(
+        newComponents: Component[][],
+        newCommands: Cmds.Commands[],
+        newState: Map<string, any>
+    ) {
+        this.components = newComponents
+        this.commands = []
+        for (let cT of newCommands) {
+            switch (cT) {
+                case Cmds.Commands.ShowHealth:
+                    this.commands.push(new Cmds.ShowHealth())
                     break;
-                }
-            }
-            if (!isFound) {
-                this.entities.splice(eI, 1)
-            }
-            isFound = false
-        }
-
-        // update changed components
-        isFound = false
-        for (let ctI = 0; ctI < this.components.length; ctI++) {
-            for (let newC of newData[0][ctI]) {
-                switch (newC.type) {
-                    case (Comps.Components.Position):
-                        Object.setPrototypeOf(newC, Comps.Position.prototype);
-                        break;
-                    case (Comps.Components.ComputedElement):
-                        Object.setPrototypeOf(newC, Comps.ComputedElement.prototype);
-                        break;
-                    case (Comps.Components.Health):
-                        Object.setPrototypeOf(newC, Comps.Health.prototype);
-                        break;
-                    case (Comps.Components.LookingDirection):
-                        Object.setPrototypeOf(newC, Comps.LookingDirection.prototype);
-                        break;
-                    case (Comps.Components.EntityState):
-                        Object.setPrototypeOf(newC, Comps.EntityState.prototype);
-                        break;
-                    case (Comps.Components.Name):
-                        Object.setPrototypeOf(newC, Comps.Name.prototype);
-                        break;
-                }
-
-                if (newC.getIsChanged()) {
-                    newC.setUnchanged()
-
-                    for (let [cI, c] of this.components[ctI].entries()) {
-                        if (c.componentUid == newC.componentUid) {
-                            isFound = true
-                            this.components[ctI][cI] = newC
-                            break;
-                        }
-                    }
-                    if (!isFound) {
-                        this.components[ctI].push(newC)
-                    }
-                    isFound = false
-                }
+                case Cmds.Commands.CreateHealth:
+                    this.commands.push(new Cmds.CreateHealth())
+                    break;
             }
         }
-        // for entities too
-        for (let newE of newData[1]) {
-            if (newE.isNew) {
-                newE.isNew = false
-                this.entities.push(newE)
-            }
-        }
-        let end = performance.now()
-        console.log(end - start, " filter");
+        this.state = newState
     }
 
-    async update(newData: [Component[][], Entity[]]) {
-        for (let cTI = 0; cTI < newData[0].length; cTI++) {
-            switch (cTI) {
-                case Comps.Components.Position:
-                    for (let cI = 0; cI < newData[0][cTI].length; cI++) {
-                        Object.setPrototypeOf(newData[0][cTI][cI], Comps.Position.prototype)
-                        Object.setPrototypeOf(
-                            (newData[0][cTI][cI] as Comps.Position).position, Utils.Vector2.prototype)
-                    }
-                    break
-                case Comps.Components.ComputedElement:
-                    for (let cI = 0; cI < newData[0][cTI].length; cI++) {
-                        Object.setPrototypeOf(newData[0][cTI][cI], Comps.ComputedElement.prototype)
-                    }
-                    break
-                case Comps.Components.EntityState:
-                    for (let cI = 0; cI < newData[0][cTI].length; cI++) {
-                        Object.setPrototypeOf(newData[0][cTI][cI], Comps.EntityState.prototype)
-                    }
-                    break
-                case Comps.Components.Health:
-                    for (let cI = 0; cI < newData[0][cTI].length; cI++) {
-                        Object.setPrototypeOf(newData[0][cTI][cI], Comps.Health.prototype)
-                    }
-                    break
-                case Comps.Components.LookingDirection:
-                    for (let cI = 0; cI < newData[0][cTI].length; cI++) {
-                        Object.setPrototypeOf(newData[0][cTI][cI], Comps.LookingDirection.prototype)
-                    }
-                    break
-                case Comps.Components.Name:
-                    for (let cI = 0; cI < newData[0][cTI].length; cI++) {
-                        Object.setPrototypeOf(newData[0][cTI][cI], Comps.Name.prototype)
-                    }
-                    break
-
-            }
-        }
-        this.components = newData[0]
-        this.entities = newData[1]
-    }
-
-    private find(query: [Get, Comps.Components[], By, null | number | Ents.Entities]): Component[][] {
+    private find(query: [Get, Comps.Components[], By, null | number | Comps.Entities]): ComponentAndIndex[][] {
         // Comment on production !TODO
         if (query[1].length == 0) {
             console.log("no components expecified")
             return []
         }
-        if (query[2] == By.EntityType && (query[3] as Ents.Entities) == undefined ||
+        if (query[2] == By.EntityType && (query[3] as Comps.Entities) == undefined ||
             query[2] == By.ComponentId && typeof query[3] != "number" ||
             query[2] == By.EntityId && typeof query[3] != "number") {
             console.log('argument does not match "By" enum')
@@ -355,7 +163,7 @@ export class System {
         }
         // Comment on production !TODO
 
-        let collected: Component[][] = []
+        let collected: ComponentAndIndex[][] = []
         for (let i = 0; i < query[1].length; i++) {
             collected.push([])
         }
@@ -364,18 +172,18 @@ export class System {
         for (let [qci, qc] of query[1].entries()) {
             if (query[0] == Get.One) {
                 if (query[2] == By.ComponentId) {
-                    for (let c of this.components[qc]) {
+                    for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.componentUid) {
-                            collected[qci].push(c)
+                            collected[qci].push(new ComponentAndIndex(c, [qci, cI]))
                             break;
                         }
                     }
                     continue;
                 }
                 else if (query[2] == By.EntityId) {
-                    for (let c of this.components[qc]) {
-                        if (query[3] == c.ownerUid) {
-                            collected[qci].push(c)
+                    for (let [cI, c] of this.components[qc].entries()) {
+                        if (query[3] == c.entityUid) {
+                            collected[qci].push(new ComponentAndIndex(c, [qci, cI]))
                             break;
                         }
                     }
@@ -384,50 +192,71 @@ export class System {
             }
             else if (query[0] == Get.All) {
                 if (query[2] == By.EntityId) {
-                    for (let c of this.components[qc]) {
-                        if (query[3] == c.ownerUid) {
-                            collected[qci].push(c)
+                    for (let [cI, c] of this.components[qc].entries()) {
+                        if (query[3] == c.entityUid) {
+                            collected[qci].push(new ComponentAndIndex(c, [qci, cI]))
                         }
                     }
                     continue;
                 }
                 else if (query[2] == By.Any) {
-                    collected[qci] = this.components[qc]
-                    continue;
-                }
-
-                else if (query[2] == By.EntityType) {
-                    for (let e of this.entities) {
-                        if (query[3] == e.entityType) {
-                            for (let c of this.components[qc]) {
-                                if (e.entityUid == c.ownerUid) {
-                                    collected[qci].push(c)
-                                }
-                            }
-                            break;
-                        }
+                    for (let [cI, c] of this.components[qci].entries()) {
+                        collected[qci].push(new ComponentAndIndex(c, [qci, cI]))
                     }
                     continue;
                 }
+
+                //                else if (query[2] == By.EntityType) {
+                //                    for (let e of this.components[Comps.Components.EntityType]) {
+                //                        if (query[3] == e.entityType) {
+                //                            for (let c of this.components[qc]) {
+                //                                if (e.entityUid == c.ownerUid) {
+                //                                    collected[qci].push(c)
+                //                                }
+                //                            }
+                //                            break;
+                //                        }
+                //                    }
+                //                    continue;
+                //                }
 
             }
         }
         return collected
     }
 
-    async run() {
+    counter = 0
+    run() {
+        for (let c of this.commands) {
+            if (this.counter == 1000) {
+                console.log("command run this many times", this.counter)
 
-        this.commands.reverse() // run commands in order
-        for (let cI = this.commands.length - 1; cI >= 0; cI--) {
-            if (this.commands[cI].query != null)
-                this.commands[cI].run(this.find(this.commands[cI].query!))
-            else
-                this.commands[cI].run([])
-
-            if (this.commands[cI].frequency == Run.Once) {
-                this.commands.splice(cI, 1)
             }
+            this.counter++
+
+            let foundComponents: ComponentAndIndex[][] = []
+            if (c.query != null) foundComponents = this.find(c.query)
+            c.run(foundComponents, this)
         }
-        this.commands.reverse() // undo reverse
+
+        this.workerManager.postMessage(
+            new Utils.Message(
+                Utils.Messages.Done,
+                new Utils.WorkerOutput(
+                    this.propertiesToChange,
+                    this.componentsToRemove,
+                    this.componentsToAdd,
+                    this.state,
+                    this.commandsToRemove,
+                    this.commandsToAdd
+                )
+            )
+        )
+        this.commandsToAdd = []
+        this.commandsToRemove = []
+
+        this.componentsToAdd = []
+        this.componentsToRemove = []
+        this.propertiesToChange = []
     }
 }

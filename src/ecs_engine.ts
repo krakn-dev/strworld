@@ -1,12 +1,12 @@
 import * as Utils from "./utils.js"
 
 export enum EntityStates {
-    WalkLeft,
-    WalkRight,
     Idle,
-    Death,
+    Dead,
     WindLeft,
     WindRight,
+    Shooting,
+    Running,
 }
 export interface Component {
     componentType: Components
@@ -18,6 +18,8 @@ export enum Components {
     Health,
     Name,
     Position,
+    SpriteDirection,
+    EntityState,
 }
 
 interface Entity {
@@ -28,11 +30,14 @@ interface Entity {
 export enum Entities {
     Human,
     Fox,
+    Grass,
 }
 
 export enum Get {
     One,
+    OneOfEach,
     All,
+    AllOfEach,
     None,
 }
 
@@ -49,12 +54,13 @@ export enum Commands {
     GetFoxHealth,
     PrintEveryField,
     SyncGraphicEntity,
+    SpawnGrass,
     MovePlayer
 }
 
 export interface Command {
     get: Get
-    component: Components | null
+    component: Components[] | null
     by: By | null
     byArgs: number | Entities | null
     commandtype: Commands
@@ -65,7 +71,7 @@ export interface Command {
 
 export class RunBeforeFoxHealth implements Command {
     get: Get
-    component: Components | null
+    component: Components[] | null
     by: By | null
     byArgs: number | Entities | null
     commandtype: Commands
@@ -86,7 +92,7 @@ export class RunBeforeFoxHealth implements Command {
 
 export class GetFoxHealth implements Command {
     get: Get
-    component: Components | null
+    component: Components[] | null
     by: By | null
     byArgs: number | Entities | null
     commandtype: Commands
@@ -94,7 +100,7 @@ export class GetFoxHealth implements Command {
     constructor() {
         this.commandtype = Commands.GetFoxHealth
         this.get = Get.One
-        this.component = Components.Health
+        this.component = [Components.Health]
         this.by = By.EntityType
         this.byArgs = Entities.Fox
     }
@@ -116,7 +122,7 @@ export class GetFoxHealth implements Command {
 }
 export class PrintEveryField implements Command {
     get: Get
-    component: Components | null
+    component: Components[] | null
     by: By | null
     byArgs: number | Entities | null
     commandtype: Commands
@@ -142,6 +148,15 @@ export class PrintEveryField implements Command {
 
 }
 
+export class Grass implements Entity {
+    entityType: Entities
+    entityUid: number
+    constructor() {
+        this.entityType = Entities.Grass
+        this.entityUid = Utils.newUid()
+    }
+}
+
 export class Fox implements Entity {
     entityType: Entities
     entityUid: number
@@ -157,6 +172,35 @@ export class Human implements Entity {
     constructor() {
         this.entityType = Entities.Human
         this.entityUid = Utils.newUid()
+    }
+}
+
+
+export class SpriteDirection implements Component {
+    isLookingRight: boolean
+    componentType: Components
+    ownerUid: number
+    componentUid: number
+
+    constructor(newOwnerUid: number) {
+        this.isLookingRight = true
+        this.ownerUid = newOwnerUid
+        this.componentUid = Utils.newUid()
+        this.componentType = Components.SpriteDirection
+    }
+}
+
+export class EntityState implements Component {
+    currentState: EntityStates
+    componentType: Components
+    ownerUid: number
+    componentUid: number
+
+    constructor(newCurrentState: EntityStates, newOwnerUid: number) {
+        this.currentState = newCurrentState
+        this.ownerUid = newOwnerUid
+        this.componentUid = Utils.newUid()
+        this.componentType = Components.EntityState
     }
 }
 
@@ -292,6 +336,67 @@ export class EcsEngine {
                 if (get == Get.None) {
                     c.command.run([])
                 }
+                if (get == Get.OneOfEach) {
+                    let toFind = component!.length
+                    let foundComponents: Component[] = []
+
+                    switch (by) {
+                        case By.EntityType:
+                            for (var comp of EcsEngine.components) {
+                                for (var qcomp of component!) {
+                                    if (comp.componentType == qcomp) {
+                                        for (var e of EcsEngine.entities) {
+                                            if ((byArg as Entities) == e.entityType) {
+                                                foundComponents.push(comp)
+                                                toFind--
+                                                if (toFind == 0)
+                                                    c.command.run(foundComponents)
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (toFind == 0)
+                                        break;
+                                }
+                                if (toFind == 0)
+                                    break;
+                            }
+                            break;
+                        case By.EntityUid:
+                            for (var comp of EcsEngine.components) {
+                                for (var e of EcsEngine.entities) {
+                                    if ((byArg as number) == e.entityUid) {
+                                        for (var qcomp of component!) {
+                                            if (comp.componentType == qcomp) {
+                                                foundComponents.push(comp)
+                                                toFind--
+                                                if (toFind == 0) {
+                                                    c.command.run(foundComponents)
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        if (toFind == 0)
+                                            break;
+                                    }
+                                }
+                                if (toFind == 0)
+                                    break;
+                            }
+                            break;
+                        case By.ComponentUid:
+                            console.log("bad use of OneOfEach")
+                            break;
+                        case By.Everything:
+                            console.log("bad use of OneOfEach")
+                            break;
+
+                        case By.Random:
+                            console.log("bad use of OneOfEach")
+                            break;
+                    }
+                }
+
                 if (get == Get.One) {
                     switch (by) {
                         case By.ComponentUid:
@@ -303,9 +408,13 @@ export class EcsEngine {
                             }
                             break;
                         case By.EntityType:
+                            if (component == null) {
+                                console.log("component not supplied")
+                                break;
+                            }
                             let found = false
                             for (var comp of EcsEngine.components) {
-                                if (comp.componentType == component) {
+                                if (comp.componentType == component![0]) {
                                     for (var e of EcsEngine.entities) {
                                         if ((byArg as Entities) == e.entityType) {
                                             found = true
@@ -338,6 +447,43 @@ export class EcsEngine {
                             break;
                     }
                 }
+                if (get == Get.AllOfEach) {
+                    switch (by) {
+                        case By.ComponentUid:
+                            console.log("bad use of componentUid")
+                            break;
+
+                        case By.EntityType:
+                            console.log("Entities only have one component of each type")
+                            break;
+
+                        case By.EntityUid:
+                            console.log("bad use of entityuid")
+                            break;
+
+                        case By.Everything:
+                            let collected: Component[] = []
+                            if (component == null) {
+                                console.log("components not supplied")
+                                break;
+                            }
+                            for (var comp of EcsEngine.components) {
+                                for (var qcomp of component!) {
+                                    if (comp.componentType == qcomp) {
+                                        collected.push(comp)
+
+                                    }
+                                }
+                            }
+                            c.command.run(collected)
+                            break;
+
+                        case By.Random:
+                            console.log("bad use of random")
+                            break;
+                    }
+
+                }
                 if (get == Get.All) {
                     let collected: Component[] = []
                     switch (by) {
@@ -346,8 +492,12 @@ export class EcsEngine {
                             break;
 
                         case By.EntityType:
+                            if (component == null) {
+                                console.log("component not supplied")
+                                break;
+                            }
                             for (var comp of EcsEngine.components) {
-                                if (comp.componentType == component) {
+                                if (comp.componentType == component![0]) {
                                     for (var e of EcsEngine.entities) {
                                         if ((byArg as Entities) == e.entityType) {
                                             collected.push(comp)

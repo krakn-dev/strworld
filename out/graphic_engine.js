@@ -10,159 +10,207 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import * as ECS from "./ecs_engine.js";
 let flower = '<span class="icon-flower"><span class="path1"></span><span class="path2"></span><span class="path3"></span></span>';
 export class SyncGraphicEntity {
-    constructor(newComponentUid) {
+    constructor() {
         this.commandtype = ECS.Commands.SyncGraphicEntity;
-        this.component = ECS.Components.Position;
-        this.get = ECS.Get.One;
-        this.by = ECS.By.ComponentUid;
-        this.byArgs = newComponentUid;
+        this.component = [ECS.Components.Position, ECS.Components.SpriteDirection];
+        this.get = ECS.Get.AllOfEach;
+        this.by = ECS.By.Everything;
+        this.byArgs = null;
     }
     run(args) {
         for (var a of args) {
             for (var e of GraphicEngine.graphicEntities) {
-                if (a.componentUid == e.componentUid) {
-                    e.position = a.position;
+                if (a.ownerUid == e.ecsEntityUid) {
+                    switch (a.componentType) {
+                        case ECS.Components.SpriteDirection:
+                            let direction = a;
+                            e.isLookingRight = direction.isLookingRight;
+                            break;
+                        case ECS.Components.Position:
+                            let position = a;
+                            e.position = position.position;
+                            break;
+                        case ECS.Components.EntityState:
+                            let state = a;
+                            e.currentEntityState = state.currentState;
+                            break;
+                    }
                 }
             }
         }
     }
 }
 export class GraphicFox {
-    constructor(newPosition, newComponentUid) {
+    constructor(newPosition, newEcsEntityUid) {
+        this.isLookingRight = true;
         this.isRunningAnimation = false;
         this.stateBuffer = null;
         this.position = newPosition;
-        this.componentUid = newComponentUid;
+        this.ecsEntityUid = newEcsEntityUid;
         this.depth = 2;
-        this.displayState = "";
-        this.entityType = ECS.Entities.Fox;
-        this.currentState = ECS.EntityStates.Idle;
-        this.behavior = new FoxBehavior(this.displayState);
+        this.displayState = "";
+        //this.displayState = "#"
+        this.currentEntityState = ECS.EntityStates.Idle;
+        this.behavior = new FoxBehavior(this.displayState, this.isRunningAnimation, this.isLookingRight);
     }
 }
-export class FoxBehavior {
-    constructor(newEntityDisplay) {
+export class GraphicGrass {
+    constructor(newEcsEntityUid) {
+        this.isRunningAnimation = false;
+        this.stateBuffer = null;
+        this.position = null;
+        this.ecsEntityUid = newEcsEntityUid;
+        this.depth = 0;
+        this.displayState = "";
+        this.currentEntityState = ECS.EntityStates.Idle;
+        this.behavior = new GrassBehavior(this.displayState, this.isRunningAnimation);
+    }
+}
+export class GrassBehavior {
+    constructor(newEntityDisplay, newIsRunningAnimation) {
+        this.isRunningAnimation = newIsRunningAnimation;
         this.entityDisplay = newEntityDisplay;
     }
     onIdle() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.entityDisplay = "";
+            this.isRunningAnimation = true;
+            //        if (this.isLookingRight) {
+            //            this.entityDisplay = ""
+            //        }
+            //        else {
+            //            this.entityDisplay = "L"
+            //        }
+            this.isRunningAnimation = false;
         });
     }
-    onDeath() {
+    onDead() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.entityDisplay = ".";
+            this.isRunningAnimation = true;
+            this.entityDisplay = "";
+            this.isRunningAnimation = false;
         });
     }
-    onWalkRight() {
+    onWindLeft() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.entityDisplay = "";
+            this.isRunningAnimation = true;
+            this.entityDisplay = "R";
+            this.isRunningAnimation = false;
         });
     }
-    onWalkLeft() {
+    onWindRight() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.entityDisplay = "";
+            this.isRunningAnimation = true;
+            this.entityDisplay = "R";
+            this.isRunningAnimation = false;
+        });
+    }
+}
+export class FoxBehavior {
+    constructor(newEntityDisplay, newIsRunningAnimation, newIsLookingRight) {
+        this.isLookingRight = newIsLookingRight;
+        this.isRunningAnimation = newIsRunningAnimation;
+        this.entityDisplay = newEntityDisplay;
+    }
+    onIdle() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.isRunningAnimation = true;
+            if (this.isLookingRight) {
+                this.entityDisplay = "";
+            }
+            else {
+                this.entityDisplay = "L";
+            }
+            this.isRunningAnimation = false;
+        });
+    }
+    onDead() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.isRunningAnimation = true;
+            this.entityDisplay = "";
+            this.isRunningAnimation = false;
+        });
+    }
+    onRun() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.isRunningAnimation = true;
+            this.entityDisplay = "R";
+            this.isRunningAnimation = false;
         });
     }
 }
 export class GraphicEngine {
     constructor(newViewSize) {
-        this.z = [document.getElementById("z-0"),
-            document.getElementById("z-1"),
-            document.getElementById("z-2")];
         this.viewSize = newViewSize;
-        this.worldString = [];
-        for (var i = 0; i < this.z.length; i++) {
-            this.worldString[i] = [];
+        this.emptyView = [];
+        for (var i = 0; i < 3; i++) {
+            this.emptyView[i] = [];
             for (var x = 0; x < this.viewSize.x; x++) {
-                this.worldString[i][x] = [];
+                this.emptyView[i][x] = [];
                 for (var y = 0; y < this.viewSize.y; y++) {
-                    this.worldString[i][x][y] = "&nbsp;";
+                    this.emptyView[i][x][y] = ""; // Fill with space
                 }
-            }
-        }
-    }
-    static setState(newEntityState, entityUid) {
-        for (var e of GraphicEngine.graphicEntities) {
-            if (e.componentUid == entityUid) {
-                if (e.isRunningAnimation) {
-                    e.stateBuffer = newEntityState;
-                }
-                else {
-                    e.currentState = newEntityState;
-                }
-                return;
             }
         }
     }
     render() {
-        //        this.bufferSync()
-        //
-        //        for (var i = 0; i < this.z.length; i++) {
-        //            this.z[i].innerHTML = ""
-        //
-        //            for (var e of GraphicEngine.graphicEntities) {
-        //                if (e.displayState != null) {
-        //                    if (e.depth == i) {
-        //                        //                        console.log(this.worldString[i][e.position.x][e.position.y], i, "eeeee")
-        //                        console.log(e.displayState, i, "eeeee")
-        //                        this.worldString[i][e.position.x][e.position.y] = e.displayState;
-        //                        console.log("TYOOOOOOOOOOOOOOOOOOOoo")
-        //                    }
-        //                }
-        //            }
-        //
-        //            for (var x of this.worldString[i]) {
-        //                for (var y of x) {
-        //                    this.z[i].innerHTML += y;
-        //                }
-        //                this.z[i].innerHTML += "<br>";
-        //            }
-        //        }
+        this.bufferSync();
+        let world = JSON.parse(JSON.stringify(this.emptyView));
+        for (var e of GraphicEngine.graphicEntities) {
+            if (e.displayState == null || e.position == null) {
+                continue;
+            }
+            if (e.position.x > 9 || e.position.y > 9 ||
+                e.position.x < 0 || e.position.y < 0) {
+                continue;
+            }
+            world[e.depth][e.position.y][e.position.x] = e.displayState;
+        }
+        for (var zI = 0; zI < 3; zI++) { //  [..]
+            for (var colI = 0; colI < this.viewSize.y; colI++) {
+                let rowElement = document.getElementById("p-" + zI + "-" + colI); //  [..]
+                rowElement.innerHTML = "";
+                let tempRow = world[zI][colI].join("");
+                rowElement.innerHTML = tempRow;
+                rowElement.innerHTML += "<br>";
+            }
+        }
     }
     bufferSync() {
         for (var e of GraphicEngine.graphicEntities) {
             switch (e.stateBuffer) {
                 case ECS.EntityStates.Idle:
                     if (!e.isRunningAnimation) {
-                        e.currentState = e.stateBuffer;
+                        e.currentEntityState = e.stateBuffer;
                         e.stateBuffer = null;
                     }
                     break;
-                case ECS.EntityStates.WalkLeft:
-                    e.currentState = e.stateBuffer;
+                case ECS.EntityStates.Dead:
+                    e.currentEntityState = e.stateBuffer;
                     e.stateBuffer = null;
                     break;
-                case ECS.EntityStates.Death:
-                    e.currentState = e.stateBuffer;
-                    e.stateBuffer = null;
-                    break;
-                case ECS.EntityStates.WalkRight:
-                    e.currentState = e.stateBuffer;
+                case ECS.EntityStates.Running:
+                    e.currentEntityState = e.stateBuffer;
                     e.stateBuffer = null;
                     break;
                 case ECS.EntityStates.WindLeft:
                     if (!e.isRunningAnimation) {
-                        e.currentState = e.stateBuffer;
+                        e.currentEntityState = e.stateBuffer;
                         e.stateBuffer = null;
                     }
                     break;
                 case ECS.EntityStates.WindRight:
                     if (!e.isRunningAnimation) {
-                        e.currentState = e.stateBuffer;
+                        e.currentEntityState = e.stateBuffer;
                         e.stateBuffer = null;
                     }
                     break;
             }
-            switch (e.currentState) {
-                case ECS.EntityStates.Death:
-                    e.behavior.onDeath();
+            switch (e.currentEntityState) {
+                case ECS.EntityStates.Dead:
+                    e.behavior.onDead();
                     break;
-                case ECS.EntityStates.WalkLeft:
-                    e.behavior.onWalkRight();
-                    break;
-                case ECS.EntityStates.WalkRight:
-                    e.behavior.onWalkLeft();
+                case ECS.EntityStates.Running:
+                    e.behavior.onRun();
                     break;
                 case ECS.EntityStates.WindLeft:
                     e.behavior.onWindLeft();

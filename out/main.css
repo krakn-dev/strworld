@@ -1,69 +1,35 @@
  @font-face {
-  font-family: game_font;
+  font-family: strworld_font;
   src: url(icomoon/fonts/icomoon.ttf);
 }
 
 
-body, div, html,span {
+* {
     margin: 0px;
     padding: 0px;
 }
 
-#z-0, #z-1, #z-2, #world-view{
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
 
 #world-view {
-    font-size: 40px;
-    width: 400px;
-    height: 400px;
-    font-family: game_font;
+    top: 50%;left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 90px;
+    font-family: strworld_font;
     perspective: 500px;
+    position:absolute;
 }
 
-.grass {
-//    transform: rotateX(50deg);
+.r-0 {position:absolute;transform:translateZ(-500px) translate(-50%, -50%) translateY(-500px);top: 50%;left: 50%;}
+.r-1 {position:absolute;transform:translateZ(-450px) translate(-50%, -50%) translateY(-450px);top: 50%;left: 50%;}
+.r-2 {position:absolute;transform:translateZ(-400px) translate(-50%, -50%) translateY(-400px);top: 50%;left: 50%;}
+.r-3 {position:absolute;transform:translateZ(-350px) translate(-50%, -50%) translateY(-350px);top: 50%;left: 50%;}
+.r-4 {position:absolute;transform:translateZ(-300px) translate(-50%, -50%) translateY(-300px);top: 50%;left: 50%;}
+.r-5 {position:absolute;transform:translateZ(-250px) translate(-50%, -50%) translateY(-250px);top: 50%;left: 50%;}
+.r-6 {position:absolute;transform:translateZ(-200px) translate(-50%, -50%) translateY(-200px);top: 50%;left: 50%;}
+.r-7 {position:absolute;transform:translateZ(-150px) translate(-50%, -50%) translateY(-150px);top: 50%;left: 50%;}
+.r-8 {position:absolute;transform:translateZ(-100px) translate(-50%, -50%) translateY(-100px);top: 50%;left: 50%;}
+.r-9 {position:absolute;transform:translateZ(-50px)  translate(-50%, -50%) translateY(-50px); top: 50%;left: 50%;}
 
-}
-
-#g-0 {
-  z-index: 0;
-    transform: translateZ(-250px);
-}
-#g-1 {
-  transform: translateZ(-200px);
-  z-index: 2;
-}
-#g-2 {
-  transform: translateZ(-150px);
-  z-index: 4;
-}
-#g-3 {
-  transform: translateZ(-100px);
-  z-index: 6;
-}
-#g-4 {
-  transform: translateZ(-50px);
-  z-index: 8;
-}
-
-#z-0 {
-    color: red;
- /*   z-index: 1; */
-  /*  transform: translateY(-200px) translateX(-200px);*/
-}
-#z-1 {
-    color: blue;
- /*   z-index: 1; */
-    transform: rotateX(0deg);
-
-}
-#z-2 {
-    color: green;
-  /* z-index: 2;*/
-    transform: rotateX(75deg);
+[id^=p-0] {
+    color: #68ad48;
 }

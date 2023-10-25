@@ -200,7 +200,7 @@ onmessage = (data) => __awaiter(void 0, void 0, void 0, function* () {
             w0.messagePort.postMessage(areYouReady);
             w1.messagePort.postMessage(areYouReady);
             w2.messagePort.postMessage(areYouReady);
-            setInterval(sendComputedElementsToRender, 100);
+            setInterval(sendComputedElementsToRender, 10);
             break;
         case Utils.Messages.PlayerInput:
             let newInput = (msg.data);

@@ -12,6 +12,8 @@ export enum Commands {
 
 //        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null])
 export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
+
+    let start = performance.now()
     switch (commandEnum) {
         case Commands.TheFirst:
             return new TheFirst()
@@ -24,6 +26,8 @@ export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
         case Commands.SyncComputedElementPosition:
             return new SyncComputedElementPosition()
     }
+    let stop = performance.now()
+    console.log(stop - start)
 }
 
 export class TheFirst implements ECS.Command {
@@ -55,12 +59,17 @@ export class CreatePlayer implements ECS.Command {
     }
 
     run(system: ECS.System) {
-        for (let x = 0; x < 20; x++) {
-            for (let y = 0; y < 20; y++) {
+        for (let x = 0; x < 10; x++) {
+            for (let y = 0; y < 10; y++) {
                 let player = Utils.newUid()
                 system.addComponent(new Comps.Health(10, player))
-                system.addComponent(new Comps.Position(new Utils.Vector2(x * 40, y * 40), player))
-                system.addComponent(new Comps.ComputedElement(player))
+                let position = new Comps.Position(new Utils.Vector2(x * 60, y * 60), player)
+                system.addComponent(position)
+                let computedElement = new Comps.ComputedElement(player)
+                computedElement.properties[Comps.Properties.Left] = position.position.x
+                computedElement.properties[Comps.Properties.Top] = position.position.y
+                computedElement.properties[Comps.Properties.ZIndex] = x
+                system.addComponent(computedElement)
 
                 //                console.log("player created")
             }
@@ -79,18 +88,22 @@ export class MovePlayer implements ECS.Command {
 
     run(system: ECS.System) {
         let foundComponents = system.find([ECS.Get.All, [Comps.Components.Position], ECS.By.Any, null])
-
-        for (let fC of foundComponents[0]) {
-
-            let newPosition = (fC.component as Comps.Position).position
-            newPosition.x += system.input.movementDirection.x
-            newPosition.y += system.input.movementDirection.y
-            system.setProperty<Comps.Position>(
-                fC,
-                "position",
-                newPosition
-            )
+        if (system.input.movementDirection.x == 0 &&
+            system.input.movementDirection.y == 0
+        ) {
+            return
         }
+
+        let fC = foundComponents[0][0]
+
+        let newPosition = (fC.component as Comps.Position).position
+        newPosition.x += system.input.movementDirection.x
+        newPosition.y += system.input.movementDirection.y
+        system.setProperty<Comps.Position>(
+            fC,
+            "position",
+            newPosition
+        )
     }
 }
 
@@ -115,8 +128,12 @@ export class SyncComputedElementPosition implements ECS.Command {
 
         for (let cE of foundComponents[0]) {
             for (let p of foundComponents[1]) {
+
+                if (!p.component.isChanged) break;
+
                 if (cE.component.entityUid ==
                     p.component.entityUid) {
+
                     let position = (p.component as Comps.Position).position
                     let computedElement = cE.component as Comps.ComputedElement
 
@@ -130,6 +147,7 @@ export class SyncComputedElementPosition implements ECS.Command {
                     system.setProperty<Comps.ComputedElement>(cE, "changedProperties", computedElement.changedProperties)
                     system.setProperty<Comps.ComputedElement>(cE, "isChanged", true)
 
+                    system.setProperty<Comps.Position>(p, "isChanged", false)
                     break;
                 }
             }

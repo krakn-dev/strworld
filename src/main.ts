@@ -52,7 +52,7 @@ function initializeWorkers() {
             w2MsgChannel.port2,
         ])
 
-    setInterval(sendInput, 100)
+    setInterval(sendInput, 20)
 
     wManager.onmessage = onWManagerMessage
 }
@@ -61,7 +61,6 @@ initializeWorkers()
 let documentObjects: DocumentObject[] = []
 
 class DocumentObject {
-    private outerElement: HTMLElement
     private stateElement: HTMLElement
     entityUid: number
 
@@ -69,10 +68,9 @@ class DocumentObject {
     constructor(newEntityUid: number) {
         this.entityUid = newEntityUid;
         let worldView = document.getElementById("world-view")
-        worldView!.insertAdjacentHTML("beforeend", `<div class="rel" id="${newEntityUid}"><div></div></div>`);
+        worldView!.insertAdjacentHTML("beforeend", `<div id="${newEntityUid}"></div>`);
 
-        this.outerElement = document.getElementById(newEntityUid.toString())!
-        this.stateElement = this.outerElement.firstElementChild! as HTMLElement
+        this.stateElement = document.getElementById(newEntityUid.toString())!
     }
 
     addClasses(newClasses: string[]) {
@@ -101,7 +99,7 @@ class DocumentObject {
         this.stateElement.innerHTML = newDisplayElement
     }
     dispose() {
-        this.outerElement.remove()
+        this.stateElement.remove()
     }
 }
 
@@ -116,6 +114,8 @@ function onWManagerMessage(data: any) {
                 for (let dO of documentObjects) {
                     if (cCE.entityUid == dO.entityUid) {
                         for (let [pCI, pC] of cCE.changedProperties.entries()) {
+                            if (!pC) continue
+
                             switch (pCI) {
                                 case Comps.Properties.Classes:
                                     let classesDiff = pC as Comps.ClassesDiff

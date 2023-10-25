@@ -258,7 +258,7 @@ onmessage = async (data: any) => {
             w1!.messagePort.postMessage(areYouReady)
             w2!.messagePort.postMessage(areYouReady)
 
-            setInterval(sendComputedElementsToRender, 100)
+            setInterval(sendComputedElementsToRender, 10)
 
             break;
         case Utils.Messages.PlayerInput:

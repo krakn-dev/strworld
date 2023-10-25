@@ -70,6 +70,10 @@ export class System {
             return;
         }
         this.propertiesToChange.push(new PropertyChange(component.index, property, value, component.component.componentUid));
+        //set isChanged
+        if (property == "isChanged")
+            return;
+        this.propertiesToChange.push(new PropertyChange(component.index, "isChanged", true, component.component.componentUid));
     }
     update(newComponents, newCommands, newState, newInput) {
         this.components = newComponents;

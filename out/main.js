@@ -32,7 +32,7 @@ function initializeWorkers() {
     w2.postMessage(wUids.w2Uid, [
         w2MsgChannel.port2,
     ]);
-    setInterval(sendInput, 100);
+    setInterval(sendInput, 20);
     wManager.onmessage = onWManagerMessage;
 }
 initializeWorkers();
@@ -41,9 +41,8 @@ class DocumentObject {
     constructor(newEntityUid) {
         this.entityUid = newEntityUid;
         let worldView = document.getElementById("world-view");
-        worldView.insertAdjacentHTML("beforeend", `<div class="rel" id="${newEntityUid}"><div></div></div>`);
-        this.outerElement = document.getElementById(newEntityUid.toString());
-        this.stateElement = this.outerElement.firstElementChild;
+        worldView.insertAdjacentHTML("beforeend", `<div id="${newEntityUid}"></div>`);
+        this.stateElement = document.getElementById(newEntityUid.toString());
     }
     addClasses(newClasses) {
         for (let nC of newClasses) {
@@ -71,7 +70,7 @@ class DocumentObject {
         this.stateElement.innerHTML = newDisplayElement;
     }
     dispose() {
-        this.outerElement.remove();
+        this.stateElement.remove();
     }
 }
 function onWManagerMessage(data) {
@@ -84,6 +83,8 @@ function onWManagerMessage(data) {
                 for (let dO of documentObjects) {
                     if (cCE.entityUid == dO.entityUid) {
                         for (let [pCI, pC] of cCE.changedProperties.entries()) {
+                            if (!pC)
+                                continue;
                             switch (pCI) {
                                 case Comps.Properties.Classes:
                                     let classesDiff = pC;

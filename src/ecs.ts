@@ -5,6 +5,7 @@ import * as Cmds from "./commands.js"
 export interface Component {
     entityUid: number
     componentUid: number
+    isChanged: boolean
     type: Comps.Components
 }
 
@@ -127,6 +128,17 @@ export class System {
                 component.index,
                 property as string,
                 value,
+                component.component.componentUid
+            )
+        )
+        //set isChanged
+        if (property == "isChanged") return
+
+        this.propertiesToChange.push(
+            new PropertyChange(
+                component.index,
+                "isChanged",
+                true,
                 component.component.componentUid
             )
         )

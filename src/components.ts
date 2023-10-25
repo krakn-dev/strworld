@@ -20,8 +20,10 @@ export class Position implements ECS.Component {
     componentUid: number
     type: Components
     position: Utils.Vector2
+    isChanged: boolean
 
     constructor(newPosition: Utils.Vector2, newEntityUid: number) {
+        this.isChanged = false
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.type = Components.Position
@@ -34,8 +36,10 @@ export class Health implements ECS.Component {
     componentUid: number
     type: Components
     health: number
+    isChanged: boolean
 
     constructor(newHealth: number, newEntityUid: number) {
+        this.isChanged = false
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.type = Components.Health
@@ -73,9 +77,9 @@ export class ComputedElement implements ECS.Component {
     type: Components
 
     constructor(newEntityUid: number) {
+        this.isChanged = false
         this.properties = [["state"], 0, 0, 0, "#000000", "?"]
         this.changedProperties = [new ClassesDiff(), false, false, false, false, false]
-        this.isChanged = false
         this.type = Components.ComputedElement
         this.entityUid = newEntityUid
         this.componentUid = Utils.newUid()

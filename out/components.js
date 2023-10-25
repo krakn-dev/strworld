@@ -16,6 +16,7 @@ export var EntityTypes;
 })(EntityTypes || (EntityTypes = {}));
 export class Position {
     constructor(newPosition, newEntityUid) {
+        this.isChanged = false;
         this.componentUid = Utils.newUid();
         this.entityUid = newEntityUid;
         this.type = Components.Position;
@@ -24,6 +25,7 @@ export class Position {
 }
 export class Health {
     constructor(newHealth, newEntityUid) {
+        this.isChanged = false;
         this.componentUid = Utils.newUid();
         this.entityUid = newEntityUid;
         this.type = Components.Health;
@@ -47,9 +49,9 @@ export class ClassesDiff {
 }
 export class ComputedElement {
     constructor(newEntityUid) {
+        this.isChanged = false;
         this.properties = [["state"], 0, 0, 0, "#000000", "?"];
         this.changedProperties = [new ClassesDiff(), false, false, false, false, false];
-        this.isChanged = false;
         this.type = Components.ComputedElement;
         this.entityUid = newEntityUid;
         this.componentUid = Utils.newUid();

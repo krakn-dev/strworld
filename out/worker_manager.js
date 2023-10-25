@@ -125,7 +125,6 @@ function onWorkerMessage(data) {
                         }
                     }
                 }
-                //            await Utils.delay(100) // wait for all workers to initialize
                 switch (newData.workerUid) {
                     case w0.uid:
                         runW0();
@@ -169,9 +168,12 @@ function runW1() {
     let splitCommandTypes = Utils.divideList(commandTypes, 3);
     let inputData = new Utils.WorkerInput(state, components, splitCommandTypes[1], input);
     let newMsg = new Utils.Message(Utils.Messages.Work, inputData);
+    let start = performance.now();
     if (splitCommandTypes[1] != undefined) {
         w1.messagePort.postMessage(newMsg);
     }
+    let stop = performance.now();
+    console.log(stop - start);
 }
 function runW0() {
     let commandTypes = commands.map(a => a.type);

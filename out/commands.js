@@ -11,7 +11,6 @@ export var Commands;
 })(Commands || (Commands = {}));
 //        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null])
 export function getInstanceFromEnum(commandEnum) {
-    let start = performance.now();
     switch (commandEnum) {
         case Commands.TheFirst:
             return new TheFirst();
@@ -24,8 +23,6 @@ export function getInstanceFromEnum(commandEnum) {
         case Commands.SyncComputedElementPosition:
             return new SyncComputedElementPosition();
     }
-    let stop = performance.now();
-    console.log(stop - start);
 }
 export class TheFirst {
     constructor() {
@@ -48,16 +45,16 @@ export class CreatePlayer {
         this.type = Commands.CreatePlayer;
     }
     run(system) {
-        for (let x = 0; x < 10; x++) {
-            for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 50; x++) {
+            for (let y = 0; y < 50; y++) {
                 let player = Utils.newUid();
                 system.addComponent(new Comps.Health(10, player));
-                let position = new Comps.Position(new Utils.Vector2(x * 60, y * 60), player);
+                let position = new Comps.Position(new Utils.Vector2(x * 5, y * 5), player);
                 system.addComponent(position);
                 let computedElement = new Comps.ComputedElement(player);
                 computedElement.properties[Comps.Properties.Left] = position.position.x;
                 computedElement.properties[Comps.Properties.Top] = position.position.y;
-                computedElement.properties[Comps.Properties.ZIndex] = x;
+                computedElement.properties[Comps.Properties.ZIndex] = y;
                 system.addComponent(computedElement);
                 //                console.log("player created")
             }
@@ -71,6 +68,13 @@ export class MovePlayer {
         this.type = Commands.MovePlayer;
     }
     run(system) {
+        if (system.getState("delta") == undefined) {
+            system.setState("delta", performance.now());
+            return;
+        }
+        let velocity = 0.03;
+        let delta = (performance.now() - system.getState("delta"));
+        system.setState("delta", performance.now());
         let foundComponents = system.find([ECS.Get.All, [Comps.Components.Position], ECS.By.Any, null]);
         if (system.input.movementDirection.x == 0 &&
             system.input.movementDirection.y == 0) {
@@ -78,8 +82,8 @@ export class MovePlayer {
         }
         let fC = foundComponents[0][0];
         let newPosition = fC.component.position;
-        newPosition.x += system.input.movementDirection.x;
-        newPosition.y += system.input.movementDirection.y;
+        newPosition.x += system.input.movementDirection.x * delta * velocity;
+        newPosition.y += system.input.movementDirection.y * delta * velocity;
         system.setProperty(fC, "position", newPosition);
     }
 }
@@ -99,6 +103,16 @@ export class SyncComputedElementPosition {
         ]);
         for (let cE of foundComponents[0]) {
             for (let p of foundComponents[1]) {
+                //
+                //                for (let lol of foundComponents[0]) {
+                //                    for (let lol2 of foundComponents[0]) {
+                //                        lol2.component.entityUid / Math.sqrt(lol2.component.entityUid / Math.random())
+                //                        lol2.component.entityUid / Math.sqrt(lol2.component.entityUid / Math.random())
+                //                        lol2.component.entityUid / Math.sqrt(lol2.component.entityUid / Math.random())
+                //                        lol2.component.entityUid / Math.sqrt(lol2.component.entityUid / Math.random())
+                //                        lol2.component.entityUid / Math.sqrt(lol2.component.entityUid / Math.random())
+                //                    }
+                //                }
                 if (!p.component.isChanged)
                     break;
                 if (cE.component.entityUid ==

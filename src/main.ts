@@ -62,10 +62,12 @@ let documentObjects: DocumentObject[] = []
 
 class DocumentObject {
     private stateElement: HTMLElement
+    private currentTransform: Utils.Vector2
     entityUid: number
 
 
     constructor(newEntityUid: number) {
+        this.currentTransform = new Utils.Vector2(0, 0)
         this.entityUid = newEntityUid;
         let worldView = document.getElementById("world-view")
         worldView!.insertAdjacentHTML("beforeend", `<div id="${newEntityUid}"></div>`);
@@ -86,11 +88,22 @@ class DocumentObject {
     setColor(newColor: string) {
         this.stateElement.style.color = newColor
     }
-    setLeft(newLeft: number) {
-        this.stateElement.style.left = newLeft + "px"
-    }
-    setTop(newTop: number) {
-        this.stateElement.style.top = newTop + "px"
+    //    setLeft(newLeft: number) {
+    //    }
+    setTransform(newLeft: number | null, newTop: number | null) {
+        if (newLeft && newTop) {
+            this.currentTransform.y = newTop
+            this.currentTransform.x = newLeft
+            this.stateElement.style.transform = `translateY(${newTop}px) translateX(${newLeft}px)`
+        }
+        if (newLeft && !newTop) {
+            this.currentTransform.x = newLeft
+            this.stateElement.style.transform = `translateY(${this.currentTransform.y}px) translateX(${newLeft}px)`
+        }
+        if (!newLeft && newTop) {
+            this.currentTransform.y = newTop
+            this.stateElement.style.transform = `translateY(${newTop}px) translateX(${this.currentTransform.x}px)`
+        }
     }
     setZIndex(newZIndex: number) {
         this.stateElement.style.zIndex = newZIndex.toString()
@@ -104,6 +117,9 @@ class DocumentObject {
 }
 
 function onWManagerMessage(data: any) {
+
+    let start = performance.now()
+
     let msg = (data.data as Utils.Message)
     let newData = msg.data as Utils.GraphicDiff
 
@@ -131,12 +147,12 @@ function onWManagerMessage(data: any) {
                                     dO.setDisplayElement(cCE.properties[pCI])
                                     break;
 
-                                case Comps.Properties.Left:
-                                    dO.setLeft(cCE.properties[pCI] as number)
-                                    break;
-
-                                case Comps.Properties.Top:
-                                    dO.setTop(cCE.properties[pCI] as number)
+                                case Comps.Properties.Left: case Comps.Properties.Top:
+                                    dO.setTransform(
+                                        cCE.changedProperties[Comps.Properties.Left] ?
+                                            cCE.properties[Comps.Properties.Left] as number : null,
+                                        cCE.changedProperties[Comps.Properties.Top] ?
+                                            cCE.properties[Comps.Properties.Top] as number : null)
                                     break;
 
                                 case Comps.Properties.ZIndex:
@@ -158,8 +174,7 @@ function onWManagerMessage(data: any) {
                 documentObject.addClasses(nCE.properties[Comps.Properties.Classes])
                 documentObject.setColor(nCE.properties[Comps.Properties.Color])
                 documentObject.setDisplayElement(nCE.properties[Comps.Properties.DisplayElement])
-                documentObject.setLeft(nCE.properties[Comps.Properties.Left])
-                documentObject.setTop(nCE.properties[Comps.Properties.Top])
+                documentObject.setTransform(nCE.properties[Comps.Properties.Left], nCE.properties[Comps.Properties.Top])
                 documentObject.setZIndex(nCE.properties[Comps.Properties.ZIndex])
 
                 documentObjects.push(documentObject)
@@ -171,6 +186,11 @@ function onWManagerMessage(data: any) {
                         documentObjects.splice(dOI, 1)
                     }
                 }
+            }
+            let stop = performance.now()
+            if ((stop - start) > 10) {
+                console.log(stop - start)
+
             }
             break;
 

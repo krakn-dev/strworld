@@ -28,6 +28,7 @@ let input: Utils.Input
 
 
 let triggerCommandRefresh = false
+
 async function onWorkerMessage(data: any) {
     // sync state changes
     let msg = (data.data as Utils.Message)
@@ -141,8 +142,6 @@ async function onWorkerMessage(data: any) {
                     }
                 }
             }
-
-            //            await Utils.delay(100) // wait for all workers to initialize
             switch (newData.workerUid) {
                 case w0!.uid:
                     runW0()
@@ -210,9 +209,12 @@ function runW1() {
         inputData
     )
 
+    let start = performance.now()
     if (splitCommandTypes[1] != undefined) {
         w1!.messagePort.postMessage(newMsg)
     }
+    let stop = performance.now()
+    console.log(stop - start)
 }
 function runW0() {
     let commandTypes = commands.map(a => a.type)

@@ -150,8 +150,9 @@ export class System {
         newState: Map<string, any>,
         newInput: Utils.Input
     ) {
+
         this.components = newComponents
-        this.commands = []
+
         this.state = newState
         this.input = newInput
 
@@ -274,12 +275,30 @@ export class System {
                 )
             )
         )
-        this.commandsToAdd = []
-        this.commandsToRemove = []
 
-        this.componentsToAdd = []
-        this.componentsToRemove = []
+        for (let cI = this.components.length; cI >= 0; cI--) {
+            delete this.components[cI]
+        }
+        for (let cI = this.componentsToAdd.length; cI >= 0; cI--) {
+            delete this.componentsToAdd[cI]
+        }
+        for (let cI = this.componentsToRemove.length; cI >= 0; cI--) {
+            delete this.componentsToRemove[cI]
+        }
+        for (let cI = this.propertiesToChange.length; cI >= 0; cI--) {
+            delete this.propertiesToChange[cI]
+        }
+        for (let cI = this.commandsToAdd.length; cI >= 0; cI--) {
+            delete this.commandsToAdd[cI]
+        }
+        for (let cI = this.commandsToRemove.length; cI >= 0; cI--) {
+            delete this.commandsToRemove[cI]
+        }
+
         this.propertiesToChange = []
-
+        this.componentsToRemove = []
+        this.componentsToAdd = []
+        this.commandsToRemove = []
+        this.commandsToAdd = []
     }
 }

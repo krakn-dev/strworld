@@ -39,6 +39,7 @@ initializeWorkers();
 let documentObjects = [];
 class DocumentObject {
     constructor(newEntityUid) {
+        this.currentTransform = new Utils.Vector2(0, 0);
         this.entityUid = newEntityUid;
         let worldView = document.getElementById("world-view");
         worldView.insertAdjacentHTML("beforeend", `<div id="${newEntityUid}"></div>`);
@@ -57,11 +58,22 @@ class DocumentObject {
     setColor(newColor) {
         this.stateElement.style.color = newColor;
     }
-    setLeft(newLeft) {
-        this.stateElement.style.left = newLeft + "px";
-    }
-    setTop(newTop) {
-        this.stateElement.style.top = newTop + "px";
+    //    setLeft(newLeft: number) {
+    //    }
+    setTransform(newLeft, newTop) {
+        if (newLeft && newTop) {
+            this.currentTransform.y = newTop;
+            this.currentTransform.x = newLeft;
+            this.stateElement.style.transform = `translateY(${newTop}px) translateX(${newLeft}px)`;
+        }
+        if (newLeft && !newTop) {
+            this.currentTransform.x = newLeft;
+            this.stateElement.style.transform = `translateY(${this.currentTransform.y}px) translateX(${newLeft}px)`;
+        }
+        if (!newLeft && newTop) {
+            this.currentTransform.y = newTop;
+            this.stateElement.style.transform = `translateY(${newTop}px) translateX(${this.currentTransform.x}px)`;
+        }
     }
     setZIndex(newZIndex) {
         this.stateElement.style.zIndex = newZIndex.toString();
@@ -74,6 +86,7 @@ class DocumentObject {
     }
 }
 function onWManagerMessage(data) {
+    let start = performance.now();
     let msg = data.data;
     let newData = msg.data;
     switch (msg.message) {
@@ -98,10 +111,10 @@ function onWManagerMessage(data) {
                                     dO.setDisplayElement(cCE.properties[pCI]);
                                     break;
                                 case Comps.Properties.Left:
-                                    dO.setLeft(cCE.properties[pCI]);
-                                    break;
                                 case Comps.Properties.Top:
-                                    dO.setTop(cCE.properties[pCI]);
+                                    dO.setTransform(cCE.changedProperties[Comps.Properties.Left] ?
+                                        cCE.properties[Comps.Properties.Left] : null, cCE.changedProperties[Comps.Properties.Top] ?
+                                        cCE.properties[Comps.Properties.Top] : null);
                                     break;
                                 case Comps.Properties.ZIndex:
                                     dO.setZIndex(cCE.properties[pCI]);
@@ -120,8 +133,7 @@ function onWManagerMessage(data) {
                 documentObject.addClasses(nCE.properties[Comps.Properties.Classes]);
                 documentObject.setColor(nCE.properties[Comps.Properties.Color]);
                 documentObject.setDisplayElement(nCE.properties[Comps.Properties.DisplayElement]);
-                documentObject.setLeft(nCE.properties[Comps.Properties.Left]);
-                documentObject.setTop(nCE.properties[Comps.Properties.Top]);
+                documentObject.setTransform(nCE.properties[Comps.Properties.Left], nCE.properties[Comps.Properties.Top]);
                 documentObject.setZIndex(nCE.properties[Comps.Properties.ZIndex]);
                 documentObjects.push(documentObject);
             }
@@ -132,6 +144,10 @@ function onWManagerMessage(data) {
                         documentObjects.splice(dOI, 1);
                     }
                 }
+            }
+            let stop = performance.now();
+            if ((stop - start) > 10) {
+                console.log(stop - start);
             }
             break;
     }

@@ -77,7 +77,6 @@ export class System {
     }
     update(newComponents, newCommands, newState, newInput) {
         this.components = newComponents;
-        this.commands = [];
         this.state = newState;
         this.input = newInput;
         if (newCommands == null)
@@ -175,10 +174,28 @@ export class System {
                 c.run(this);
         }
         this.workerManager.postMessage(new Utils.Message(Utils.Messages.Done, new Utils.WorkerOutput(this.propertiesToChange, this.componentsToRemove, this.componentsToAdd, this.state, this.commandsToRemove, this.commandsToAdd, this.workerUid)));
-        this.commandsToAdd = [];
-        this.commandsToRemove = [];
-        this.componentsToAdd = [];
-        this.componentsToRemove = [];
+        for (let cI = this.components.length; cI >= 0; cI--) {
+            delete this.components[cI];
+        }
+        for (let cI = this.componentsToAdd.length; cI >= 0; cI--) {
+            delete this.componentsToAdd[cI];
+        }
+        for (let cI = this.componentsToRemove.length; cI >= 0; cI--) {
+            delete this.componentsToRemove[cI];
+        }
+        for (let cI = this.propertiesToChange.length; cI >= 0; cI--) {
+            delete this.propertiesToChange[cI];
+        }
+        for (let cI = this.commandsToAdd.length; cI >= 0; cI--) {
+            delete this.commandsToAdd[cI];
+        }
+        for (let cI = this.commandsToRemove.length; cI >= 0; cI--) {
+            delete this.commandsToRemove[cI];
+        }
         this.propertiesToChange = [];
+        this.componentsToRemove = [];
+        this.componentsToAdd = [];
+        this.commandsToRemove = [];
+        this.commandsToAdd = [];
     }
 }

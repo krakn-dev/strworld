@@ -5,7 +5,6 @@ import * as Cmds from "./commands.js"
 export interface Component {
     entityUid: number
     componentUid: number
-    isChanged: boolean
     type: Comps.Components
 }
 
@@ -29,8 +28,11 @@ export enum Run {
 
 export class ComponentAndIndex {
     component: Component
-    index: [number, number]
-    constructor(newComponent: Component, newIndex: [number, number]) {
+    index: number
+    constructor(
+        newComponent: Component,
+        newIndex: number
+    ) {
         this.component = newComponent
         this.index = newIndex
     }
@@ -42,79 +44,59 @@ export interface Command {
 }
 
 
-export class PropertyChange {
-    index: number[]
-    property: string
-    value: any
-    componentUid: number
-
-    constructor(
-        newIndex: number[],
-        newProperty: string,
-        newValue: any,
-        newComponentUid: number,
-    ) {
-        this.index = newIndex
-        this.property = newProperty
-        this.value = newValue
-        this.componentUid = newComponentUid
-    }
-}
 
 export class System {
     private commands: Command[]
     private components: Component[][]
-
-    private state: Map<string, any>
-
-    private commandsToRemove: Cmds.Commands[]
-    private commandsToAdd: Cmds.Commands[]
-
-    private componentsToRemove: [number, number][]
-    private componentsToAdd: Component[]
-    private propertiesToChange: PropertyChange[]
-
-    workerManager!: MessagePort
-    workerUid!: number
-
+    private state: Map<string, [Cmds.Commands, any]>
+    private diffs: Utils.DiffsOut
+    workerId: number
+    w0: MessagePort
     input: Utils.Input
 
-    constructor() {
+    constructor(newW0: MessagePort, newWorkerId: number) {
+        this.workerId = newWorkerId
+        this.w0 = newW0
+        this.diffs = new Utils.DiffsOut([], [], [], [], [], this.workerId)
         this.commands = []
         this.components = []
+        for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
+            this.components.push([])
+        }
         this.state = new Map()
-        this.commandsToRemove = []
-        this.commandsToAdd = []
-        this.componentsToRemove = []
-        this.propertiesToChange = []
-        this.componentsToAdd = []
         this.input = new Utils.Input(new Utils.Vector2(0, 0))
     }
 
 
-    setState(key: string, value: any) {
-        let changes: string[] = this.state.get(Utils.CHANGES_KEY)
-        changes.push(key)
-        this.state.set(Utils.CHANGES_KEY, changes)
-        this.state.set(key, value)
+    setState(command: Cmds.Commands, key: string, value: any) {
+        this.state.set(key, [command, value])
     }
 
     getState(key: string): any {
-        return this.state.get(key)
+        let value = this.state.get(key)
+        if (value == undefined)
+            return null
+        else
+            return value[1]
     }
 
     removeComponent(component: ComponentAndIndex) {
-        this.componentsToRemove.push(component.index)
+        this.diffs.removedComponents.push(
+            new Utils.RemovedComponent(
+                component.component.type,
+                component.index,
+                component.component.componentUid
+            )
+        )
     }
-
     removeCommand(command: Cmds.Commands) {
-        this.commandsToRemove.push(command)
+        this.diffs.removedCommands.push(command)
     }
     addComponent(newComponent: Component) {
-        this.componentsToAdd.push(newComponent)
+        this.diffs.addedComponents.push(newComponent)
     }
     addCommand(command: Cmds.Commands) {
-        this.commandsToAdd.push(command)
+        this.diffs.addedCommands.push(command)
     }
 
     setProperty<TObj>(component: ComponentAndIndex, property: keyof TObj, value: any) {
@@ -123,45 +105,96 @@ export class System {
             return
         }
 
-        this.propertiesToChange.push(
-            new PropertyChange(
+        this.diffs.changedProperties.push(
+            new Utils.PropertyChange(
+                component.component.type,
                 component.index,
                 property as string,
                 value,
                 component.component.componentUid
             )
         )
-        //set isChanged
-        if (property == "isChanged") return
-
-        this.propertiesToChange.push(
-            new PropertyChange(
-                component.index,
-                "isChanged",
-                true,
-                component.component.componentUid
-            )
-        )
     }
 
-    update(
-        newComponents: Component[][],
-        newCommands: Cmds.Commands[] | null,
-        newState: Map<string, any>,
-        newInput: Utils.Input
-    ) {
-
-        this.components = newComponents
-
-        this.state = newState
-        this.input = newInput
-
-        if (newCommands == null)
-            return
-        this.commands = []
-        for (let cT of newCommands) {
-            this.commands.push(Cmds.getInstanceFromEnum(cT))
+    onRemoveCommand(command: Cmds.Commands) {
+        // delete command state
+        for (const [k, v] of this.state.entries()) {
+            if (v[0] == command) this.state.delete(k)
         }
+
+        for (let cI = this.commands.length - 1; cI >= 0; cI--) {
+            if (this.commands[cI].type == command) {
+                this.commands.splice(cI)
+            }
+        }
+    }
+    onAddCommand(command: Cmds.Commands) {
+        this.commands.push(Cmds.getInstanceFromEnum(command))
+    }
+
+    update(newData: Utils.WorkerInput) {
+        // add components
+        for (let c of newData.addedComponents) {
+            this.components[c.type].push(c)
+        }
+
+        // change properties
+        for (let pC of newData.changedProperties) {
+
+            // detect if index is incorrect or was removed
+            if (this.components[pC.componentType].length - 1 < pC.componentIndex ||
+                this.components[pC.componentType][pC.componentIndex].componentUid != pC.componentUid) {
+
+                console.log("$ component probably was deleted or changed position")
+                console.log("$ trying to fix...")
+                let fixed = false
+                for (let [cI, c] of this.components[pC.componentType].entries()) {
+                    if (c.componentUid == pC.componentUid) {
+                        fixed = true
+                        pC.componentIndex = cI
+                    }
+                }
+                if (!fixed) {
+                    console.log("$ component was deleted")
+                    return
+                }
+                else {
+                    console.log("$ component was found")
+                }
+            }
+            (this.components[pC.componentType][pC.componentIndex] as Utils.IIndexable)[pC.property] = pC.value
+        }
+
+        // delete components
+        if (newData.removedComponents.length != 0) {
+            let deleteOrder: Utils.RemovedComponent[] = [newData.removedComponents[0]]
+            for (let rC of newData.removedComponents!) {
+                for (let [dOI, dO] of deleteOrder.entries()) {
+                    if (rC.index > dO.index) {
+                        deleteOrder.splice(dOI, 0, rC)
+                    }
+                }
+            }
+            for (let dO of deleteOrder) {
+                // remove in order
+                this.components[dO.type].splice(dO.index, 1)
+            }
+        }
+
+        for (let cAI of this.components[Comps.Components.ComputedElement]) {
+            let computedElement = cAI as Comps.ComputedElement
+            computedElement.isChanged = false
+            for (let [pCI, pC] of computedElement.changedProperties.entries()) {
+                if (pCI == 0) {
+                    let classesDiff = (pC as Comps.ClassesDiff)
+                    classesDiff.added = []
+                    classesDiff.deleted = []
+                    continue;
+                }
+                pC = false
+            }
+        }
+        this.input = newData.input
     }
 
     find(query: [Get, Comps.Components[], By, null | number | Comps.EntityTypes]): ComponentAndIndex[][] {
@@ -204,7 +237,7 @@ export class System {
                 if (query[2] == By.ComponentId) {
                     for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.componentUid) {
-                            collected[qci].push(new ComponentAndIndex(c, [qc, cI]))
+                            collected[qci].push(new ComponentAndIndex(c, cI))
                             break;
                         }
                     }
@@ -213,7 +246,7 @@ export class System {
                 else if (query[2] == By.EntityId) {
                     for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.entityUid) {
-                            collected[qci].push(new ComponentAndIndex(c, [qc, cI]))
+                            collected[qci].push(new ComponentAndIndex(c, cI))
                             break;
                         }
                     }
@@ -224,14 +257,14 @@ export class System {
                 if (query[2] == By.EntityId) {
                     for (let [cI, c] of this.components[qc].entries()) {
                         if (query[3] == c.entityUid) {
-                            collected[qci].push(new ComponentAndIndex(c, [qc, cI]))
+                            collected[qci].push(new ComponentAndIndex(c, cI))
                         }
                     }
                     continue;
                 }
                 else if (query[2] == By.Any) {
                     for (let [cI, c] of this.components[qc].entries()) {
-                        collected[qci].push(new ComponentAndIndex(c, [qc, cI]))
+                        collected[qci].push(new ComponentAndIndex(c, cI))
                     }
                     continue;
                 }
@@ -256,49 +289,28 @@ export class System {
     }
 
     run() {
+        if (this.commands.length == 0) return
+
         for (let c of this.commands) {
-            if (c.type != Cmds.Commands.PingPong)
-                c.run(this)
+            c.run(this)
         }
 
-        this.workerManager.postMessage(
-            new Utils.Message(
-                Utils.Messages.Done,
-                new Utils.WorkerOutput(
-                    this.propertiesToChange,
-                    this.componentsToRemove,
-                    this.componentsToAdd,
-                    this.state,
-                    this.commandsToRemove,
-                    this.commandsToAdd,
-                    this.workerUid
-                )
-            )
-        )
+        this.w0.postMessage(
+            new Utils.Message(Utils.Messages.Done, this.diffs))
+        this.diffs = new Utils.DiffsOut([], [], [], [], [], this.workerId)
 
-        for (let cI = this.components.length; cI >= 0; cI--) {
-            delete this.components[cI]
+        for (let cAI of this.components[Comps.Components.ComputedElement]) {
+            let computedElement = cAI as Comps.ComputedElement
+            computedElement.isChanged = false
+            for (let [pCI, pC] of computedElement.changedProperties.entries()) {
+                if (pCI == 0) {
+                    let classesDiff = (pC as Comps.ClassesDiff)
+                    classesDiff.added = []
+                    classesDiff.deleted = []
+                    continue;
+                }
+                pC = false
+            }
         }
-        for (let cI = this.componentsToAdd.length; cI >= 0; cI--) {
-            delete this.componentsToAdd[cI]
-        }
-        for (let cI = this.componentsToRemove.length; cI >= 0; cI--) {
-            delete this.componentsToRemove[cI]
-        }
-        for (let cI = this.propertiesToChange.length; cI >= 0; cI--) {
-            delete this.propertiesToChange[cI]
-        }
-        for (let cI = this.commandsToAdd.length; cI >= 0; cI--) {
-            delete this.commandsToAdd[cI]
-        }
-        for (let cI = this.commandsToRemove.length; cI >= 0; cI--) {
-            delete this.commandsToRemove[cI]
-        }
-
-        this.propertiesToChange = []
-        this.componentsToRemove = []
-        this.componentsToAdd = []
-        this.commandsToRemove = []
-        this.commandsToAdd = []
     }
 }

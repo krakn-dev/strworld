@@ -9,6 +9,13 @@ export var Components;
     Components[Components["ComputedElement"] = 5] = "ComputedElement";
     Components[Components["EntityType"] = 6] = "EntityType";
 })(Components || (Components = {}));
+export const NUMBER_OF_COMPONENTS = (() => {
+    let n = 0;
+    for (let i = 0; i < Object.keys(Components).length / 2; i++) {
+        n++;
+    }
+    return n;
+})();
 export var EntityTypes;
 (function (EntityTypes) {
     EntityTypes[EntityTypes["Human"] = 0] = "Human";
@@ -25,7 +32,6 @@ export class Position {
 }
 export class Health {
     constructor(newHealth, newEntityUid) {
-        this.isChanged = false;
         this.componentUid = Utils.newUid();
         this.entityUid = newEntityUid;
         this.type = Components.Health;

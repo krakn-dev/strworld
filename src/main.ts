@@ -6,55 +6,53 @@ let onWorkerError = (e: any) => {
     console.error(e)
 }
 
-let wManager: Worker;
+let w0: Worker;
 
 
 function initializeWorkers() {
-    let w0MsgChannel = new MessageChannel();
     let w1MsgChannel = new MessageChannel();
     let w2MsgChannel = new MessageChannel();
+    let w3MsgChannel = new MessageChannel();
 
-    wManager = new Worker("worker_manager.js", { type: "module" });
-    let w0 = new Worker("worker.js", { type: "module" });
+    w0 = new Worker("w0.js", { type: "module" });
     let w1 = new Worker("worker.js", { type: "module" });
     let w2 = new Worker("worker.js", { type: "module" });
+    let w3 = new Worker("worker.js", { type: "module" });
 
-    let wUids = new Utils.WorkerUids()
-
-    w0.onerror = onWorkerError
     w1.onerror = onWorkerError
     w2.onerror = onWorkerError
-    wManager.onerror = onWorkerError
-
-    wManager.postMessage(
-        new Utils.Message(Utils.Messages.Start, wUids),
-        [
-            w0MsgChannel.port1,
-            w1MsgChannel.port1,
-            w2MsgChannel.port1
-        ])
+    w3.onerror = onWorkerError
+    w0.onerror = onWorkerError
 
     w0.postMessage(
-        wUids.w0Uid,
+        new Utils.Message(Utils.Messages.Start),
         [
-            w0MsgChannel.port2,
+            w1MsgChannel.port1,
+            w2MsgChannel.port1,
+            w3MsgChannel.port1
         ])
 
     w1.postMessage(
-        wUids.w1Uid,
+        1,
         [
             w1MsgChannel.port2,
         ])
 
     w2.postMessage(
-        wUids.w2Uid,
+        2,
         [
             w2MsgChannel.port2,
         ])
 
+    w3.postMessage(
+        3,
+        [
+            w3MsgChannel.port2,
+        ])
+
     setInterval(sendInput, 20)
 
-    wManager.onmessage = onWManagerMessage
+    w0.onmessage = onW0Message
 }
 initializeWorkers()
 
@@ -116,7 +114,7 @@ class DocumentObject {
     }
 }
 
-function onWManagerMessage(data: any) {
+function onW0Message(data: any) {
 
     let start = performance.now()
 
@@ -126,7 +124,8 @@ function onWManagerMessage(data: any) {
     switch (msg.message) {
         case Utils.Messages.RenderIt:
             let isFound = false
-            for (let cCE of newData.changedComputedElements) {
+            for (let cAI of newData.changedComputedElements) {
+                let cCE = cAI.component as Comps.ComputedElement
                 for (let dO of documentObjects) {
                     if (cCE.entityUid == dO.entityUid) {
                         for (let [pCI, pC] of cCE.changedProperties.entries()) {
@@ -169,7 +168,8 @@ function onWManagerMessage(data: any) {
                 }
             }
 
-            for (let nCE of newData.addedComputedElements) {
+            for (let cAI of newData.addedComputedElements) {
+                let nCE = cAI.component as Comps.ComputedElement
                 let documentObject = new DocumentObject(nCE.entityUid)
                 documentObject.addClasses(nCE.properties[Comps.Properties.Classes])
                 documentObject.setColor(nCE.properties[Comps.Properties.Color])
@@ -179,18 +179,14 @@ function onWManagerMessage(data: any) {
 
                 documentObjects.push(documentObject)
             }
-            for (let rCE of newData.removedComputedElements) {
+            for (let cAI of newData.removedComputedElements) {
+                let rCE = cAI.component as Comps.ComputedElement
                 for (let dOI = documentObjects.length - 1; dOI >= 0; dOI--) {
                     if (rCE.entityUid == documentObjects[dOI].entityUid) {
                         documentObjects[dOI].dispose()
                         documentObjects.splice(dOI, 1)
                     }
                 }
-            }
-            let stop = performance.now()
-            if ((stop - start) > 10) {
-                console.log(stop - start)
-
             }
             break;
 
@@ -203,7 +199,7 @@ function onWManagerMessage(data: any) {
 
 
 function sendInput() {
-    wManager.postMessage(new Utils.Message(Utils.Messages.PlayerInput, new Utils.Input(KeyboardInput.result)))
+    w0.postMessage(new Utils.Message(Utils.Messages.PlayerInput, new Utils.Input(KeyboardInput.result)))
 }
 
 

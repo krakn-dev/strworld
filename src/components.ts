@@ -11,6 +11,14 @@ export enum Components {
     EntityType,
 }
 
+export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
+    let n: number = 0
+    for (let i = 0; i < Object.keys(Components).length / 2; i++) {
+        n++
+    }
+    return n
+})()
+
 export enum EntityTypes {
     Human,
     Grass,
@@ -36,10 +44,8 @@ export class Health implements ECS.Component {
     componentUid: number
     type: Components
     health: number
-    isChanged: boolean
 
     constructor(newHealth: number, newEntityUid: number) {
-        this.isChanged = false
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.type = Components.Health

@@ -4,36 +4,35 @@ let onWorkerError = (e) => {
     console.log("ERROR!");
     console.error(e);
 };
-let wManager;
+let w0;
 function initializeWorkers() {
-    let w0MsgChannel = new MessageChannel();
     let w1MsgChannel = new MessageChannel();
     let w2MsgChannel = new MessageChannel();
-    wManager = new Worker("worker_manager.js", { type: "module" });
-    let w0 = new Worker("worker.js", { type: "module" });
+    let w3MsgChannel = new MessageChannel();
+    w0 = new Worker("w0.js", { type: "module" });
     let w1 = new Worker("worker.js", { type: "module" });
     let w2 = new Worker("worker.js", { type: "module" });
-    let wUids = new Utils.WorkerUids();
-    w0.onerror = onWorkerError;
+    let w3 = new Worker("worker.js", { type: "module" });
     w1.onerror = onWorkerError;
     w2.onerror = onWorkerError;
-    wManager.onerror = onWorkerError;
-    wManager.postMessage(new Utils.Message(Utils.Messages.Start, wUids), [
-        w0MsgChannel.port1,
+    w3.onerror = onWorkerError;
+    w0.onerror = onWorkerError;
+    w0.postMessage(new Utils.Message(Utils.Messages.Start), [
         w1MsgChannel.port1,
-        w2MsgChannel.port1
+        w2MsgChannel.port1,
+        w3MsgChannel.port1
     ]);
-    w0.postMessage(wUids.w0Uid, [
-        w0MsgChannel.port2,
-    ]);
-    w1.postMessage(wUids.w1Uid, [
+    w1.postMessage(1, [
         w1MsgChannel.port2,
     ]);
-    w2.postMessage(wUids.w2Uid, [
+    w2.postMessage(2, [
         w2MsgChannel.port2,
     ]);
+    w3.postMessage(3, [
+        w3MsgChannel.port2,
+    ]);
     setInterval(sendInput, 20);
-    wManager.onmessage = onWManagerMessage;
+    w0.onmessage = onW0Message;
 }
 initializeWorkers();
 let documentObjects = [];
@@ -85,14 +84,15 @@ class DocumentObject {
         this.stateElement.remove();
     }
 }
-function onWManagerMessage(data) {
+function onW0Message(data) {
     let start = performance.now();
     let msg = data.data;
     let newData = msg.data;
     switch (msg.message) {
         case Utils.Messages.RenderIt:
             let isFound = false;
-            for (let cCE of newData.changedComputedElements) {
+            for (let cAI of newData.changedComputedElements) {
+                let cCE = cAI.component;
                 for (let dO of documentObjects) {
                     if (cCE.entityUid == dO.entityUid) {
                         for (let [pCI, pC] of cCE.changedProperties.entries()) {
@@ -128,7 +128,8 @@ function onWManagerMessage(data) {
                     //                    isFound = false
                 }
             }
-            for (let nCE of newData.addedComputedElements) {
+            for (let cAI of newData.addedComputedElements) {
+                let nCE = cAI.component;
                 let documentObject = new DocumentObject(nCE.entityUid);
                 documentObject.addClasses(nCE.properties[Comps.Properties.Classes]);
                 documentObject.setColor(nCE.properties[Comps.Properties.Color]);
@@ -137,7 +138,8 @@ function onWManagerMessage(data) {
                 documentObject.setZIndex(nCE.properties[Comps.Properties.ZIndex]);
                 documentObjects.push(documentObject);
             }
-            for (let rCE of newData.removedComputedElements) {
+            for (let cAI of newData.removedComputedElements) {
+                let rCE = cAI.component;
                 for (let dOI = documentObjects.length - 1; dOI >= 0; dOI--) {
                     if (rCE.entityUid == documentObjects[dOI].entityUid) {
                         documentObjects[dOI].dispose();
@@ -145,15 +147,11 @@ function onWManagerMessage(data) {
                     }
                 }
             }
-            let stop = performance.now();
-            if ((stop - start) > 10) {
-                console.log(stop - start);
-            }
             break;
     }
 }
 function sendInput() {
-    wManager.postMessage(new Utils.Message(Utils.Messages.PlayerInput, new Utils.Input(KeyboardInput.result)));
+    w0.postMessage(new Utils.Message(Utils.Messages.PlayerInput, new Utils.Input(KeyboardInput.result)));
 }
 class KeyboardInput {
     static onKeyDown(event) {

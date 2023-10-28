@@ -1,44 +1,61 @@
-import * as Cmds from "./commands.js";
-import * as Comps from "./components.js";
 export function randomNumber(max) {
     return Math.floor(Math.random() * max) + 1;
 }
 export function newUid() {
     return randomNumber(100000000);
 }
-export const NUMBER_OF_COMPONENTS = (() => {
-    let n = 0;
-    for (let i = 0; i < Object.keys(Comps.Components).length / 2; i++) {
-        n++;
-    }
-    return n;
-})();
-export const NUMBER_OF_COMMANDS = (() => {
-    let n = 0;
-    for (let i = 0; i < Object.keys(Cmds.Commands).length / 2; i++) {
-        n++;
-    }
-    return n;
-})();
 export var Messages;
 (function (Messages) {
-    Messages[Messages["Work"] = 0] = "Work";
+    Messages[Messages["Update"] = 0] = "Update";
     Messages[Messages["Start"] = 1] = "Start";
     Messages[Messages["Done"] = 2] = "Done";
-    Messages[Messages["AreYouReadyKids"] = 3] = "AreYouReadyKids";
-    // if workers are ready to do work
-    Messages[Messages["AyeAyeCaptain"] = 4] = "AyeAyeCaptain";
-    // means that they able to do work
-    Messages[Messages["WakeUp"] = 5] = "WakeUp";
-    Messages[Messages["BdsabasdmbswhaWhat"] = 6] = "BdsabasdmbswhaWhat";
-    Messages[Messages["PlayerInput"] = 7] = "PlayerInput";
-    Messages[Messages["RenderIt"] = 8] = "RenderIt";
+    Messages[Messages["PlayerInput"] = 3] = "PlayerInput";
+    Messages[Messages["RenderIt"] = 4] = "RenderIt";
+    Messages[Messages["AddedCommand"] = 5] = "AddedCommand";
+    Messages[Messages["RemovedCommand"] = 6] = "RemovedCommand";
+    Messages[Messages["Work"] = 7] = "Work";
 })(Messages || (Messages = {}));
 export class WorkerInfo {
-    constructor(newMessagePort, newUid) {
-        this.isProcessing = false;
+    constructor(newMessagePort, newWorkerId) {
         this.messagePort = newMessagePort;
-        this.uid = newUid;
+        this.commands = [];
+        this.workerId = newWorkerId;
+    }
+}
+export class PropertyChange {
+    constructor(newComponentType, newIndex, newProperty, newValue, newComponentUid) {
+        this.componentIndex = newIndex;
+        this.componentType = newComponentType;
+        this.property = newProperty;
+        this.value = newValue;
+        this.componentUid = newComponentUid;
+    }
+}
+export class RemovedComponent {
+    constructor(newType, newIndex, newComponentUid) {
+        this.type = newType;
+        this.index = newIndex;
+        this.componentUid = newComponentUid;
+    }
+}
+// w# sends to w0
+export class DiffsOut {
+    constructor(newChangedProperties, newRemovedComponents, newAddedComponents, newRemovedCommands, newAddedCommands, newWorkerId) {
+        this.changedProperties = newChangedProperties;
+        this.removedComponents = newRemovedComponents;
+        this.addedComponents = newAddedComponents;
+        this.removedCommands = newRemovedCommands;
+        this.addedCommands = newAddedCommands;
+        this.workerId = newWorkerId;
+    }
+}
+// w0 sends to w#
+export class WorkerInput {
+    constructor(newChangedProperties, newRemovedComponents, newAddedComponents, newInput) {
+        this.input = newInput;
+        this.changedProperties = newChangedProperties;
+        this.removedComponents = newRemovedComponents;
+        this.addedComponents = newAddedComponents;
     }
 }
 export class GraphicDiff {
@@ -48,35 +65,9 @@ export class GraphicDiff {
         this.removedComputedElements = newRemovedComputedElements;
     }
 }
-export class WorkerOutput {
-    constructor(newPropertiesToChange, newComponentsToRemove, newComponentsToAdd, newState, newCommandsToRemove, newCommandsToAdd, newWorkerUid) {
-        this.state = newState;
-        this.propertiesToChange = newPropertiesToChange;
-        this.componentsToRemove = newComponentsToRemove;
-        this.componentsToAdd = newComponentsToAdd;
-        this.commandsToRemove = newCommandsToRemove;
-        this.commandsToAdd = newCommandsToAdd;
-        this.workerUid = newWorkerUid;
-    }
-}
 export class Input {
     constructor(newMovementDirection) {
         this.movementDirection = newMovementDirection;
-    }
-}
-export class WorkerUids {
-    constructor() {
-        this.w0Uid = newUid();
-        this.w1Uid = newUid();
-        this.w2Uid = newUid();
-    }
-}
-export class WorkerInput {
-    constructor(newState, newComponents, newCommands, newInput) {
-        this.input = newInput;
-        this.state = newState;
-        this.commands = newCommands;
-        this.components = newComponents;
     }
 }
 export class Message {

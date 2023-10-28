@@ -10,97 +10,128 @@ export function newUid() {
 }
 
 
-export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
-    let n: number = 0
-    for (let i = 0; i < Object.keys(Comps.Components).length / 2; i++) {
-        n++
-    }
-    return n
-})()
-
-export const NUMBER_OF_COMMANDS = (() => { // fill component list with the number of component types
-    let n: number = 0
-    for (let i = 0; i < Object.keys(Cmds.Commands).length / 2; i++) {
-        n++
-    }
-    return n
-})()
 
 export enum Messages {
-    Work,     // make worker work with provided data
-    Start,    // initialize worker manager
+    Update,   // make worker work with provided data
+    Start,    // initialize w0
     Done,     // returned when worker finished job
-
-    AreYouReadyKids, // manager worker asks
-    // if workers are ready to do work
-
-    AyeAyeCaptain,   // response from workers
-    // means that they able to do work
-    WakeUp,
-
-    BdsabasdmbswhaWhat,
 
     PlayerInput,
 
     RenderIt,
+    AddedCommand,
+    RemovedCommand,
+    Work,
 }
 
 export class WorkerInfo {
     messagePort: MessagePort
-    isProcessing: boolean
-    uid: number
+    commands: Cmds.Commands[]
+    workerId: number
     constructor(
         newMessagePort: MessagePort,
-        newUid: number
+        newWorkerId: number
     ) {
-        this.isProcessing = false
         this.messagePort = newMessagePort
-        this.uid = newUid
+        this.commands = []
+        this.workerId = newWorkerId
     }
+}
 
+export class PropertyChange {
+    componentIndex: number
+    property: string
+    value: any
+    componentUid: number
+    componentType: Comps.Components
+    constructor(
+        newComponentType: Comps.Components,
+        newIndex: number,
+        newProperty: string,
+        newValue: any,
+        newComponentUid: number,
+    ) {
+        this.componentIndex = newIndex
+        this.componentType = newComponentType
+        this.property = newProperty
+        this.value = newValue
+        this.componentUid = newComponentUid
+    }
+}
+
+export class RemovedComponent {
+    type: Comps.Components
+    index: number
+    componentUid: number
+    constructor(
+        newType: Comps.Components,
+        newIndex: number,
+        newComponentUid: number
+    ) {
+        this.type = newType
+        this.index = newIndex
+        this.componentUid = newComponentUid
+    }
+}
+
+// w# sends to w0
+export class DiffsOut {
+    changedProperties: PropertyChange[]
+    removedComponents: RemovedComponent[]
+    addedComponents: ECS.Component[]
+    removedCommands: Cmds.Commands[]
+    addedCommands: Cmds.Commands[]
+    workerId: number
+    constructor(
+        newChangedProperties: PropertyChange[],
+        newRemovedComponents: RemovedComponent[],
+        newAddedComponents: ECS.Component[],
+        newRemovedCommands: Cmds.Commands[],
+        newAddedCommands: Cmds.Commands[],
+        newWorkerId: number
+    ) {
+        this.changedProperties = newChangedProperties
+        this.removedComponents = newRemovedComponents
+        this.addedComponents = newAddedComponents
+        this.removedCommands = newRemovedCommands
+        this.addedCommands = newAddedCommands
+        this.workerId = newWorkerId
+    }
+}
+// w0 sends to w#
+export class WorkerInput {
+    changedProperties: PropertyChange[]
+    removedComponents: RemovedComponent[]
+    addedComponents: ECS.Component[]
+    input: Input
+    constructor(
+        newChangedProperties: PropertyChange[],
+        newRemovedComponents: RemovedComponent[],
+        newAddedComponents: ECS.Component[],
+        newInput: Input,
+    ) {
+        this.input = newInput
+        this.changedProperties = newChangedProperties
+        this.removedComponents = newRemovedComponents
+        this.addedComponents = newAddedComponents
+    }
 }
 
 
+
 export class GraphicDiff {
-    changedComputedElements: Comps.ComputedElement[]
-    addedComputedElements: Comps.ComputedElement[]
-    removedComputedElements: Comps.ComputedElement[]
+    // everything is a computed element
+    changedComputedElements: ECS.ComponentAndIndex[]
+    addedComputedElements: ECS.ComponentAndIndex[]
+    removedComputedElements: ECS.ComponentAndIndex[]
     constructor(
-        newChangedComputedElements: Comps.ComputedElement[] = [],
-        newAddedComputedElements: Comps.ComputedElement[] = [],
-        newRemovedComputedElements: Comps.ComputedElement[] = []
+        newChangedComputedElements: ECS.ComponentAndIndex[] = [],
+        newAddedComputedElements: ECS.ComponentAndIndex[] = [],
+        newRemovedComputedElements: ECS.ComponentAndIndex[] = []
     ) {
         this.changedComputedElements = newChangedComputedElements
         this.addedComputedElements = newAddedComputedElements
         this.removedComputedElements = newRemovedComputedElements
-    }
-}
-
-export class WorkerOutput {
-    propertiesToChange: ECS.PropertyChange[]
-    componentsToRemove: [number, number][]
-    componentsToAdd: ECS.Component[]
-    commandsToRemove: Cmds.Commands[]
-    commandsToAdd: Cmds.Commands[]
-    state: Map<string, any>
-    workerUid: number
-
-    constructor(
-        newPropertiesToChange: ECS.PropertyChange[],
-        newComponentsToRemove: [number, number][],
-        newComponentsToAdd: ECS.Component[],
-        newState: Map<string, any>,
-        newCommandsToRemove: Cmds.Commands[],
-        newCommandsToAdd: Cmds.Commands[],
-        newWorkerUid: number
-    ) {
-        this.state = newState
-        this.propertiesToChange = newPropertiesToChange
-        this.componentsToRemove = newComponentsToRemove
-        this.componentsToAdd = newComponentsToAdd
-        this.commandsToRemove = newCommandsToRemove
-        this.commandsToAdd = newCommandsToAdd
-        this.workerUid = newWorkerUid
     }
 }
 
@@ -113,45 +144,16 @@ export class Input {
     }
 }
 
-export class WorkerUids {
-    w0Uid: number
-    w1Uid: number
-    w2Uid: number
-    constructor() {
-        this.w0Uid = newUid()
-        this.w1Uid = newUid()
-        this.w2Uid = newUid()
-    }
-}
-
-export class WorkerInput {
-    state: Map<string, any>
-    components: ECS.Component[][]
-    commands: Cmds.Commands[]
-    input: Input
-    constructor(
-        newState: Map<string, any>,
-        newComponents: ECS.Component[][],
-        newCommands: Cmds.Commands[],
-        newInput: Input,
-    ) {
-        this.input = newInput
-        this.state = newState
-        this.commands = newCommands
-        this.components = newComponents
-    }
-}
-
 export interface IIndexable {
     [key: string]: any;
 }
 
 export class Message {
     message: Messages
-    data: WorkerInput | WorkerOutput | WorkerUids | Input | GraphicDiff | number | null
+    data: DiffsOut | Cmds.Commands | WorkerInput | WorkerInfo[] | Input | GraphicDiff | number | null
     constructor(
         newMessage: Messages,
-        newData: WorkerInput | WorkerOutput | WorkerUids | Input | number | GraphicDiff | null = null
+        newData: DiffsOut | Cmds.Commands | WorkerInput | WorkerInfo[] | Input | number | GraphicDiff | null = null
     ) {
         this.message = newMessage
         this.data = newData

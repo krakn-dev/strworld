@@ -1,36 +1,37 @@
+import * as Cmds from "./commands.js";
 import * as ECS from "./ecs.js"
 import * as Utils from "./utils.js"
 
 
-let wManager: MessagePort | null = null
-let system = new ECS.System()
+let system: ECS.System;
 
 
-function onManagerMessage(data: any) {
+function onW0Message(data: any) {
     let msg = (data.data) as Utils.Message
     switch (msg.message) {
-        case Utils.Messages.AreYouReadyKids:
-            wManager!.postMessage(new Utils.Message(Utils.Messages.AyeAyeCaptain, system.workerUid))
+        case Utils.Messages.Update:
+            let newData0 = msg.data as Utils.WorkerInput
+            system.update(newData0)
             break;
-        case Utils.Messages.Work:
-            let start = performance.now()
-            let newData = msg.data as Utils.WorkerInput
-            system.update(newData.components, newData.commands, newData.state, newData.input)
-            system.run()
-            let stop = performance.now()
-            if ((stop - start) > 10)
-                console.log(stop - start)
+
+        case Utils.Messages.AddedCommand:
+            let newData1 = msg.data as Cmds.Commands
+            system.onAddCommand(newData1)
             break;
-        case Utils.Messages.WakeUp:
-            console.log("wokenup")
-            wManager!.postMessage(new Utils.Message(Utils.Messages.BdsabasdmbswhaWhat, system.workerUid))
+
+        case Utils.Messages.RemovedCommand:
+            let newData2 = msg.data as Cmds.Commands
+            system.onRemoveCommand(newData2)
             break;
     }
 }
 
+function run() {
+    system.run()
+}
 onmessage = (data) => {
-    wManager = data.ports[0]
-    wManager.onmessage = onManagerMessage
-    system.workerManager = wManager
-    system.workerUid = data.data
+    let w0 = data.ports[0]
+    system = new ECS.System(w0, data.data)
+    w0.onmessage = onW0Message
+    setInterval(run, 5)
 }

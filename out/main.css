@@ -15,32 +15,48 @@ html, body {
 }
 
 #world-view {
+    position: absolute;
+    z-index: -1;
     font-size: 100px;
     width: 100%;
     height: 100%;
     perspective: 100vmin;
 }
+#overlay {
+    width: 1000px;
+    position: absolute;
+    z-index: 9999999;
+    mix-blend-mode: overlay;
+}
 .state {
     position: absolute;
     transform: translateZ(0);
-    background-color:linear-gradient(45deg, blue, red);
-    background-clip: text;
-    text-fill-color: transparent;
+    color: #00 !important;
 }
-.state::after{
-    content:"?";
+.state::before{
+    mix-blend-mode: overlay;
+    z-index: -1;
+    position:absolute;
+    content:"";
     display: block;
     transform-origin: bottom center;
-    transform:  translateY(-131px) translateX(40px) skewX(50deg);
-    opacity: 0.5;
+    transform:  translateY(0px) translateX(5px) skewX(50deg);
+    opacity: 0.8;
+    filter: blur(1px);
+    background: linear-gradient(0deg, #000000ff, #00000055);
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+
+    -moz-text-fill-color: transparent;
+    -moz-background-clip: text;
 }
 
 .layer {
+    z-index: 0;
     will-change: transform;
     width:100%;
     height:100%;
     position:absolute;
-transform-style:preserve-3d;
 }
 
 .look-left:not(.do-not-disturb) {

@@ -11,5 +11,5 @@ app.use(express.static(path.join(__dirname, "out/")));
 
 app.use(favicon(path.join(__dirname, 'out/favicon.ico')))
 
-//app.listen(8080, "localhost")
-app.listen(8080, "192.168.1.62")
+app.listen(8080, "localhost")
+//app.listen(8080, "192.168.1.62")

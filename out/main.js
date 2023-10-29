@@ -1,38 +1,79 @@
 import * as Utils from "./utils.js";
 import * as Comps from "./components.js";
+import * as Cmds from "./commands.js";
 let onWorkerError = (e) => {
     console.log("ERROR!");
     console.error(e);
 };
-let w0;
+let workers;
 function initializeWorkers() {
-    let w1MsgChannel = new MessageChannel();
-    let w2MsgChannel = new MessageChannel();
-    let w3MsgChannel = new MessageChannel();
-    w0 = new Worker("w0.js", { type: "module" });
+    let w0w1MsgChannel = new MessageChannel();
+    let w0w2MsgChannel = new MessageChannel();
+    let w0w3MsgChannel = new MessageChannel();
+    let w1w2MsgChannel = new MessageChannel();
+    let w1w3MsgChannel = new MessageChannel();
+    let w2w3MsgChannel = new MessageChannel();
+    let w0 = new Worker("worker.js", { type: "module" });
     let w1 = new Worker("worker.js", { type: "module" });
     let w2 = new Worker("worker.js", { type: "module" });
     let w3 = new Worker("worker.js", { type: "module" });
+    w0.onerror = onWorkerError;
     w1.onerror = onWorkerError;
     w2.onerror = onWorkerError;
     w3.onerror = onWorkerError;
-    w0.onerror = onWorkerError;
-    w0.postMessage(new Utils.Message(Utils.Messages.Start), [
-        w1MsgChannel.port1,
-        w2MsgChannel.port1,
-        w3MsgChannel.port1
+    let w0Id = 0;
+    let w1Id = 1;
+    let w2Id = 2;
+    let w3Id = 3;
+    w0.postMessage(new Utils.Message(Utils.Messages.Start, new Utils.WorkerInitializationData(w0Id, [
+        w1Id,
+        w2Id,
+        w3Id,
+    ])), [
+        w0w1MsgChannel.port1,
+        w0w2MsgChannel.port1,
+        w0w3MsgChannel.port1,
     ]);
-    w1.postMessage(1, [
-        w1MsgChannel.port2,
+    w1.postMessage(new Utils.Message(Utils.Messages.Start, new Utils.WorkerInitializationData(w1Id, [
+        w0Id,
+        w2Id,
+        w3Id
+    ])), [
+        w0w1MsgChannel.port2,
+        w1w2MsgChannel.port1,
+        w1w3MsgChannel.port1,
     ]);
-    w2.postMessage(2, [
-        w2MsgChannel.port2,
+    w2.postMessage(new Utils.Message(Utils.Messages.Start, new Utils.WorkerInitializationData(w2Id, [
+        w0Id,
+        w1Id,
+        w3Id
+    ])), [
+        w0w2MsgChannel.port2,
+        w1w2MsgChannel.port2,
+        w2w3MsgChannel.port1,
     ]);
-    w3.postMessage(3, [
-        w3MsgChannel.port2,
+    w3.postMessage(new Utils.Message(Utils.Messages.Start, new Utils.WorkerInitializationData(w3Id, [
+        w0Id,
+        w1Id,
+        w2Id
+    ])), [
+        w0w3MsgChannel.port2,
+        w1w3MsgChannel.port2,
+        w2w3MsgChannel.port2,
     ]);
-    setInterval(sendInput, 20);
-    w0.onmessage = onW0Message;
+    //    setInterval(sendInput, 20)
+    w0.onmessage = onWorkerMessage;
+    w1.onmessage = onWorkerMessage;
+    w2.onmessage = onWorkerMessage;
+    w3.onmessage = onWorkerMessage;
+    w0.postMessage(new Utils.Message(Utils.Messages.Update, new Utils.Diffs([], [], [], [], [new Utils.CommandChange(w0Id, Cmds.Commands.TheFirst)])));
+    workers = [
+        new Utils.WorkerInfo(w0, w0Id),
+        new Utils.WorkerInfo(w1, w1Id),
+        new Utils.WorkerInfo(w2, w2Id),
+        new Utils.WorkerInfo(w3, w3Id),
+    ];
+    setInterval(sendInput, 5);
 }
 initializeWorkers();
 let documentObjects = [];
@@ -84,7 +125,8 @@ class DocumentObject {
         this.stateElement.remove();
     }
 }
-function onW0Message(data) {
+function onWorkerMessage(data) {
+    console.log("called");
     let start = performance.now();
     let msg = data.data;
     let newData = msg.data;
@@ -151,7 +193,10 @@ function onW0Message(data) {
     }
 }
 function sendInput() {
-    w0.postMessage(new Utils.Message(Utils.Messages.PlayerInput, new Utils.Input(KeyboardInput.result)));
+    for (let w of workers) {
+        w.messagePort.
+            postMessage(new Utils.Message(Utils.Messages.PlayerInput, new Utils.Input(KeyboardInput.result)));
+    }
 }
 class KeyboardInput {
     static onKeyDown(event) {

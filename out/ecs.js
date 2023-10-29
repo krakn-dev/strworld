@@ -25,10 +25,10 @@ export class ComponentAndIndex {
     }
 }
 export class System {
-    constructor(newW0, newWorkerId) {
+    constructor(newWorkerId, newWorkers) {
         this.workerId = newWorkerId;
-        this.w0 = newW0;
-        this.diffs = new Utils.DiffsOut([], [], [], [], [], this.workerId);
+        this.workers = newWorkers;
+        this.diffs = new Utils.Diffs([], [], [], [], []);
         this.commands = [];
         this.components = [];
         for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
@@ -51,13 +51,58 @@ export class System {
         this.diffs.removedComponents.push(new Utils.RemovedComponent(component.component.type, component.index, component.component.componentUid));
     }
     removeCommand(command) {
-        this.diffs.removedCommands.push(command);
+        let isFound = false;
+        for (let w of this.workers) {
+            for (let wC of w.commands) {
+                if (wC == command) {
+                    this.diffs.removedCommands.push(new Utils.CommandChange(w.workerId, command));
+                    isFound = true;
+                }
+            }
+        }
+        for (let wC of this.commands) {
+            if (wC.type == command) {
+                this.diffs.removedCommands.push(new Utils.CommandChange(this.workerId, command));
+                isFound = true;
+            }
+        }
+        if (!isFound) {
+            console.log("command to delete wasn't found");
+        }
     }
     addComponent(newComponent) {
         this.diffs.addedComponents.push(newComponent);
     }
     addCommand(command) {
-        this.diffs.addedCommands.push(command);
+        for (let w of this.workers) {
+            for (let wC of w.commands) {
+                if (wC == command) {
+                    console.log("command already in list");
+                    return;
+                }
+            }
+        }
+        for (let wC of this.commands) {
+            if (wC.type == command) {
+                console.log("command already in list");
+                return;
+            }
+        }
+        let workerWithLessCommands = [
+            this.workers[0].workerId,
+            this.workers[0].commands.length // numberOfCommands
+        ];
+        for (let w of this.workers) {
+            if (w.commands.length < workerWithLessCommands[1]) {
+                workerWithLessCommands[0] = w.workerId;
+                workerWithLessCommands[1] = w.commands.length;
+            }
+        }
+        if (this.commands.length < workerWithLessCommands[1]) {
+            workerWithLessCommands[0] = this.workerId;
+            workerWithLessCommands[1] = this.commands.length;
+        }
+        this.diffs.addedCommands.push(new Utils.CommandChange(workerWithLessCommands[0], command));
     }
     setProperty(component, property, value) {
         if (component == undefined) {
@@ -66,22 +111,38 @@ export class System {
         }
         this.diffs.changedProperties.push(new Utils.PropertyChange(component.component.type, component.index, property, value, component.component.componentUid));
     }
-    onRemoveCommand(command) {
-        // delete command state
-        for (const [k, v] of this.state.entries()) {
-            if (v[0] == command)
-                this.state.delete(k);
-        }
-        for (let cI = this.commands.length - 1; cI >= 0; cI--) {
-            if (this.commands[cI].type == command) {
-                this.commands.splice(cI);
+    update(newData) {
+        // add commands
+        for (let aWC of newData.addedCommands) {
+            for (let w of this.workers) {
+                if (w.workerId == aWC.workerReceiver) {
+                    w.commands.push(aWC.commandType);
+                }
+            }
+            if (aWC.workerReceiver == this.workerId) {
+                this.commands.push(Cmds.getInstanceFromEnum(aWC.commandType));
             }
         }
-    }
-    onAddCommand(command) {
-        this.commands.push(Cmds.getInstanceFromEnum(command));
-    }
-    update(newData) {
+        // remove commands
+        for (let rWC of newData.removedCommands) {
+            for (let w of this.workers) {
+                for (let [wCI, wC] of w.commands.entries()) {
+                    if (rWC.commandType == wC) {
+                        w.commands.splice(wCI, 1);
+                        break;
+                    }
+                }
+            }
+            for (let [wCI, wC] of this.commands.entries()) {
+                if (wC.type == rWC.commandType) {
+                    this.commands.splice(wCI, 1);
+                    for (const [k, v] of this.state.entries()) {
+                        if (v[0] == rWC.commandType)
+                            this.state.delete(k);
+                    }
+                }
+            }
+        }
         // add components
         for (let c of newData.addedComponents) {
             this.components[c.type].push(c);
@@ -112,33 +173,41 @@ export class System {
         }
         // delete components
         if (newData.removedComponents.length != 0) {
+            // detect if index is incorrect or was removed
+            for (let rC of newData.removedComponents) {
+                if (this.components[rC.componentType].length - 1 < rC.componentIndex ||
+                    this.components[rC.componentType][rC.componentIndex].componentUid != rC.componentUid) {
+                    console.log("$ component probably was deleted or changed position");
+                    console.log("$ trying to fix...");
+                    let fixed = false;
+                    for (let [cI, c] of this.components[rC.componentType].entries()) {
+                        if (c.componentUid == rC.componentUid) {
+                            fixed = true;
+                            rC.componentIndex = cI;
+                        }
+                    }
+                    if (!fixed) {
+                        console.log("$ component was deleted");
+                        return;
+                    }
+                    else {
+                        console.log("$ component was found");
+                    }
+                }
+            }
             let deleteOrder = [newData.removedComponents[0]];
             for (let rC of newData.removedComponents) {
                 for (let [dOI, dO] of deleteOrder.entries()) {
-                    if (rC.index > dO.index) {
+                    if (rC.componentIndex > dO.componentIndex) {
                         deleteOrder.splice(dOI, 0, rC);
                     }
                 }
             }
+            // remove in order
             for (let dO of deleteOrder) {
-                // remove in order
-                this.components[dO.type].splice(dO.index, 1);
+                this.components[dO.componentType].splice(dO.componentIndex, 1);
             }
         }
-        for (let cAI of this.components[Comps.Components.ComputedElement]) {
-            let computedElement = cAI;
-            computedElement.isChanged = false;
-            for (let [pCI, pC] of computedElement.changedProperties.entries()) {
-                if (pCI == 0) {
-                    let classesDiff = pC;
-                    classesDiff.added = [];
-                    classesDiff.deleted = [];
-                    continue;
-                }
-                pC = false;
-            }
-        }
-        this.input = newData.input;
     }
     find(query) {
         // Comment on production !TODO
@@ -223,25 +292,37 @@ export class System {
         return collected;
     }
     run() {
-        if (this.commands.length == 0)
+        if (this.commands.length == 0) {
             return;
+        }
         for (let c of this.commands) {
             c.run(this);
         }
-        this.w0.postMessage(new Utils.Message(Utils.Messages.Done, this.diffs));
-        this.diffs = new Utils.DiffsOut([], [], [], [], [], this.workerId);
-        for (let cAI of this.components[Comps.Components.ComputedElement]) {
-            let computedElement = cAI;
-            computedElement.isChanged = false;
-            for (let [pCI, pC] of computedElement.changedProperties.entries()) {
-                if (pCI == 0) {
-                    let classesDiff = pC;
-                    classesDiff.added = [];
-                    classesDiff.deleted = [];
-                    continue;
-                }
-                pC = false;
-            }
+        if (this.diffs.addedCommands.length == 0 &&
+            this.diffs.addedComponents.length == 0 &&
+            this.diffs.changedProperties.length == 0 &&
+            this.diffs.removedCommands.length == 0 &&
+            this.diffs.removedComponents.length == 0) {
+            return;
         }
+        for (let w of this.workers) {
+            w.messagePort.postMessage(new Utils.Message(Utils.Messages.Update, this.diffs));
+        }
+        this.update(this.diffs);
+        delete this.diffs;
+        this.diffs = new Utils.Diffs([], [], [], [], []);
     }
 }
+//        for (let cAI of this.components[Comps.Components.ComputedElement]) {
+//            let computedElement = cAI as Comps.ComputedElement
+//            computedElement.isChanged = false
+//            for (let [pCI, pC] of computedElement.changedProperties.entries()) {
+//                if (pCI == 0) {
+//                    let classesDiff = (pC as Comps.ClassesDiff)
+//                    classesDiff.added = []
+//                    classesDiff.deleted = []
+//                    continue;
+//                }
+//                pC = false
+//            }
+//        }

@@ -27,6 +27,7 @@ html, body {
 }
 .state {
     position: absolute;
+    transform: translateZ(0);
 }
 
 

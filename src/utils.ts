@@ -25,11 +25,11 @@ export enum Messages {
 }
 
 export class WorkerInfo {
-    messagePort: MessagePort
+    messagePort: MessagePort | Worker
     commands: Cmds.Commands[]
     workerId: number
     constructor(
-        newMessagePort: MessagePort,
+        newMessagePort: MessagePort | Worker,
         newWorkerId: number
     ) {
         this.messagePort = newMessagePort
@@ -60,64 +60,52 @@ export class PropertyChange {
 }
 
 export class RemovedComponent {
-    type: Comps.Components
-    index: number
+    componentType: Comps.Components
+    componentIndex: number
     componentUid: number
     constructor(
-        newType: Comps.Components,
-        newIndex: number,
+        newComponentType: Comps.Components,
+        newComponentIndex: number,
         newComponentUid: number
     ) {
-        this.type = newType
-        this.index = newIndex
+        this.componentType = newComponentType
+        this.componentIndex = newComponentIndex
         this.componentUid = newComponentUid
     }
 }
 
+export class CommandChange {
+    workerReceiver: number
+    commandType: Cmds.Commands
+    constructor(
+        newWorkerReceiver: number,
+        newCommandType: Cmds.Commands
+    ) {
+        this.workerReceiver = newWorkerReceiver
+        this.commandType = newCommandType
+    }
+}
 // w# sends to w0
-export class DiffsOut {
+export class Diffs {
     changedProperties: PropertyChange[]
     removedComponents: RemovedComponent[]
     addedComponents: ECS.Component[]
-    removedCommands: Cmds.Commands[]
-    addedCommands: Cmds.Commands[]
-    workerId: number
+    removedCommands: CommandChange[]
+    addedCommands: CommandChange[]
     constructor(
         newChangedProperties: PropertyChange[],
         newRemovedComponents: RemovedComponent[],
         newAddedComponents: ECS.Component[],
-        newRemovedCommands: Cmds.Commands[],
-        newAddedCommands: Cmds.Commands[],
-        newWorkerId: number
+        newRemovedCommands: CommandChange[],
+        newAddedCommands: CommandChange[],
     ) {
         this.changedProperties = newChangedProperties
         this.removedComponents = newRemovedComponents
         this.addedComponents = newAddedComponents
         this.removedCommands = newRemovedCommands
         this.addedCommands = newAddedCommands
-        this.workerId = newWorkerId
     }
 }
-// w0 sends to w#
-export class WorkerInput {
-    changedProperties: PropertyChange[]
-    removedComponents: RemovedComponent[]
-    addedComponents: ECS.Component[]
-    input: Input
-    constructor(
-        newChangedProperties: PropertyChange[],
-        newRemovedComponents: RemovedComponent[],
-        newAddedComponents: ECS.Component[],
-        newInput: Input,
-    ) {
-        this.input = newInput
-        this.changedProperties = newChangedProperties
-        this.removedComponents = newRemovedComponents
-        this.addedComponents = newAddedComponents
-    }
-}
-
-
 
 export class GraphicDiff {
     // everything is a computed element
@@ -148,12 +136,24 @@ export interface IIndexable {
     [key: string]: any;
 }
 
+export class WorkerInitializationData {
+    yourWorkerId: number
+    workerIds: number[]
+    constructor(
+        newYourWorkerId: number,
+        newWorkers: number[]
+    ) {
+        this.workerIds = newWorkers
+        this.yourWorkerId = newYourWorkerId
+    }
+}
+
 export class Message {
     message: Messages
-    data: DiffsOut | Cmds.Commands | WorkerInput | WorkerInfo[] | Input | GraphicDiff | number | null
+    data: Diffs | WorkerInitializationData | Input | GraphicDiff | number | null
     constructor(
         newMessage: Messages,
-        newData: DiffsOut | Cmds.Commands | WorkerInput | WorkerInfo[] | Input | number | GraphicDiff | null = null
+        newData: Diffs | WorkerInitializationData | Input | number | GraphicDiff | null = null
     ) {
         this.message = newMessage
         this.data = newData

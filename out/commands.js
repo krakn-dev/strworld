@@ -7,7 +7,8 @@ export var Commands;
     Commands[Commands["PingPong"] = 1] = "PingPong";
     Commands[Commands["CreatePlayer"] = 2] = "CreatePlayer";
     Commands[Commands["MovePlayer"] = 3] = "MovePlayer";
-    Commands[Commands["SyncComputedElementPosition"] = 4] = "SyncComputedElementPosition";
+    Commands[Commands["SyncComputedElementsPosition"] = 4] = "SyncComputedElementsPosition";
+    Commands[Commands["SendComputedElementsToRender"] = 5] = "SendComputedElementsToRender";
 })(Commands || (Commands = {}));
 //        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null])
 export function getInstanceFromEnum(commandEnum) {
@@ -20,8 +21,10 @@ export function getInstanceFromEnum(commandEnum) {
             return new CreatePlayer();
         case Commands.MovePlayer:
             return new MovePlayer();
-        case Commands.SyncComputedElementPosition:
-            return new SyncComputedElementPosition();
+        case Commands.SyncComputedElementsPosition:
+            return new SyncComputedElementsPosition();
+        case Commands.SendComputedElementsToRender:
+            return new SendComputedElementsToRender();
     }
 }
 export class TheFirst {
@@ -29,9 +32,9 @@ export class TheFirst {
         this.type = Commands.TheFirst;
     }
     run(system) {
-        console.log("i'm god");
         system.addCommand(Commands.CreatePlayer);
-        system.addCommand(Commands.SyncComputedElementPosition);
+        system.addCommand(Commands.SyncComputedElementsPosition);
+        system.addCommand(Commands.SendComputedElementsToRender);
         system.removeCommand(Commands.TheFirst);
     }
 }
@@ -50,11 +53,8 @@ export class CreatePlayer {
             return;
         }
         system.setState(this.type, "once", true);
-        console.log("created");
-        let counter = 0;
-        for (let x = 0; x < 32; x++) {
-            for (let y = 0; y < 32; y++) {
-                counter++;
+        for (let x = 0; x < 100; x++) {
+            for (let y = 0; y < 100; y++) {
                 let player = Utils.newUid();
                 system.addComponent(new Comps.Health(10, player));
                 let position = new Comps.Position(new Utils.Vector2(x * 5, y * 5), player);
@@ -66,7 +66,6 @@ export class CreatePlayer {
                 system.addComponent(computedElement);
             }
         }
-        console.log("iterated: ", counter);
         system.addCommand(Commands.MovePlayer);
         system.removeCommand(Commands.CreatePlayer);
     }
@@ -99,9 +98,9 @@ export class MovePlayer {
         system.setProperty(fC, "isChanged", true);
     }
 }
-export class SyncComputedElementPosition {
+export class SyncComputedElementsPosition {
     constructor() {
-        this.type = Commands.SyncComputedElementPosition;
+        this.type = Commands.SyncComputedElementsPosition;
     }
     run(system) {
         let foundComponents = system.find([
@@ -133,5 +132,48 @@ export class SyncComputedElementPosition {
                 }
             }
         }
+    }
+}
+export class SendComputedElementsToRender {
+    constructor() {
+        this.type = Commands.SendComputedElementsToRender;
+    }
+    run(system) {
+        let foundComponents = system.find([ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null]);
+        if (foundComponents[0].length == 0)
+            return;
+        if (system.getState("lastComputedElements") == null) {
+            system.setState(this.type, "lastComputedElements", foundComponents[0]);
+            return;
+        }
+        let graphicDiff = new Utils.GraphicDiff();
+        for (let fC of foundComponents[0]) {
+            let computedElement = fC.component;
+            if (computedElement.isNew) {
+                graphicDiff.addedComputedElements.push(fC);
+                system.setProperty(fC, "isNew", false);
+            }
+            if (computedElement.isChanged) {
+                graphicDiff.changedComputedElements.push(fC);
+                system.setProperty(fC, "isChanged", false);
+                system.setProperty(fC, "properties", [new Comps.ClassesDiff(), false, false, false, false, false]);
+            }
+        }
+        //        let isFound = false
+        //        let lastComputedElements = system.getState("lastComputedElements")
+        //        for (let lCE of lastComputedElements) {
+        //            for (let fC of foundComponents[0]) {
+        //                if (fC.component.componentUid == lCE.component.componentUid) {
+        //                    isFound = true
+        //                }
+        //            }
+        //            if (!isFound) graphicDiff.removedComputedElements.push(lCE)
+        //            isFound = false
+        //        }
+        //let start = performance.now()
+        //let stop = performance.now();
+        //console.log(stop - start)
+        postMessage(new Utils.Message(Utils.Messages.RenderIt, graphicDiff));
+        system.setState(this.type, "lastComputedElements", foundComponents[0]);
     }
 }

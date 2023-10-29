@@ -32,30 +32,26 @@ export class PropertyChange {
     }
 }
 export class RemovedComponent {
-    constructor(newType, newIndex, newComponentUid) {
-        this.type = newType;
-        this.index = newIndex;
+    constructor(newComponentType, newComponentIndex, newComponentUid) {
+        this.componentType = newComponentType;
+        this.componentIndex = newComponentIndex;
         this.componentUid = newComponentUid;
     }
 }
+export class CommandChange {
+    constructor(newWorkerReceiver, newCommandType) {
+        this.workerReceiver = newWorkerReceiver;
+        this.commandType = newCommandType;
+    }
+}
 // w# sends to w0
-export class DiffsOut {
-    constructor(newChangedProperties, newRemovedComponents, newAddedComponents, newRemovedCommands, newAddedCommands, newWorkerId) {
+export class Diffs {
+    constructor(newChangedProperties, newRemovedComponents, newAddedComponents, newRemovedCommands, newAddedCommands) {
         this.changedProperties = newChangedProperties;
         this.removedComponents = newRemovedComponents;
         this.addedComponents = newAddedComponents;
         this.removedCommands = newRemovedCommands;
         this.addedCommands = newAddedCommands;
-        this.workerId = newWorkerId;
-    }
-}
-// w0 sends to w#
-export class WorkerInput {
-    constructor(newChangedProperties, newRemovedComponents, newAddedComponents, newInput) {
-        this.input = newInput;
-        this.changedProperties = newChangedProperties;
-        this.removedComponents = newRemovedComponents;
-        this.addedComponents = newAddedComponents;
     }
 }
 export class GraphicDiff {
@@ -68,6 +64,12 @@ export class GraphicDiff {
 export class Input {
     constructor(newMovementDirection) {
         this.movementDirection = newMovementDirection;
+    }
+}
+export class WorkerInitializationData {
+    constructor(newYourWorkerId, newWorkers) {
+        this.workerIds = newWorkers;
+        this.yourWorkerId = newYourWorkerId;
     }
 }
 export class Message {

@@ -6,32 +6,46 @@ import * as Utils from "./utils.js"
 let system: ECS.System;
 
 
-function onW0Message(data: any) {
+function onWorkerMessage(data: any) {
     let msg = (data.data) as Utils.Message
     switch (msg.message) {
         case Utils.Messages.Update:
-            let newData0 = msg.data as Utils.WorkerInput
-            system.update(newData0)
-            break;
-
-        case Utils.Messages.AddedCommand:
-            let newData1 = msg.data as Cmds.Commands
-            system.onAddCommand(newData1)
-            break;
-
-        case Utils.Messages.RemovedCommand:
-            let newData2 = msg.data as Cmds.Commands
-            system.onRemoveCommand(newData2)
+            let newData = msg.data as Utils.Diffs
+            system.update(newData)
             break;
     }
 }
 
-function run() {
-    system.run()
-}
 onmessage = (data) => {
-    let w0 = data.ports[0]
-    system = new ECS.System(w0, data.data)
-    w0.onmessage = onW0Message
-    setInterval(run, 5)
+    let msg = data.data as Utils.Message
+
+    switch (msg.message) {
+        case Utils.Messages.Update: {
+            let newData = msg.data as Utils.Diffs
+            system.update(newData)
+
+        } break;
+
+        case Utils.Messages.Start: {
+
+            let workers: Utils.WorkerInfo[] = []
+            let newData = msg.data as Utils.WorkerInitializationData
+
+            for (let [i, wId] of newData.workerIds.entries()) {
+                workers.push(new Utils.WorkerInfo(data.ports[i], wId))
+            }
+
+            system = new ECS.System(newData.yourWorkerId, workers)
+            for (let w of workers) {
+                w.messagePort.onmessage = onWorkerMessage
+            }
+            setInterval(system.run.bind(system), 5)
+
+        } break;
+
+        case Utils.Messages.PlayerInput: {
+            let newData = msg.data as Utils.Input
+            system.input = newData
+        } break;
+    }
 }

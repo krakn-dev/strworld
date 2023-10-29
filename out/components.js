@@ -55,6 +55,7 @@ export class ClassesDiff {
 }
 export class ComputedElement {
     constructor(newEntityUid) {
+        this.isNew = true;
         this.isChanged = false;
         this.properties = [["state"], 0, 0, 0, "#000000", "?"];
         this.changedProperties = [new ClassesDiff(), false, false, false, false, false];

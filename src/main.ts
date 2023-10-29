@@ -159,8 +159,14 @@ class DocumentObject {
     constructor(newEntityUid: number) {
         this.currentTransform = new Utils.Vector2(0, 0)
         this.entityUid = newEntityUid;
-        let worldView = document.getElementById("world-view")
-        worldView!.insertAdjacentHTML("beforeend", `<div id="${newEntityUid}"></div>`);
+
+        for (let lI = 0; lI < 20; lI++) {
+            let layer = document.getElementById("l-" + lI)
+            if (layer!.childElementCount < 500) {
+                layer!.insertAdjacentHTML("beforeend", `<div id="${newEntityUid}"></div>`);
+                break;
+            }
+        }
 
         this.stateElement = document.getElementById(newEntityUid.toString())!
     }
@@ -208,8 +214,6 @@ class DocumentObject {
 
 function onWorkerMessage(data: any) {
 
-    console.log("called")
-    let start = performance.now()
 
     let msg = (data.data as Utils.Message)
     let newData = msg.data as Utils.GraphicDiff

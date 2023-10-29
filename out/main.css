@@ -4,16 +4,10 @@
 }
 
 
-* {
-    margin: 0px;
-    padding: 0px;
-    line-height: 1;
-    font-family: strworld_font;
-}
-
 html, body {
     width: 100%;
     height: 100%;
+    font-family: strworld_font;
 }
 #game {
     width: 100%;
@@ -21,15 +15,33 @@ html, body {
 }
 
 #world-view {
-    font-size: 10px;
+    font-size: 100px;
     width: 100%;
     height: 100%;
+    perspective: 100vmin;
 }
 .state {
     position: absolute;
     transform: translateZ(0);
+    background-color:linear-gradient(45deg, blue, red);
+    background-clip: text;
+    text-fill-color: transparent;
+}
+.state::after{
+    content:"?";
+    display: block;
+    transform-origin: bottom center;
+    transform:  translateY(-131px) translateX(40px) skewX(50deg);
+    opacity: 0.5;
 }
 
+.layer {
+    will-change: transform;
+    width:100%;
+    height:100%;
+    position:absolute;
+transform-style:preserve-3d;
+}
 
 .look-left:not(.do-not-disturb) {
     animation-timing-function: ease-in-out;

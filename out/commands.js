@@ -53,11 +53,11 @@ export class CreatePlayer {
             return;
         }
         system.setState(this.type, "once", true);
-        for (let x = 0; x < 100; x++) {
-            for (let y = 0; y < 100; y++) {
+        for (let x = 0; x < 2; x++) {
+            for (let y = 0; y < 2; y++) {
                 let player = Utils.newUid();
                 system.addComponent(new Comps.Health(10, player));
-                let position = new Comps.Position(new Utils.Vector2(x * 5, y * 5), player);
+                let position = new Comps.Position(new Utils.Vector2(x * 70, y * 70), player);
                 system.addComponent(position);
                 let computedElement = new Comps.ComputedElement(player);
                 computedElement.properties[Comps.Properties.Left] = position.position.x;
@@ -79,7 +79,7 @@ export class MovePlayer {
             system.setState(this.type, "delta", performance.now());
             return;
         }
-        let velocity = 0.03;
+        let velocity = 0.3;
         let delta = (performance.now() - system.getState("delta"));
         system.setState(this.type, "delta", performance.now());
         let foundComponents = system.find([ECS.Get.All, [Comps.Components.Position], ECS.By.Any, null]);
@@ -158,6 +158,11 @@ export class SendComputedElementsToRender {
                 system.setProperty(fC, "isChanged", false);
                 system.setProperty(fC, "properties", [new Comps.ClassesDiff(), false, false, false, false, false]);
             }
+        }
+        if (graphicDiff.addedComputedElements.length == 0 &&
+            graphicDiff.removedComputedElements.length == 0 &&
+            graphicDiff.changedComputedElements.length == 0) {
+            return;
         }
         //        let isFound = false
         //        let lastComputedElements = system.getState("lastComputedElements")

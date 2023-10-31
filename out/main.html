@@ -5,8 +5,78 @@
     </head>
     <body>
         <div id="game">
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=" id="overlay">
-            <div id="world-view">
+        <div id="settings-panel">
+          <label class="checkbox">
+            Enable Shadows
+            <input type="checkbox" />
+            <span class="checkmark"></span>
+          </label>
+          <label class="checkbox">
+            Set Night
+            <input type="checkbox" />
+            <span class="checkmark"></span>
+          </label>
+          <label class="checkbox">
+            Now the day<br>
+            bleeds into<br>
+            nightfall and<br>
+            you are not<br>
+            here to get me<br>
+            through it all
+            <input type="checkbox" />
+            <span class="checkmark"></span>
+          </label>
+          <label class="checkbox">
+            wowowowo
+            <input type="checkbox" />
+            <span class="checkmark"></span>
+          </label>
+        </div>
+        <style>
+            .checkmark {
+                position: relative;
+                top: 0;
+                left: 0;
+            }
+            .checkmark::after {
+                content:"[ ]";
+            }
+            .checkbox {
+                margin-bottom: 10px;
+  text-align: right;
+            font-family: hack;
+                user-select: none;
+                width:100%;
+                display: flex;
+                justify-content: right;
+                color:white;
+            }
+            .checkbox:hover input ~ .checkmark {
+              background-color: #c8a6e3;
+              height:100%;
+            }
+            .checkbox input:checked ~ .checkmark::after {
+                content:"[#]";
+            }
+            .checkbox input{
+                visibility:hidden;
+            }
+            #settings-panel {
+                display: flex;
+                flex-direction: column;
+                justify-content: right;
+                background-color: black;
+                position: absolute;
+                padding: 30px;
+                right:10px;
+                z-index: 10;
+            }
+        </style>
+<!--
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=" id="overlay">
+   -->
+          <div id="world-view">
+              <!--
               <div class="layer" id="l-0" ></div>
               <div class="layer" id="l-1" ></div>
               <div class="layer" id="l-2" ></div>
@@ -26,7 +96,7 @@
               <div class="layer" id="l-16"></div>
               <div class="layer" id="l-17"></div>
               <div class="layer" id="l-18"></div>
-              <div class="layer" id="l-19"></div>
+              <div class="layer" id="l-19"></div>-->
             </div>
     </div>
 </div>

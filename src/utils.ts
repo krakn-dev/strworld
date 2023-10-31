@@ -38,6 +38,15 @@ export class WorkerInfo {
     }
 }
 
+export class Settings {
+    isShadowsEnabled: boolean
+    constructor(
+        newIsShadowsEnabled: boolean
+    ) {
+        this.isShadowsEnabled = newIsShadowsEnabled
+    }
+}
+
 export class PropertyChange {
     componentIndex: number
     property: string
@@ -150,10 +159,10 @@ export class WorkerInitializationData {
 
 export class Message {
     message: Messages
-    data: Diffs | WorkerInitializationData | Input | GraphicDiff | number | null
+    data: Diffs | Settings | WorkerInitializationData | Input | GraphicDiff | number | null
     constructor(
         newMessage: Messages,
-        newData: Diffs | WorkerInitializationData | Input | number | GraphicDiff | null = null
+        newData: Diffs | Settings | WorkerInitializationData | Input | number | GraphicDiff | null = null
     ) {
         this.message = newMessage
         this.data = newData

@@ -22,6 +22,11 @@ export class WorkerInfo {
         this.workerId = newWorkerId;
     }
 }
+export class Settings {
+    constructor(newIsShadowsEnabled) {
+        this.isShadowsEnabled = newIsShadowsEnabled;
+    }
+}
 export class PropertyChange {
     constructor(newComponentType, newIndex, newProperty, newValue, newComponentUid) {
         this.componentIndex = newIndex;

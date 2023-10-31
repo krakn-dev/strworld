@@ -1,13 +1,17 @@
  @font-face {
-  font-family: strworld_font;
+  font-family: strworld_graphics;
   src: url(icomoon/fonts/icomoon.ttf);
+}
+ @font-face {
+  font-family: hack;
+  src: url(HackNerdFont-Regular.ttf);
 }
 
 
 html, body {
     width: 100%;
     height: 100%;
-    font-family: strworld_font;
+    font-family: strworld_graphics;
 }
 #game {
     width: 100%;
@@ -16,7 +20,7 @@ html, body {
 
 #world-view {
     position: absolute;
-    z-index: -1;
+    z-index: 1;
     font-size: 100px;
     width: 100%;
     height: 100%;
@@ -30,9 +34,10 @@ html, body {
 }
 .state {
     position: absolute;
-    transform: translateZ(0);
-    color: #00 !important;
 }
+
+
+/*
 .state::before{
     mix-blend-mode: overlay;
     z-index: -1;
@@ -40,24 +45,41 @@ html, body {
     content:"";
     display: block;
     transform-origin: bottom center;
-    transform:  translateY(0px) translateX(5px) skewX(50deg);
+    transform:  translateY(0px) translateX(5px) scaleY(50%) skewX(50deg);
     opacity: 0.8;
     filter: blur(1px);
-    background: linear-gradient(0deg, #000000ff, #00000055);
+    background: linear-gradient(0deg, #000000ff, #00000044);
+}*/
+
+/*
+.state::before{
+    mix-blend-mode: overlay;
+    z-index: 1;
+    position:absolute;
+    content:"";
+    display: block;
+    transform-origin: bottom;
+    transform:  translateY(0px) translateX(5px) skewX(50deg) scaleY(100%);
+    opacity: 0.8;
+    filter: blur(1px);
+    background: linear-gradient(0deg, #000000ff, #00000044);
+
     -webkit-text-fill-color: transparent;
     -webkit-background-clip: text;
 
     -moz-text-fill-color: transparent;
     -moz-background-clip: text;
 }
+*/
 
+/*
 .layer {
     z-index: 0;
     will-change: transform;
     width:100%;
     height:100%;
     position:absolute;
-}
+}*/
 
 .look-left:not(.do-not-disturb) {
     animation-timing-function: ease-in-out;

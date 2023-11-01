@@ -52,9 +52,11 @@ export class System {
     private diffs?: Utils.Diffs | null
     workerId: number
     workers: Utils.WorkerInfo[]
+    devBox: Utils.DevBox
     input: Utils.Input
 
     constructor(newWorkerId: number, newWorkers: Utils.WorkerInfo[]) {
+        this.devBox = new Utils.DevBox(false, false, false, false)
         this.workerId = newWorkerId
         this.workers = newWorkers
         this.diffs = new Utils.Diffs([], [], [], [], [])

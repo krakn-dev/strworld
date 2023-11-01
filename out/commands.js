@@ -4,19 +4,20 @@ import * as Comps from "./components.js";
 export var Commands;
 (function (Commands) {
     Commands[Commands["TheFirst"] = 0] = "TheFirst";
-    Commands[Commands["PingPong"] = 1] = "PingPong";
-    Commands[Commands["CreatePlayer"] = 2] = "CreatePlayer";
-    Commands[Commands["MovePlayer"] = 3] = "MovePlayer";
-    Commands[Commands["SyncComputedElementsPosition"] = 4] = "SyncComputedElementsPosition";
-    Commands[Commands["SendComputedElementsToRender"] = 5] = "SendComputedElementsToRender";
+    Commands[Commands["CreatePlayer"] = 1] = "CreatePlayer";
+    Commands[Commands["MovePlayer"] = 2] = "MovePlayer";
+    Commands[Commands["SyncComputedElementsPosition"] = 3] = "SyncComputedElementsPosition";
+    Commands[Commands["SendComputedElementsToRender"] = 4] = "SendComputedElementsToRender";
+    Commands[Commands["CastShadows"] = 5] = "CastShadows";
+    Commands[Commands["WatchDevBox"] = 6] = "WatchDevBox";
 })(Commands || (Commands = {}));
 //        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null])
 export function getInstanceFromEnum(commandEnum) {
     switch (commandEnum) {
         case Commands.TheFirst:
             return new TheFirst();
-        case Commands.PingPong:
-            return new PingPong();
+        case Commands.WatchDevBox:
+            return new WatchDevBox();
         case Commands.CreatePlayer:
             return new CreatePlayer();
         case Commands.MovePlayer:
@@ -25,6 +26,8 @@ export function getInstanceFromEnum(commandEnum) {
             return new SyncComputedElementsPosition();
         case Commands.SendComputedElementsToRender:
             return new SendComputedElementsToRender();
+        case Commands.CastShadows:
+            return new CastShadows();
     }
 }
 export class TheFirst {
@@ -37,12 +40,6 @@ export class TheFirst {
         system.addCommand(Commands.SendComputedElementsToRender);
         system.removeCommand(Commands.TheFirst);
     }
-}
-export class PingPong {
-    constructor() {
-        this.type = Commands.PingPong;
-    }
-    run(_) { }
 }
 export class CreatePlayer {
     constructor() {
@@ -59,7 +56,7 @@ export class CreatePlayer {
                 system.addComponent(new Comps.Health(10, player));
                 let position = new Comps.Position(new Utils.Vector2(x * 70, y * 70), player);
                 system.addComponent(position);
-                let computedElement = new Comps.ComputedElement(player);
+                let computedElement = new Comps.ComputedElement(Comps.ElementTypes.Entity, player);
                 computedElement.properties[Comps.Properties.Left] = position.position.x;
                 computedElement.properties[Comps.Properties.Top] = position.position.y;
                 computedElement.properties[Comps.Properties.ZIndex] = y;
@@ -132,6 +129,52 @@ export class SyncComputedElementsPosition {
                 }
             }
         }
+    }
+}
+export class WatchDevBox {
+    constructor() {
+        this.type = Commands.WatchDevBox;
+    }
+    run(system) {
+        // run first time
+        if (system.getState("isSetCommandsAreNotCreated") == null) {
+            system.setState(this.type, "isSetCommandsAreNotCreated", true);
+            system.setState(this.type, "createdIsEnableFreeCameraCommand", false);
+            system.setState(this.type, "createdIsEnablePhysicsCommand", false);
+            system.setState(this.type, "createdIsSetNightCommand", false);
+            system.setState(this.type, "createdIsShadowsEnabledCommand", false);
+            return;
+        }
+        if (system.devBox.isEnableFreeCamera &&
+            !system.getState("createdIsEnableFreeCameraCommand")) {
+            // create enable free camera command !TODO
+            system.setState(this.type, "createdIsEnableFreeCameraCommand", true);
+        }
+        if (system.devBox.isEnablePhysics &&
+            !system.getState("createdIsEnablePhysicsCommand")) {
+            // create physics commands !TODO
+            system.setState(this.type, "createdIsEnablePhysicsCommand", true);
+        }
+        if (system.devBox.isSetNight &&
+            !system.getState("createdIsSetNightCommand")) {
+            // create night commands !TODO
+            system.setState(this.type, "createdIsSetNightCommand", false);
+        }
+        if (system.devBox.isShadowsEnabled &&
+            !system.getState("createdIsShadowsEnabledCommand")) {
+            // create shadow commands !TODO
+            system.setState(this.type, "createdIsShadowsEnabledCommand", false);
+        }
+    }
+}
+export class CastShadows {
+    constructor() {
+        this.type = Commands.CastShadows;
+    }
+    run(system) {
+        let foundComponents = system.find([ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null]);
+        if (foundComponents[0].length == 0)
+            return;
     }
 }
 export class SendComputedElementsToRender {

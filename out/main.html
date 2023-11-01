@@ -5,34 +5,33 @@
     </head>
     <body>
         <div id="game">
-        <div id="settings-panel">
+        <div id="dev-box">
+          <div class="title" >-- devb0x --</div>
           <label class="checkbox">
             Enable Shadows
-            <input type="checkbox" />
+            <input type="checkbox" id="enable-shadows"/>
             <span class="checkmark"></span>
           </label>
           <label class="checkbox">
             Set Night
-            <input type="checkbox" />
+            <input type="checkbox" id="set-night"/>
             <span class="checkmark"></span>
           </label>
           <label class="checkbox">
-            Now the day<br>
-            bleeds into<br>
-            nightfall and<br>
-            you are not<br>
-            here to get me<br>
-            through it all
-            <input type="checkbox" />
+            Enable Physics
+            <input type="checkbox" id="enable-physics"/>
             <span class="checkmark"></span>
           </label>
           <label class="checkbox">
-            wowowowo
-            <input type="checkbox" />
+            Enable Free Camera
+            <input type="checkbox" id="enable-free-camera"/>
             <span class="checkmark"></span>
           </label>
         </div>
         <style>
+            .title {
+                margin-bottom: 10px;
+            }
             .checkmark {
                 position: relative;
                 top: 0;
@@ -44,12 +43,10 @@
             .checkbox {
                 margin-bottom: 10px;
   text-align: right;
-            font-family: hack;
                 user-select: none;
                 width:100%;
                 display: flex;
                 justify-content: right;
-                color:white;
             }
             .checkbox:hover input ~ .checkmark {
               background-color: #c8a6e3;
@@ -61,15 +58,19 @@
             .checkbox input{
                 visibility:hidden;
             }
-            #settings-panel {
-                display: flex;
-                flex-direction: column;
-                justify-content: right;
-                background-color: black;
+            #dev-box {
                 position: absolute;
-                padding: 30px;
+                top:10px;
                 right:10px;
                 z-index: 10;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                padding: 30px;
+                font-family: hack;
+                background-color: black;
+                color:white;
             }
         </style>
 <!--

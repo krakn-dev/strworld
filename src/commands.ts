@@ -4,11 +4,12 @@ import * as Comps from "./components.js"
 
 export enum Commands {
     TheFirst = 0,
-    PingPong,
     CreatePlayer,
     MovePlayer,
     SyncComputedElementsPosition,
-    SendComputedElementsToRender
+    SendComputedElementsToRender,
+    CastShadows,
+    WatchDevBox,
 }
 
 //        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null])
@@ -18,8 +19,8 @@ export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
         case Commands.TheFirst:
             return new TheFirst()
 
-        case Commands.PingPong:
-            return new PingPong()
+        case Commands.WatchDevBox:
+            return new WatchDevBox()
 
         case Commands.CreatePlayer:
             return new CreatePlayer()
@@ -32,6 +33,9 @@ export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
 
         case Commands.SendComputedElementsToRender:
             return new SendComputedElementsToRender()
+
+        case Commands.CastShadows:
+            return new CastShadows()
     }
 }
 
@@ -47,15 +51,6 @@ export class TheFirst implements ECS.Command {
         system.addCommand(Commands.SendComputedElementsToRender)
         system.removeCommand(Commands.TheFirst)
     }
-}
-
-export class PingPong implements ECS.Command {
-    readonly type: Commands
-    constructor() {
-        this.type = Commands.PingPong
-    }
-
-    run(_: ECS.System) {}
 }
 
 export class CreatePlayer implements ECS.Command {
@@ -76,7 +71,7 @@ export class CreatePlayer implements ECS.Command {
                 system.addComponent(new Comps.Health(10, player))
                 let position = new Comps.Position(new Utils.Vector2(x * 70, y * 70), player)
                 system.addComponent(position)
-                let computedElement = new Comps.ComputedElement(player)
+                let computedElement = new Comps.ComputedElement(Comps.ElementTypes.Entity, player)
                 computedElement.properties[Comps.Properties.Left] = position.position.x
                 computedElement.properties[Comps.Properties.Top] = position.position.y
                 computedElement.properties[Comps.Properties.ZIndex] = y
@@ -185,6 +180,68 @@ export class SyncComputedElementsPosition implements ECS.Command {
     }
 }
 
+export class WatchDevBox implements ECS.Command {
+    readonly type: Commands
+    constructor() {
+        this.type = Commands.WatchDevBox
+    }
+
+    run(system: ECS.System) {
+        // run first time
+        if (system.getState("isSetCommandsAreNotCreated") == null) {
+            system.setState(this.type, "isSetCommandsAreNotCreated", true)
+
+            system.setState(this.type, "createdIsEnableFreeCameraCommand", false)
+            system.setState(this.type, "createdIsEnablePhysicsCommand", false)
+            system.setState(this.type, "createdIsSetNightCommand", false)
+            system.setState(this.type, "createdIsShadowsEnabledCommand", false)
+            return;
+        }
+
+        if (system.devBox.isEnableFreeCamera &&
+            !system.getState("createdIsEnableFreeCameraCommand")
+        ) {
+            // create enable free camera command !TODO
+            system.setState(this.type, "createdIsEnableFreeCameraCommand", true)
+        }
+
+        if (system.devBox.isEnablePhysics &&
+            !system.getState("createdIsEnablePhysicsCommand")
+        ) {
+            // create physics commands !TODO
+            system.setState(this.type, "createdIsEnablePhysicsCommand", true)
+        }
+
+        if (system.devBox.isSetNight &&
+            !system.getState("createdIsSetNightCommand")
+        ) {
+            // create night commands !TODO
+            system.setState(this.type, "createdIsSetNightCommand", false)
+        }
+        if (system.devBox.isShadowsEnabled &&
+            !system.getState("createdIsShadowsEnabledCommand")
+        ) {
+            // create shadow commands !TODO
+            system.setState(this.type, "createdIsShadowsEnabledCommand", false)
+        }
+
+    }
+}
+
+export class CastShadows implements ECS.Command {
+    readonly type: Commands
+    constructor() {
+        this.type = Commands.CastShadows
+    }
+
+    run(system: ECS.System) {
+        let foundComponents = system.find(
+            [ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null])
+
+        if (foundComponents[0].length == 0) return
+
+    }
+}
 export class SendComputedElementsToRender implements ECS.Command {
     readonly type: Commands
     constructor() {

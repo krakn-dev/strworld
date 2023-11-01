@@ -39,5 +39,11 @@ onmessage = (data) => {
                 system.input = newData;
             }
             break;
+        case Utils.Messages.DevBoxInput:
+            {
+                let newData = msg.data;
+                system.devBox = newData;
+            }
+            break;
     }
 };

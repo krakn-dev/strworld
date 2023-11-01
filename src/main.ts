@@ -144,7 +144,7 @@ function initializeWorkers() {
             w3Id,
         ),
     ]
-    setInterval(sendInput, 5)
+    setInterval(updateWorkers, 5)
 }
 initializeWorkers()
 
@@ -294,10 +294,7 @@ function onWorkerMessage(data: any) {
 }
 
 
-
-
-
-function sendInput() {
+function updateWorkers() {
     for (let w of workers) {
         w.messagePort.
             postMessage(
@@ -306,8 +303,21 @@ function sendInput() {
                     new Utils.Input(KeyboardInput.result)
                 )
             )
+        w.messagePort.
+            postMessage(
+                new Utils.Message(
+                    Utils.Messages.DevBoxInput,
+                    new Utils.DevBox(
+                        (document.getElementById("enable-shadows") as HTMLInputElement).checked,
+                        (document.getElementById("set-night") as HTMLInputElement).checked,
+                        (document.getElementById("enable-physics") as HTMLInputElement).checked,
+                        (document.getElementById("enable-free-camera") as HTMLInputElement).checked,
+                    )
+                )
+            )
     }
 }
+
 
 
 class KeyboardInput {

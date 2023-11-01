@@ -53,14 +53,21 @@ export class ClassesDiff {
         this.added = [];
     }
 }
+export var ElementTypes;
+(function (ElementTypes) {
+    ElementTypes[ElementTypes["Shadow"] = 0] = "Shadow";
+    ElementTypes[ElementTypes["Entity"] = 1] = "Entity";
+    ElementTypes[ElementTypes["Component"] = 2] = "Component";
+})(ElementTypes || (ElementTypes = {}));
 export class ComputedElement {
-    constructor(newEntityUid) {
+    constructor(newElementType, newEntityUid) {
         this.isNew = true;
         this.isChanged = false;
-        this.properties = [["state"], 0, 0, 0, "#000", ""];
+        this.properties = [["base"], 0, 0, 0, "#000", "?"];
         this.changedProperties = [new ClassesDiff(), false, false, false, false, false];
         this.type = Components.ComputedElement;
         this.entityUid = newEntityUid;
         this.componentUid = Utils.newUid();
+        this.elementType = newElementType;
     }
 }

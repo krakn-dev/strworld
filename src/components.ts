@@ -73,28 +73,32 @@ export class ClassesDiff {
     }
 }
 
+export enum ElementTypes {
+    Shadow,
+    Entity,
+    Component,
+}
+
 export class ComputedElement implements ECS.Component {
     properties: [string[], number, number, number, string, string]
     changedProperties: [ClassesDiff, boolean, boolean, boolean, boolean, boolean]
     isChanged: boolean
     isNew: boolean
-
-    hasShadow: boolean
-    shadowProperties: [string[], number, number, number, string, string]
-    changedShadowProperties: [ClassesDiff, boolean, boolean, boolean, boolean, boolean]
+    elementType: ElementTypes
 
     entityUid: number
     componentUid: number
     type: Components
 
-    constructor(newEntityUid: number) {
+    constructor(newElementType: ElementTypes, newEntityUid: number) {
 
         this.isNew = true
         this.isChanged = false
-        this.properties = [["state"], 0, 0, 0, "#000", ""]
+        this.properties = [["base"], 0, 0, 0, "#000", "?"]
         this.changedProperties = [new ClassesDiff(), false, false, false, false, false]
         this.type = Components.ComputedElement
         this.entityUid = newEntityUid
         this.componentUid = Utils.newUid()
+        this.elementType = newElementType
     }
 }

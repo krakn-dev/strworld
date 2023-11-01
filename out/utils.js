@@ -10,10 +10,11 @@ export var Messages;
     Messages[Messages["Start"] = 1] = "Start";
     Messages[Messages["Done"] = 2] = "Done";
     Messages[Messages["PlayerInput"] = 3] = "PlayerInput";
-    Messages[Messages["RenderIt"] = 4] = "RenderIt";
-    Messages[Messages["AddedCommand"] = 5] = "AddedCommand";
-    Messages[Messages["RemovedCommand"] = 6] = "RemovedCommand";
-    Messages[Messages["Work"] = 7] = "Work";
+    Messages[Messages["DevBoxInput"] = 4] = "DevBoxInput";
+    Messages[Messages["RenderIt"] = 5] = "RenderIt";
+    Messages[Messages["AddedCommand"] = 6] = "AddedCommand";
+    Messages[Messages["RemovedCommand"] = 7] = "RemovedCommand";
+    Messages[Messages["Work"] = 8] = "Work";
 })(Messages || (Messages = {}));
 export class WorkerInfo {
     constructor(newMessagePort, newWorkerId) {
@@ -22,9 +23,12 @@ export class WorkerInfo {
         this.workerId = newWorkerId;
     }
 }
-export class Settings {
-    constructor(newIsShadowsEnabled) {
+export class DevBox {
+    constructor(newIsShadowsEnabled, newIsSetNight, newIsEnablePhysics, newIsEnableFreeCamera) {
         this.isShadowsEnabled = newIsShadowsEnabled;
+        this.isSetNight = newIsSetNight;
+        this.isEnablePhysics = newIsEnablePhysics;
+        this.isEnableFreeCamera = newIsEnableFreeCamera;
     }
 }
 export class PropertyChange {

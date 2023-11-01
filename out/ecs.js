@@ -26,6 +26,7 @@ export class ComponentAndIndex {
 }
 export class System {
     constructor(newWorkerId, newWorkers) {
+        this.devBox = new Utils.DevBox(false, false, false, false);
         this.workerId = newWorkerId;
         this.workers = newWorkers;
         this.diffs = new Utils.Diffs([], [], [], [], []);

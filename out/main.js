@@ -73,7 +73,7 @@ function initializeWorkers() {
         new Utils.WorkerInfo(w2, w2Id),
         new Utils.WorkerInfo(w3, w3Id),
     ];
-    setInterval(sendInput, 5);
+    setInterval(updateWorkers, 5);
 }
 initializeWorkers();
 let documentObjects = [];
@@ -197,10 +197,12 @@ function onWorkerMessage(data) {
             break;
     }
 }
-function sendInput() {
+function updateWorkers() {
     for (let w of workers) {
         w.messagePort.
             postMessage(new Utils.Message(Utils.Messages.PlayerInput, new Utils.Input(KeyboardInput.result)));
+        w.messagePort.
+            postMessage(new Utils.Message(Utils.Messages.DevBoxInput, new Utils.DevBox(document.getElementById("enable-shadows").checked, document.getElementById("set-night").checked, document.getElementById("enable-physics").checked, document.getElementById("enable-free-camera").checked)));
     }
 }
 class KeyboardInput {

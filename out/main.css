@@ -7,6 +7,10 @@
   src: url(HackNerdFont-Regular.ttf);
 }
 
+* {
+    margin:0;
+    padding:0;
+}
 
 html, body {
     width: 100%;
@@ -32,7 +36,7 @@ html, body {
     z-index: 9999999;
     mix-blend-mode: overlay;
 }
-.state {
+.base {
     position: absolute;
 }
 
@@ -45,7 +49,7 @@ html, body {
     content:"";
     display: block;
     transform-origin: bottom center;
-    transform:  translateY(0px) translateX(5px) scaleY(50%) skewX(50deg);
+    transform:  translateY() translateX(5px) scaleY(50%) skewX(50deg);
     opacity: 0.8;
     filter: blur(1px);
     background: linear-gradient(0deg, #000000ff, #00000044);

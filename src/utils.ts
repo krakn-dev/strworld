@@ -17,6 +17,7 @@ export enum Messages {
     Done,     // returned when worker finished job
 
     PlayerInput,
+    DevBoxInput,
 
     RenderIt,
     AddedCommand,
@@ -38,12 +39,21 @@ export class WorkerInfo {
     }
 }
 
-export class Settings {
+export class DevBox {
     isShadowsEnabled: boolean
+    isSetNight: boolean
+    isEnablePhysics: boolean
+    isEnableFreeCamera: boolean
     constructor(
-        newIsShadowsEnabled: boolean
+        newIsShadowsEnabled: boolean,
+        newIsSetNight: boolean,
+        newIsEnablePhysics: boolean,
+        newIsEnableFreeCamera: boolean
     ) {
         this.isShadowsEnabled = newIsShadowsEnabled
+        this.isSetNight = newIsSetNight
+        this.isEnablePhysics = newIsEnablePhysics
+        this.isEnableFreeCamera = newIsEnableFreeCamera
     }
 }
 
@@ -159,10 +169,10 @@ export class WorkerInitializationData {
 
 export class Message {
     message: Messages
-    data: Diffs | Settings | WorkerInitializationData | Input | GraphicDiff | number | null
+    data: Diffs | DevBox | WorkerInitializationData | Input | GraphicDiff | number | null
     constructor(
         newMessage: Messages,
-        newData: Diffs | Settings | WorkerInitializationData | Input | number | GraphicDiff | null = null
+        newData: Diffs | DevBox | WorkerInitializationData | Input | number | GraphicDiff | null = null
     ) {
         this.message = newMessage
         this.data = newData

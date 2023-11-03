@@ -8,6 +8,7 @@ export var Components;
     Components[Components["EntityState"] = 4] = "EntityState";
     Components[Components["ComputedElement"] = 5] = "ComputedElement";
     Components[Components["EntityType"] = 6] = "EntityType";
+    Components[Components["Animation"] = 7] = "Animation";
 })(Components || (Components = {}));
 export const NUMBER_OF_COMPONENTS = (() => {
     let n = 0;
@@ -21,9 +22,21 @@ export var EntityTypes;
     EntityTypes[EntityTypes["Human"] = 0] = "Human";
     EntityTypes[EntityTypes["Grass"] = 1] = "Grass";
 })(EntityTypes || (EntityTypes = {}));
+export var EntityStates;
+(function (EntityStates) {
+    EntityStates[EntityStates["Idle"] = 0] = "Idle";
+    EntityStates[EntityStates["Run"] = 1] = "Run";
+})(EntityStates || (EntityStates = {}));
+export class EntityState {
+    constructor(newState, newEntityUid) {
+        this.componentUid = Utils.newUid();
+        this.entityUid = newEntityUid;
+        this.type = Components.EntityState;
+        this.state = newState;
+    }
+}
 export class Position {
     constructor(newPosition, newEntityUid) {
-        this.isChanged = false;
         this.componentUid = Utils.newUid();
         this.entityUid = newEntityUid;
         this.type = Components.Position;
@@ -36,6 +49,15 @@ export class Health {
         this.entityUid = newEntityUid;
         this.type = Components.Health;
         this.health = newHealth;
+    }
+}
+export class Animation {
+    constructor(newAnimations, newEntityUid) {
+        this.componentUid = Utils.newUid();
+        this.entityUid = newEntityUid;
+        this.type = Components.Animation;
+        this.currentDisplayElement = "?";
+        this.animations = newAnimations;
     }
 }
 export var Properties;
@@ -57,12 +79,9 @@ export var ElementTypes;
 (function (ElementTypes) {
     ElementTypes[ElementTypes["Shadow"] = 0] = "Shadow";
     ElementTypes[ElementTypes["Entity"] = 1] = "Entity";
-    ElementTypes[ElementTypes["Component"] = 2] = "Component";
 })(ElementTypes || (ElementTypes = {}));
 export class ComputedElement {
     constructor(newElementType, newEntityUid) {
-        this.isNew = true;
-        this.isChanged = false;
         this.properties = [["base"], 0, 0, 0, "#000", "?"];
         this.changedProperties = [new ClassesDiff(), false, false, false, false, false];
         this.type = Components.ComputedElement;

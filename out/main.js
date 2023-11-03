@@ -78,11 +78,11 @@ function initializeWorkers() {
 initializeWorkers();
 let documentObjects = [];
 class DocumentObject {
-    constructor(newEntityUid) {
+    constructor(newComponentUid) {
         this.currentTransform = new Utils.Vector2(0, 0);
-        this.entityUid = newEntityUid;
+        this.componentUid = newComponentUid;
         let worldView = document.getElementById("world-view");
-        worldView.insertAdjacentHTML("beforeend", `<div id="${newEntityUid}"></div>`);
+        worldView.insertAdjacentHTML("beforeend", `<div id="${newComponentUid}"></div>`);
         //        for (let lI = 0; lI < 20; lI++) {
         //            let layer = document.getElementById("world-view" + lI)
         //            if (layer!.childElementCount < 500) {
@@ -90,7 +90,7 @@ class DocumentObject {
         //                break;
         //            }
         //        }
-        this.stateElement = document.getElementById(newEntityUid.toString());
+        this.stateElement = document.getElementById(this.componentUid.toString());
     }
     addClasses(newClasses) {
         for (let nC of newClasses) {
@@ -141,7 +141,7 @@ function onWorkerMessage(data) {
             for (let cAI of newData.changedComputedElements) {
                 let cCE = cAI.component;
                 for (let dO of documentObjects) {
-                    if (cCE.entityUid == dO.entityUid) {
+                    if (cCE.componentUid == dO.componentUid) {
                         for (let [pCI, pC] of cCE.changedProperties.entries()) {
                             if (!pC)
                                 continue;
@@ -177,7 +177,7 @@ function onWorkerMessage(data) {
             }
             for (let cAI of newData.addedComputedElements) {
                 let nCE = cAI.component;
-                let documentObject = new DocumentObject(nCE.entityUid);
+                let documentObject = new DocumentObject(nCE.componentUid);
                 documentObject.addClasses(nCE.properties[Comps.Properties.Classes]);
                 documentObject.setColor(nCE.properties[Comps.Properties.Color]);
                 documentObject.setDisplayElement(nCE.properties[Comps.Properties.DisplayElement]);
@@ -188,7 +188,7 @@ function onWorkerMessage(data) {
             for (let cAI of newData.removedComputedElements) {
                 let rCE = cAI.component;
                 for (let dOI = documentObjects.length - 1; dOI >= 0; dOI--) {
-                    if (rCE.entityUid == documentObjects[dOI].entityUid) {
+                    if (rCE.componentUid == documentObjects[dOI].componentUid) {
                         documentObjects[dOI].dispose();
                         documentObjects.splice(dOI, 1);
                     }

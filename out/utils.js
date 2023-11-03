@@ -40,6 +40,13 @@ export class PropertyChange {
         this.componentUid = newComponentUid;
     }
 }
+export class ComponentDiffs {
+    constructor() {
+        this.changedComponents = [];
+        this.removedComponents = [];
+        this.addedComponents = [];
+    }
+}
 export class RemovedComponent {
     constructor(newComponentType, newComponentIndex, newComponentUid) {
         this.componentType = newComponentType;

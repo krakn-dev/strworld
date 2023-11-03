@@ -1,15 +1,21 @@
 import * as ECS from "./ecs.js"
 import * as Utils from "./utils.js"
 import * as Comps from "./components.js"
+import * as Anims from "./animations.js"
+
 
 export enum Commands {
     TheFirst = 0,
     CreatePlayer,
     MovePlayer,
-    SyncComputedElementsPosition,
+    SetEntityElementsPosition,
     SendComputedElementsToRender,
-    CastShadows,
+    CreateShadows,
     WatchDevBox,
+    RemoveShadows,
+    PlayAnimations,
+    UpdateShadowNumber,
+    UpdateShadowProperties,
 }
 
 //        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null])
@@ -18,6 +24,18 @@ export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
     switch (commandEnum) {
         case Commands.TheFirst:
             return new TheFirst()
+
+        case Commands.UpdateShadowProperties:
+            return new UpdateShadowProperties()
+
+        case Commands.PlayAnimations:
+            return new PlayAnimations()
+
+        case Commands.UpdateShadowNumber:
+            return new UpdateShadowNumber()
+
+        case Commands.RemoveShadows:
+            return new RemoveShadows()
 
         case Commands.WatchDevBox:
             return new WatchDevBox()
@@ -28,14 +46,14 @@ export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
         case Commands.MovePlayer:
             return new MovePlayer()
 
-        case Commands.SyncComputedElementsPosition:
-            return new SyncComputedElementsPosition()
+        case Commands.SetEntityElementsPosition:
+            return new SetEntityElementsPosition()
 
         case Commands.SendComputedElementsToRender:
             return new SendComputedElementsToRender()
 
-        case Commands.CastShadows:
-            return new CastShadows()
+        case Commands.CreateShadows:
+            return new CreateShadows()
     }
 }
 
@@ -47,8 +65,10 @@ export class TheFirst implements ECS.Command {
 
     run(system: ECS.System) {
         system.addCommand(Commands.CreatePlayer)
-        system.addCommand(Commands.SyncComputedElementsPosition)
+        system.addCommand(Commands.SetEntityElementsPosition)
         system.addCommand(Commands.SendComputedElementsToRender)
+        system.addCommand(Commands.WatchDevBox)
+
         system.removeCommand(Commands.TheFirst)
     }
 }
@@ -68,13 +88,22 @@ export class CreatePlayer implements ECS.Command {
         for (let x = 0; x < 2; x++) {
             for (let y = 0; y < 2; y++) {
                 let player = Utils.newUid()
-                system.addComponent(new Comps.Health(10, player))
                 let position = new Comps.Position(new Utils.Vector2(x * 70, y * 70), player)
-                system.addComponent(position)
+                let animation = new Comps.Animation([
+                    new Anims.PlayerIdle(),
+                    new Anims.PlayerRunning()],
+                    player)
+                let entityState = new Comps.EntityState(Comps.EntityStates.Idle, player)
+
                 let computedElement = new Comps.ComputedElement(Comps.ElementTypes.Entity, player)
                 computedElement.properties[Comps.Properties.Left] = position.position.x
                 computedElement.properties[Comps.Properties.Top] = position.position.y
                 computedElement.properties[Comps.Properties.ZIndex] = y
+
+                system.addComponent(new Comps.Health(10, player))
+                system.addComponent(position)
+                system.addComponent(animation)
+                system.addComponent(entityState)
                 system.addComponent(computedElement)
             }
         }
@@ -119,23 +148,18 @@ export class MovePlayer implements ECS.Command {
         newPosition.y += system.input.movementDirection.y * delta * velocity
 
 
-        system.setProperty<Comps.Position>(
+        system.setProperty<Comps.Position, "position">(
             fC,
             "position",
             newPosition
         )
-        system.setProperty<Comps.Position>(
-            fC,
-            "isChanged",
-            true
-        )
     }
 }
 
-export class SyncComputedElementsPosition implements ECS.Command {
+export class SetEntityElementsPosition implements ECS.Command {
     readonly type: Commands
     constructor() {
-        this.type = Commands.SyncComputedElementsPosition
+        this.type = Commands.SetEntityElementsPosition
     }
 
     run(system: ECS.System) {
@@ -151,32 +175,45 @@ export class SyncComputedElementsPosition implements ECS.Command {
                     ECS.By.Any,
                     null
                 ])
-        for (let cE of foundComponents[0]) {
-            for (let p of foundComponents[1]) {
+        for (let cC of system.componentDiffs.changedComponents) {
+            if (cC.component.type != Comps.Components.Position) continue
+            let position = cC.component as Comps.Position
 
-                if (!(p.component as Comps.Position).isChanged) break;
+            for (let fC of foundComponents[0]) {
+                let computedElement = fC.component as Comps.ComputedElement
 
-                if (cE.component.entityUid ==
-                    p.component.entityUid) {
-
-                    let position = (p.component as Comps.Position).position
-                    let computedElement = cE.component as Comps.ComputedElement
-
-                    computedElement.properties[Comps.Properties.Top] = position.y
-                    computedElement.properties[Comps.Properties.Left] = position.x
+                if (computedElement.entityUid ==
+                    position.entityUid &&
+                    computedElement.elementType ==
+                    Comps.ElementTypes.Entity
+                ) {
+                    computedElement.properties[Comps.Properties.Top] = position.position.y
+                    computedElement.properties[Comps.Properties.Left] = position.position.y
 
                     computedElement.changedProperties[Comps.Properties.Left] = true
                     computedElement.changedProperties[Comps.Properties.Top] = true
 
-                    system.setProperty<Comps.ComputedElement>(cE, "properties", computedElement.properties)
-                    system.setProperty<Comps.ComputedElement>(cE, "changedProperties", computedElement.changedProperties)
-                    system.setProperty<Comps.ComputedElement>(cE, "isChanged", true)
+                    system.setProperty<Comps.ComputedElement, "properties">(
+                        fC, "properties", computedElement.properties)
+                    system.setProperty<Comps.ComputedElement, "changedProperties">(
+                        fC, "changedProperties", computedElement.changedProperties)
 
-                    system.setProperty<Comps.Position>(p, "isChanged", false)
                     break;
                 }
             }
         }
+    }
+}
+
+
+export class PlayAnimations implements ECS.Command {
+    readonly type: Commands
+    constructor() {
+        this.type = Commands.PlayAnimations
+    }
+
+    run(system: ECS.System) {
+        system
     }
 }
 
@@ -198,6 +235,7 @@ export class WatchDevBox implements ECS.Command {
             return;
         }
 
+        // Add commands
         if (system.devBox.isEnableFreeCamera &&
             !system.getState("createdIsEnableFreeCameraCommand")
         ) {
@@ -216,22 +254,126 @@ export class WatchDevBox implements ECS.Command {
             !system.getState("createdIsSetNightCommand")
         ) {
             // create night commands !TODO
-            system.setState(this.type, "createdIsSetNightCommand", false)
+            system.setState(this.type, "createdIsSetNightCommand", true)
         }
         if (system.devBox.isShadowsEnabled &&
             !system.getState("createdIsShadowsEnabledCommand")
         ) {
+            system.addCommand(Commands.CreateShadows)
+            system.addCommand(Commands.UpdateShadowNumber)
+            system.addCommand(Commands.UpdateShadowProperties)
             // create shadow commands !TODO
+            system.setState(this.type, "createdIsShadowsEnabledCommand", true)
+        }
+
+        // Remove commands
+        if (!system.devBox.isEnableFreeCamera &&
+            system.getState("createdIsEnableFreeCameraCommand")
+        ) {
+            // remove enable free camera command !TODO
+            system.setState(this.type, "createdIsEnableFreeCameraCommand", false)
+        }
+
+        if (!system.devBox.isEnablePhysics &&
+            system.getState("createdIsEnablePhysicsCommand")
+        ) {
+            // remove physics commands !TODO
+            system.setState(this.type, "createdIsEnablePhysicsCommand", false)
+        }
+
+        if (!system.devBox.isSetNight &&
+            system.getState("createdIsSetNightCommand")
+        ) {
+            // remove night commands !TODO
+            system.setState(this.type, "createdIsSetNightCommand", false)
+        }
+        if (!system.devBox.isShadowsEnabled &&
+            system.getState("createdIsShadowsEnabledCommand")
+        ) {
+            system.removeCommand(Commands.UpdateShadowNumber)
+            system.removeCommand(Commands.UpdateShadowProperties)
+            system.addCommand(Commands.RemoveShadows)
+
             system.setState(this.type, "createdIsShadowsEnabledCommand", false)
         }
 
     }
 }
 
-export class CastShadows implements ECS.Command {
+export class UpdateShadowProperties implements ECS.Command {
     readonly type: Commands
     constructor() {
-        this.type = Commands.CastShadows
+        this.type = Commands.UpdateShadowProperties
+    }
+
+    run(system: ECS.System) {
+        let foundComponents = system.find(
+            [ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null])
+
+        for (let cC of system.componentDiffs.changedComponents) {
+            if (cC.component.type != Comps.Components.ComputedElement) continue
+            if ((cC.component as Comps.ComputedElement).elementType != Comps.ElementTypes.Entity) continue
+            let entityElement = (cC.component as Comps.ComputedElement)
+
+            for (let fC of foundComponents[0]) {
+                let shadowElement = fC.component as Comps.ComputedElement
+                if (shadowElement.elementType != Comps.ElementTypes.Shadow) continue
+                if (shadowElement.entityUid != cC.component.entityUid) continue
+
+                let shadowProperties = shadowElement.properties
+                let shadowChangedProperties = shadowElement.changedProperties
+
+                for (let [pCI, pC] of entityElement.changedProperties.entries()) {
+                    if (!pC) continue
+
+                    switch (pCI) {
+                        case Comps.Properties.Left:
+                            shadowProperties[pCI] = entityElement.properties[pCI] - 10
+                            shadowChangedProperties[pCI] = true
+                            break;
+
+                        case Comps.Properties.Top:
+                            shadowProperties[pCI] = entityElement.properties[pCI] - 10
+                            shadowChangedProperties[pCI] = true
+                            break;
+                    }
+                }
+                system.setProperty<Comps.ComputedElement, "properties">(
+                    fC, "properties", shadowProperties)
+                system.setProperty<Comps.ComputedElement, "changedProperties">(
+                    fC, "changedProperties", shadowChangedProperties)
+            }
+        }
+    }
+}
+
+
+export class RemoveShadows implements ECS.Command {
+    readonly type: Commands
+    constructor() {
+        this.type = Commands.RemoveShadows
+    }
+
+    run(system: ECS.System) {
+        let foundComponents = system.find(
+            [ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null])
+
+        for (let fC of foundComponents[0]) {
+            let computedElement = fC.component as Comps.ComputedElement
+
+            if (computedElement.elementType == Comps.ElementTypes.Shadow) {
+                system.removeComponent(fC)
+            }
+        }
+
+        system.removeCommand(this.type)
+    }
+}
+
+export class UpdateShadowNumber implements ECS.Command {
+    readonly type: Commands
+    constructor() {
+        this.type = Commands.UpdateShadowNumber
     }
 
     run(system: ECS.System) {
@@ -240,8 +382,85 @@ export class CastShadows implements ECS.Command {
 
         if (foundComponents[0].length == 0) return
 
+        // check for added entities
+        for (let aC of system.componentDiffs.addedComponents) {
+            if (aC.component.type != Comps.Components.ComputedElement) continue
+            if ((aC.component as Comps.ComputedElement).elementType != Comps.ElementTypes.Entity) continue
+
+            let computedElement = aC.component as Comps.ComputedElement
+
+            let shadowElement = new Comps.ComputedElement(
+                Comps.ElementTypes.Shadow,
+                computedElement.entityUid)
+
+            shadowElement.properties[Comps.Properties.Color] = "#aaaa"
+
+            shadowElement.properties[Comps.Properties.Left] =
+                computedElement.properties[Comps.Properties.Left]
+
+            shadowElement.properties[Comps.Properties.Top] =
+                computedElement.properties[Comps.Properties.Top]
+
+            shadowElement.properties[Comps.Properties.ZIndex] = -1
+
+            system.addComponent(shadowElement)
+
+        }
+
+        // check for removed entities
+        for (let rC of system.componentDiffs.removedComponents) {
+            if (rC.component.type != Comps.Components.ComputedElement) continue
+            if ((rC.component as Comps.ComputedElement).elementType != Comps.ElementTypes.Entity) continue
+
+
+            for (let fC of foundComponents[0]) {
+                if (fC.component.entityUid != rC.component.entityUid) continue
+                if ((fC.component as Comps.ComputedElement).elementType != Comps.ElementTypes.Shadow) continue
+
+                system.removeComponent(fC)
+                break;
+            }
+        }
+    }
+
+}
+export class CreateShadows implements ECS.Command {
+    readonly type: Commands
+    constructor() {
+        this.type = Commands.CreateShadows
+    }
+
+    run(system: ECS.System) {
+        // first time run
+
+        let foundComponents = system.find(
+            [ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null])
+
+        for (let fC of foundComponents[0]) {
+            let computedElement = fC.component as Comps.ComputedElement
+            if (computedElement.elementType == Comps.ElementTypes.Entity) {
+                let shadowElement = new Comps.ComputedElement(
+                    Comps.ElementTypes.Shadow,
+                    computedElement.entityUid)
+                shadowElement.properties[Comps.Properties.Color] = "#aaaa"
+
+                shadowElement.properties[Comps.Properties.Left] =
+                    computedElement.properties[Comps.Properties.Left]
+
+                shadowElement.properties[Comps.Properties.Top] =
+                    computedElement.properties[Comps.Properties.Top]
+
+                shadowElement.properties[Comps.Properties.ZIndex] = -1
+
+                system.addComponent(shadowElement)
+
+            }
+        }
+        // update shadow position
+        system.removeCommand(this.type)
     }
 }
+
 export class SendComputedElementsToRender implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -254,25 +473,35 @@ export class SendComputedElementsToRender implements ECS.Command {
 
         if (foundComponents[0].length == 0) return
 
-        if (system.getState("lastComputedElements") == null) {
-            system.setState(this.type, "lastComputedElements", foundComponents[0])
-            return
-        }
-
         let graphicDiff = new Utils.GraphicDiff()
 
-        for (let fC of foundComponents[0]) {
-            let computedElement = fC.component as Comps.ComputedElement
-            if (computedElement.isNew) {
-                graphicDiff.addedComputedElements.push(fC)
-                system.setProperty<Comps.ComputedElement>(fC, "isNew", false)
+        // for changed
+        for (let cC of system.componentDiffs.changedComponents) {
+            if (cC.component.type == Comps.Components.ComputedElement) {
+                graphicDiff.changedComputedElements.push(cC)
             }
-            if (computedElement.isChanged) {
-                graphicDiff.changedComputedElements.push(fC)
-                system.setProperty<Comps.ComputedElement>(fC, "isChanged", false)
-                system.setProperty<Comps.ComputedElement>(
-                    fC,
-                    "properties",
+        }
+        // check for new
+        for (let aC of system.componentDiffs.addedComponents) {
+            if (aC.component.type == Comps.Components.ComputedElement) {
+                graphicDiff.addedComputedElements.push(aC)
+            }
+
+        }
+        console.log(system.componentDiffs.removedComponents.length)
+        // check for removed
+        for (let rC of system.componentDiffs.removedComponents) {
+            if (rC.component.type == Comps.Components.ComputedElement) {
+                graphicDiff.removedComputedElements.push(rC)
+            }
+        }
+
+        // set properties to not changed
+        for (let cC of system.componentDiffs.changedComponents) {
+            if (cC.component.type == Comps.Components.ComputedElement) {
+                system.setProperty<Comps.ComputedElement, "changedProperties">(
+                    cC,
+                    "changedProperties",
                     [new Comps.ClassesDiff(), false, false, false, false, false]
                 )
             }
@@ -284,23 +513,6 @@ export class SendComputedElementsToRender implements ECS.Command {
             return
         }
 
-        //        let isFound = false
-        //        let lastComputedElements = system.getState("lastComputedElements")
-        //        for (let lCE of lastComputedElements) {
-        //            for (let fC of foundComponents[0]) {
-        //                if (fC.component.componentUid == lCE.component.componentUid) {
-        //                    isFound = true
-        //                }
-        //            }
-        //            if (!isFound) graphicDiff.removedComputedElements.push(lCE)
-        //            isFound = false
-        //        }
-        //let start = performance.now()
-        //let stop = performance.now();
-        //console.log(stop - start)
-
         postMessage(new Utils.Message(Utils.Messages.RenderIt, graphicDiff))
-
-        system.setState(this.type, "lastComputedElements", foundComponents[0])
     }
 }

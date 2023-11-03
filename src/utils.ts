@@ -78,6 +78,17 @@ export class PropertyChange {
     }
 }
 
+export class ComponentDiffs {
+    changedComponents: ECS.ComponentAndIndex[]
+    removedComponents: ECS.ComponentAndIndex[]
+    addedComponents: ECS.ComponentAndIndex[]
+    constructor() {
+        this.changedComponents = []
+        this.removedComponents = []
+        this.addedComponents = []
+    }
+}
+
 export class RemovedComponent {
     componentType: Comps.Components
     componentIndex: number

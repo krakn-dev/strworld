@@ -23,7 +23,6 @@ onmessage = (data) => {
         case Utils.Messages.Update: {
             let newData = msg.data as Utils.Diffs
             system.update(newData)
-
         } break;
 
         case Utils.Messages.Start: {

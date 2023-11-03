@@ -1,5 +1,6 @@
 import * as ECS from "./ecs.js"
 import * as Utils from "./utils.js"
+import * as Anims from "./animations.js"
 
 export enum Components {
     Health = 0,
@@ -9,6 +10,7 @@ export enum Components {
     EntityState,
     ComputedElement,
     EntityType,
+    Animation,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -23,15 +25,30 @@ export enum EntityTypes {
     Human,
     Grass,
 }
+export enum EntityStates {
+    Idle,
+    Run,
+}
+export class EntityState implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    state: EntityStates
+
+    constructor(newState: EntityStates, newEntityUid: number) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.EntityState
+        this.state = newState
+    }
+}
 export class Position implements ECS.Component {
     entityUid: number
     componentUid: number
     type: Components
     position: Utils.Vector2
-    isChanged: boolean
 
     constructor(newPosition: Utils.Vector2, newEntityUid: number) {
-        this.isChanged = false
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.type = Components.Position
@@ -53,6 +70,21 @@ export class Health implements ECS.Component {
     }
 }
 
+export class Animation implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    currentDisplayElement: string
+    animations: Anims.Animation[]
+
+    constructor(newAnimations: Anims.Animation[], newEntityUid: number) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.Animation
+        this.currentDisplayElement = "?"
+        this.animations = newAnimations
+    }
+}
 
 export enum Properties {
     Classes = 0,
@@ -76,14 +108,11 @@ export class ClassesDiff {
 export enum ElementTypes {
     Shadow,
     Entity,
-    Component,
 }
 
 export class ComputedElement implements ECS.Component {
     properties: [string[], number, number, number, string, string]
     changedProperties: [ClassesDiff, boolean, boolean, boolean, boolean, boolean]
-    isChanged: boolean
-    isNew: boolean
     elementType: ElementTypes
 
     entityUid: number
@@ -91,9 +120,6 @@ export class ComputedElement implements ECS.Component {
     type: Components
 
     constructor(newElementType: ElementTypes, newEntityUid: number) {
-
-        this.isNew = true
-        this.isChanged = false
         this.properties = [["base"], 0, 0, 0, "#000", "?"]
         this.changedProperties = [new ClassesDiff(), false, false, false, false, false]
         this.type = Components.ComputedElement

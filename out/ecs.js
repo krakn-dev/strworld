@@ -35,6 +35,7 @@ export class System {
         for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
             this.components.push([]);
         }
+        this.componentDiffs = new Utils.ComponentDiffs();
         this.state = new Map();
         this.input = new Utils.Input(new Utils.Vector2(0, 0));
     }
@@ -144,10 +145,6 @@ export class System {
                 }
             }
         }
-        // add components
-        for (let c of newData.addedComponents) {
-            this.components[c.type].push(c);
-        }
         // change properties
         for (let pC of newData.changedProperties) {
             // detect if index is incorrect or was removed
@@ -171,9 +168,12 @@ export class System {
                 }
             }
             this.components[pC.componentType][pC.componentIndex][pC.property] = pC.value;
+            // add changed component to component diffs
+            this.componentDiffs.changedComponents.push(new ComponentAndIndex(this.components[pC.componentType][pC.componentIndex], pC.componentIndex));
         }
-        // delete components
+        // remove components
         if (newData.removedComponents.length != 0) {
+            console.log("yoU ARE DELETINgh");
             // detect if index is incorrect or was removed
             for (let rC of newData.removedComponents) {
                 if (this.components[rC.componentType].length - 1 < rC.componentIndex ||
@@ -201,12 +201,50 @@ export class System {
                 for (let [dOI, dO] of deleteOrder.entries()) {
                     if (rC.componentIndex > dO.componentIndex) {
                         deleteOrder.splice(dOI, 0, rC);
+                        break;
+                    }
+                    if (deleteOrder[dOI + 1] == undefined) {
+                        deleteOrder.push(rC);
+                        break;
                     }
                 }
             }
             // remove in order
             for (let dO of deleteOrder) {
+                // add removed components to diff
+                this.componentDiffs.removedComponents.push(new ComponentAndIndex(this.components[dO.componentType][dO.componentIndex], dO.componentIndex));
+                // actually remove
                 this.components[dO.componentType].splice(dO.componentIndex, 1);
+            }
+        }
+        // add components
+        for (let c of newData.addedComponents) {
+            this.components[c.type].push(c);
+            this.componentDiffs.addedComponents.push(new ComponentAndIndex(c, this.components[c.type].length - 1));
+        }
+        // check changed components index is still valid
+        for (let cCI = this.componentDiffs.changedComponents.length - 1; cCI >= 0; cCI--) {
+            let cC = this.componentDiffs.changedComponents[cCI];
+            if (this.components[cC.component.type].length - 1 < cC.index ||
+                this.components[cC.component.type][cC.index].componentUid !=
+                    cC.component.componentUid) {
+                console.log("$ component probably was deleted or changed position");
+                console.log("$ trying to fix...");
+                let fixed = false;
+                for (let [cI, c] of this.components[cC.component.type].entries()) {
+                    if (c.componentUid == cC.component.componentUid) {
+                        fixed = true;
+                        cC.index = cI;
+                    }
+                }
+                if (!fixed) {
+                    console.log("$ component was deleted");
+                    this.componentDiffs.changedComponents.splice(cCI, 1);
+                    return;
+                }
+                else {
+                    console.log("$ component was found");
+                }
             }
         }
     }
@@ -310,7 +348,7 @@ export class System {
             w.messagePort.postMessage(new Utils.Message(Utils.Messages.Update, this.diffs));
         }
         this.update(this.diffs);
-        delete this.diffs;
+        this.componentDiffs = new Utils.ComponentDiffs();
         this.diffs = new Utils.Diffs([], [], [], [], []);
     }
 }

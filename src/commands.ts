@@ -180,7 +180,7 @@ export class SetEntityElementsPosition implements ECS.Command {
                     Comps.ElementTypes.Entity
                 ) {
                     computedElement.properties[Comps.Properties.Top] = position.position.y
-                    computedElement.properties[Comps.Properties.Left] = position.position.y
+                    computedElement.properties[Comps.Properties.Left] = position.position.x
 
                     computedElement.changedProperties[Comps.Properties.Left] = true
                     computedElement.changedProperties[Comps.Properties.Top] = true
@@ -307,8 +307,8 @@ export class UpdateShadowProperties implements ECS.Command {
                     computedElement.elementType ==
                     Comps.ElementTypes.Shadow
                 ) {
-                    computedElement.properties[Comps.Properties.Top] = position.position.y - 20
-                    computedElement.properties[Comps.Properties.Left] = position.position.y - 20
+                    computedElement.properties[Comps.Properties.Top] = position.position.y - 10
+                    computedElement.properties[Comps.Properties.Left] = position.position.x - 10
 
                     computedElement.changedProperties[Comps.Properties.Left] = true
                     computedElement.changedProperties[Comps.Properties.Top] = true

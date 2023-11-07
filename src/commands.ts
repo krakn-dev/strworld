@@ -6,19 +6,18 @@ import * as Anims from "./animations.js"
 
 export enum Commands {
     TheFirst = 0,
-    CreatePlayer,
-    MovePlayer,
-    SetEntityElementsPosition,
-    SendComputedElementsToRender,
-    CreateShadows,
-    WatchDevBox,
-    RemoveShadows,
-    PlayAnimations,
-    UpdateShadowNumber,
-    UpdateShadowProperties,
+    CreatePlayer = 1,
+    MovePlayer = 2,
+    SetEntityElementsPosition = 3,
+    SendComputedElementsToRender = 4,
+    CreateShadows = 5,
+    WatchDevBox = 6,
+    RemoveShadows = 7,
+    PlayAnimations = 8,
+    UpdateShadowNumber = 9,
+    UpdateShadowProperties = 10,
 }
 
-//        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null])
 export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
 
     switch (commandEnum) {
@@ -72,7 +71,6 @@ export class TheFirst implements ECS.Command {
         system.removeCommand(Commands.TheFirst)
     }
 }
-
 export class CreatePlayer implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -84,7 +82,6 @@ export class CreatePlayer implements ECS.Command {
             return
         }
         system.setState(this.type, "once", true)
-
         for (let x = 0; x < 2; x++) {
             for (let y = 0; y < 2; y++) {
                 let player = Utils.newUid()
@@ -111,8 +108,6 @@ export class CreatePlayer implements ECS.Command {
         system.removeCommand(Commands.CreatePlayer)
     }
 }
-
-
 export class MovePlayer implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -147,7 +142,6 @@ export class MovePlayer implements ECS.Command {
         newPosition.x += system.input.movementDirection.x * delta * velocity
         newPosition.y += system.input.movementDirection.y * delta * velocity
 
-
         system.setProperty<Comps.Position, "position">(
             fC,
             "position",
@@ -155,7 +149,6 @@ export class MovePlayer implements ECS.Command {
         )
     }
 }
-
 export class SetEntityElementsPosition implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -170,7 +163,6 @@ export class SetEntityElementsPosition implements ECS.Command {
                     ECS.Get.All,
                     [
                         Comps.Components.ComputedElement,
-                        Comps.Components.Position
                     ],
                     ECS.By.Any,
                     null
@@ -193,19 +185,18 @@ export class SetEntityElementsPosition implements ECS.Command {
                     computedElement.changedProperties[Comps.Properties.Left] = true
                     computedElement.changedProperties[Comps.Properties.Top] = true
 
+                    system.setProperty<Comps.ComputedElement, "isChanged">(
+                        fC, "isChanged", true)
                     system.setProperty<Comps.ComputedElement, "properties">(
                         fC, "properties", computedElement.properties)
                     system.setProperty<Comps.ComputedElement, "changedProperties">(
                         fC, "changedProperties", computedElement.changedProperties)
-
                     break;
                 }
             }
         }
     }
 }
-
-
 export class PlayAnimations implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -213,10 +204,8 @@ export class PlayAnimations implements ECS.Command {
     }
 
     run(system: ECS.System) {
-        system
     }
 }
-
 export class WatchDevBox implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -260,9 +249,6 @@ export class WatchDevBox implements ECS.Command {
             !system.getState("createdIsShadowsEnabledCommand")
         ) {
             system.addCommand(Commands.CreateShadows)
-            system.addCommand(Commands.UpdateShadowNumber)
-            system.addCommand(Commands.UpdateShadowProperties)
-            // create shadow commands !TODO
             system.setState(this.type, "createdIsShadowsEnabledCommand", true)
         }
 
@@ -299,7 +285,6 @@ export class WatchDevBox implements ECS.Command {
 
     }
 }
-
 export class UpdateShadowProperties implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -311,43 +296,38 @@ export class UpdateShadowProperties implements ECS.Command {
             [ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null])
 
         for (let cC of system.componentDiffs.changedComponents) {
-            if (cC.component.type != Comps.Components.ComputedElement) continue
-            if ((cC.component as Comps.ComputedElement).elementType != Comps.ElementTypes.Entity) continue
-            let entityElement = (cC.component as Comps.ComputedElement)
+            if (cC.component.type != Comps.Components.Position) continue
+            let position = cC.component as Comps.Position
 
             for (let fC of foundComponents[0]) {
-                let shadowElement = fC.component as Comps.ComputedElement
-                if (shadowElement.elementType != Comps.ElementTypes.Shadow) continue
-                if (shadowElement.entityUid != cC.component.entityUid) continue
+                let computedElement = fC.component as Comps.ComputedElement
 
-                let shadowProperties = shadowElement.properties
-                let shadowChangedProperties = shadowElement.changedProperties
+                if (computedElement.entityUid ==
+                    position.entityUid &&
+                    computedElement.elementType ==
+                    Comps.ElementTypes.Shadow
+                ) {
+                    computedElement.properties[Comps.Properties.Top] = position.position.y - 20
+                    computedElement.properties[Comps.Properties.Left] = position.position.y - 20
 
-                for (let [pCI, pC] of entityElement.changedProperties.entries()) {
-                    if (!pC) continue
+                    computedElement.changedProperties[Comps.Properties.Left] = true
+                    computedElement.changedProperties[Comps.Properties.Top] = true
 
-                    switch (pCI) {
-                        case Comps.Properties.Left:
-                            shadowProperties[pCI] = entityElement.properties[pCI] - 10
-                            shadowChangedProperties[pCI] = true
-                            break;
-
-                        case Comps.Properties.Top:
-                            shadowProperties[pCI] = entityElement.properties[pCI] - 10
-                            shadowChangedProperties[pCI] = true
-                            break;
-                    }
+                    system.setProperty<Comps.ComputedElement, "isChanged">(
+                        fC, "isChanged", true)
+                    system.setProperty<Comps.ComputedElement, "properties">(
+                        fC, "properties", computedElement.properties)
+                    system.setProperty<Comps.ComputedElement, "changedProperties">(
+                        fC, "changedProperties", computedElement.changedProperties)
+                    break;
                 }
-                system.setProperty<Comps.ComputedElement, "properties">(
-                    fC, "properties", shadowProperties)
-                system.setProperty<Comps.ComputedElement, "changedProperties">(
-                    fC, "changedProperties", shadowChangedProperties)
             }
+
+
+
         }
     }
 }
-
-
 export class RemoveShadows implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -369,7 +349,6 @@ export class RemoveShadows implements ECS.Command {
         system.removeCommand(this.type)
     }
 }
-
 export class UpdateShadowNumber implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -381,7 +360,6 @@ export class UpdateShadowNumber implements ECS.Command {
             [ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null])
 
         if (foundComponents[0].length == 0) return
-
         // check for added entities
         for (let aC of system.componentDiffs.addedComponents) {
             if (aC.component.type != Comps.Components.ComputedElement) continue
@@ -393,18 +371,17 @@ export class UpdateShadowNumber implements ECS.Command {
                 Comps.ElementTypes.Shadow,
                 computedElement.entityUid)
 
-            shadowElement.properties[Comps.Properties.Color] = "#aaaa"
+            shadowElement.properties[Comps.Properties.Color] = "#aaa"
 
             shadowElement.properties[Comps.Properties.Left] =
-                computedElement.properties[Comps.Properties.Left]
+                computedElement.properties[Comps.Properties.Left] - 10
 
             shadowElement.properties[Comps.Properties.Top] =
-                computedElement.properties[Comps.Properties.Top]
+                computedElement.properties[Comps.Properties.Top] - 10
 
             shadowElement.properties[Comps.Properties.ZIndex] = -1
 
             system.addComponent(shadowElement)
-
         }
 
         // check for removed entities
@@ -442,13 +419,13 @@ export class CreateShadows implements ECS.Command {
                 let shadowElement = new Comps.ComputedElement(
                     Comps.ElementTypes.Shadow,
                     computedElement.entityUid)
-                shadowElement.properties[Comps.Properties.Color] = "#aaaa"
+                shadowElement.properties[Comps.Properties.Color] = "#666"
 
                 shadowElement.properties[Comps.Properties.Left] =
-                    computedElement.properties[Comps.Properties.Left]
+                    computedElement.properties[Comps.Properties.Left] - 10
 
                 shadowElement.properties[Comps.Properties.Top] =
-                    computedElement.properties[Comps.Properties.Top]
+                    computedElement.properties[Comps.Properties.Top] - 10
 
                 shadowElement.properties[Comps.Properties.ZIndex] = -1
 
@@ -456,11 +433,12 @@ export class CreateShadows implements ECS.Command {
 
             }
         }
-        // update shadow position
+        system.addCommand(Commands.UpdateShadowNumber)
+        system.addCommand(Commands.UpdateShadowProperties)
+
         system.removeCommand(this.type)
     }
 }
-
 export class SendComputedElementsToRender implements ECS.Command {
     readonly type: Commands
     constructor() {
@@ -477,9 +455,24 @@ export class SendComputedElementsToRender implements ECS.Command {
 
         // for changed
         for (let cC of system.componentDiffs.changedComponents) {
-            if (cC.component.type == Comps.Components.ComputedElement) {
-                graphicDiff.changedComputedElements.push(cC)
-            }
+            if (cC.component.type != Comps.Components.ComputedElement) continue
+            let computedElement = cC.component as Comps.ComputedElement
+
+            if (!computedElement.isChanged) continue
+
+            graphicDiff.changedComputedElements.push(cC)
+
+            // set properties to not changed
+            system.setProperty<Comps.ComputedElement, "isChanged">(
+                cC,
+                "isChanged",
+                false
+            )
+            system.setProperty<Comps.ComputedElement, "changedProperties">(
+                cC,
+                "changedProperties",
+                [new Comps.ClassesDiff(), false, false, false, false, false]
+            )
         }
         // check for new
         for (let aC of system.componentDiffs.addedComponents) {
@@ -488,7 +481,6 @@ export class SendComputedElementsToRender implements ECS.Command {
             }
 
         }
-        console.log(system.componentDiffs.removedComponents.length)
         // check for removed
         for (let rC of system.componentDiffs.removedComponents) {
             if (rC.component.type == Comps.Components.ComputedElement) {
@@ -496,23 +488,12 @@ export class SendComputedElementsToRender implements ECS.Command {
             }
         }
 
-        // set properties to not changed
-        for (let cC of system.componentDiffs.changedComponents) {
-            if (cC.component.type == Comps.Components.ComputedElement) {
-                system.setProperty<Comps.ComputedElement, "changedProperties">(
-                    cC,
-                    "changedProperties",
-                    [new Comps.ClassesDiff(), false, false, false, false, false]
-                )
-            }
-        }
         if (graphicDiff.addedComputedElements.length == 0 &&
             graphicDiff.removedComputedElements.length == 0 &&
             graphicDiff.changedComputedElements.length == 0
         ) {
             return
         }
-
         postMessage(new Utils.Message(Utils.Messages.RenderIt, graphicDiff))
     }
 }

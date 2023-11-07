@@ -2,7 +2,6 @@ import * as Cmds from "./commands.js";
 import * as ECS from "./ecs.js"
 import * as Utils from "./utils.js"
 
-
 let system: ECS.System;
 
 

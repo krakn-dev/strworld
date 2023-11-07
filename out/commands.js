@@ -16,7 +16,6 @@ export var Commands;
     Commands[Commands["UpdateShadowNumber"] = 9] = "UpdateShadowNumber";
     Commands[Commands["UpdateShadowProperties"] = 10] = "UpdateShadowProperties";
 })(Commands || (Commands = {}));
-//        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Health], ECS.By.Any, null])
 export function getInstanceFromEnum(commandEnum) {
     switch (commandEnum) {
         case Commands.TheFirst:
@@ -124,7 +123,6 @@ export class SetEntityElementsPosition {
             ECS.Get.All,
             [
                 Comps.Components.ComputedElement,
-                Comps.Components.Position
             ],
             ECS.By.Any,
             null
@@ -143,6 +141,7 @@ export class SetEntityElementsPosition {
                     computedElement.properties[Comps.Properties.Left] = position.position.y;
                     computedElement.changedProperties[Comps.Properties.Left] = true;
                     computedElement.changedProperties[Comps.Properties.Top] = true;
+                    system.setProperty(fC, "isChanged", true);
                     system.setProperty(fC, "properties", computedElement.properties);
                     system.setProperty(fC, "changedProperties", computedElement.changedProperties);
                     break;
@@ -156,7 +155,6 @@ export class PlayAnimations {
         this.type = Commands.PlayAnimations;
     }
     run(system) {
-        system;
     }
 }
 export class WatchDevBox {
@@ -192,9 +190,6 @@ export class WatchDevBox {
         if (system.devBox.isShadowsEnabled &&
             !system.getState("createdIsShadowsEnabledCommand")) {
             system.addCommand(Commands.CreateShadows);
-            system.addCommand(Commands.UpdateShadowNumber);
-            system.addCommand(Commands.UpdateShadowProperties);
-            // create shadow commands !TODO
             system.setState(this.type, "createdIsShadowsEnabledCommand", true);
         }
         // Remove commands
@@ -229,35 +224,24 @@ export class UpdateShadowProperties {
     run(system) {
         let foundComponents = system.find([ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null]);
         for (let cC of system.componentDiffs.changedComponents) {
-            if (cC.component.type != Comps.Components.ComputedElement)
+            if (cC.component.type != Comps.Components.Position)
                 continue;
-            if (cC.component.elementType != Comps.ElementTypes.Entity)
-                continue;
-            let entityElement = cC.component;
+            let position = cC.component;
             for (let fC of foundComponents[0]) {
-                let shadowElement = fC.component;
-                if (shadowElement.elementType != Comps.ElementTypes.Shadow)
-                    continue;
-                if (shadowElement.entityUid != cC.component.entityUid)
-                    continue;
-                let shadowProperties = shadowElement.properties;
-                let shadowChangedProperties = shadowElement.changedProperties;
-                for (let [pCI, pC] of entityElement.changedProperties.entries()) {
-                    if (!pC)
-                        continue;
-                    switch (pCI) {
-                        case Comps.Properties.Left:
-                            shadowProperties[pCI] = entityElement.properties[pCI] - 10;
-                            shadowChangedProperties[pCI] = true;
-                            break;
-                        case Comps.Properties.Top:
-                            shadowProperties[pCI] = entityElement.properties[pCI] - 10;
-                            shadowChangedProperties[pCI] = true;
-                            break;
-                    }
+                let computedElement = fC.component;
+                if (computedElement.entityUid ==
+                    position.entityUid &&
+                    computedElement.elementType ==
+                        Comps.ElementTypes.Shadow) {
+                    computedElement.properties[Comps.Properties.Top] = position.position.y - 20;
+                    computedElement.properties[Comps.Properties.Left] = position.position.y - 20;
+                    computedElement.changedProperties[Comps.Properties.Left] = true;
+                    computedElement.changedProperties[Comps.Properties.Top] = true;
+                    system.setProperty(fC, "isChanged", true);
+                    system.setProperty(fC, "properties", computedElement.properties);
+                    system.setProperty(fC, "changedProperties", computedElement.changedProperties);
+                    break;
                 }
-                system.setProperty(fC, "properties", shadowProperties);
-                system.setProperty(fC, "changedProperties", shadowChangedProperties);
             }
         }
     }
@@ -293,11 +277,11 @@ export class UpdateShadowNumber {
                 continue;
             let computedElement = aC.component;
             let shadowElement = new Comps.ComputedElement(Comps.ElementTypes.Shadow, computedElement.entityUid);
-            shadowElement.properties[Comps.Properties.Color] = "#aaaa";
+            shadowElement.properties[Comps.Properties.Color] = "#aaa";
             shadowElement.properties[Comps.Properties.Left] =
-                computedElement.properties[Comps.Properties.Left];
+                computedElement.properties[Comps.Properties.Left] - 10;
             shadowElement.properties[Comps.Properties.Top] =
-                computedElement.properties[Comps.Properties.Top];
+                computedElement.properties[Comps.Properties.Top] - 10;
             shadowElement.properties[Comps.Properties.ZIndex] = -1;
             system.addComponent(shadowElement);
         }
@@ -329,16 +313,17 @@ export class CreateShadows {
             let computedElement = fC.component;
             if (computedElement.elementType == Comps.ElementTypes.Entity) {
                 let shadowElement = new Comps.ComputedElement(Comps.ElementTypes.Shadow, computedElement.entityUid);
-                shadowElement.properties[Comps.Properties.Color] = "#aaaa";
+                shadowElement.properties[Comps.Properties.Color] = "#666";
                 shadowElement.properties[Comps.Properties.Left] =
-                    computedElement.properties[Comps.Properties.Left];
+                    computedElement.properties[Comps.Properties.Left] - 10;
                 shadowElement.properties[Comps.Properties.Top] =
-                    computedElement.properties[Comps.Properties.Top];
+                    computedElement.properties[Comps.Properties.Top] - 10;
                 shadowElement.properties[Comps.Properties.ZIndex] = -1;
                 system.addComponent(shadowElement);
             }
         }
-        // update shadow position
+        system.addCommand(Commands.UpdateShadowNumber);
+        system.addCommand(Commands.UpdateShadowProperties);
         system.removeCommand(this.type);
     }
 }
@@ -353,9 +338,15 @@ export class SendComputedElementsToRender {
         let graphicDiff = new Utils.GraphicDiff();
         // for changed
         for (let cC of system.componentDiffs.changedComponents) {
-            if (cC.component.type == Comps.Components.ComputedElement) {
-                graphicDiff.changedComputedElements.push(cC);
-            }
+            if (cC.component.type != Comps.Components.ComputedElement)
+                continue;
+            let computedElement = cC.component;
+            if (!computedElement.isChanged)
+                continue;
+            graphicDiff.changedComputedElements.push(cC);
+            // set properties to not changed
+            system.setProperty(cC, "isChanged", false);
+            system.setProperty(cC, "changedProperties", [new Comps.ClassesDiff(), false, false, false, false, false]);
         }
         // check for new
         for (let aC of system.componentDiffs.addedComponents) {
@@ -363,17 +354,10 @@ export class SendComputedElementsToRender {
                 graphicDiff.addedComputedElements.push(aC);
             }
         }
-        console.log(system.componentDiffs.removedComponents.length);
         // check for removed
         for (let rC of system.componentDiffs.removedComponents) {
             if (rC.component.type == Comps.Components.ComputedElement) {
                 graphicDiff.removedComputedElements.push(rC);
-            }
-        }
-        // set properties to not changed
-        for (let cC of system.componentDiffs.changedComponents) {
-            if (cC.component.type == Comps.Components.ComputedElement) {
-                system.setProperty(cC, "changedProperties", [new Comps.ClassesDiff(), false, false, false, false, false]);
             }
         }
         if (graphicDiff.addedComputedElements.length == 0 &&

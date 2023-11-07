@@ -169,11 +169,18 @@ export class System {
             }
             this.components[pC.componentType][pC.componentIndex][pC.property] = pC.value;
             // add changed component to component diffs
-            this.componentDiffs.changedComponents.push(new ComponentAndIndex(this.components[pC.componentType][pC.componentIndex], pC.componentIndex));
+            let isFound = false;
+            for (let cC of this.componentDiffs.changedComponents) {
+                if (cC.component.componentUid == pC.componentUid) {
+                    isFound = true;
+                }
+            }
+            if (!isFound) {
+                this.componentDiffs.changedComponents.push(new ComponentAndIndex(this.components[pC.componentType][pC.componentIndex], pC.componentIndex));
+            }
         }
         // remove components
         if (newData.removedComponents.length != 0) {
-            console.log("yoU ARE DELETINgh");
             // detect if index is incorrect or was removed
             for (let rC of newData.removedComponents) {
                 if (this.components[rC.componentType].length - 1 < rC.componentIndex ||
@@ -212,7 +219,15 @@ export class System {
             // remove in order
             for (let dO of deleteOrder) {
                 // add removed components to diff
-                this.componentDiffs.removedComponents.push(new ComponentAndIndex(this.components[dO.componentType][dO.componentIndex], dO.componentIndex));
+                let isFound = false;
+                for (let rC of this.componentDiffs.removedComponents) {
+                    if (rC.component.componentUid == dO.componentUid) {
+                        isFound = true;
+                    }
+                }
+                if (!isFound) {
+                    this.componentDiffs.removedComponents.push(new ComponentAndIndex(this.components[dO.componentType][dO.componentIndex], dO.componentIndex));
+                }
                 // actually remove
                 this.components[dO.componentType].splice(dO.componentIndex, 1);
             }
@@ -331,12 +346,10 @@ export class System {
         return collected;
     }
     run() {
-        if (this.commands.length == 0) {
-            return;
-        }
         for (let c of this.commands) {
             c.run(this);
         }
+        this.componentDiffs = new Utils.ComponentDiffs();
         if (this.diffs.addedCommands.length == 0 &&
             this.diffs.addedComponents.length == 0 &&
             this.diffs.changedProperties.length == 0 &&
@@ -348,20 +361,6 @@ export class System {
             w.messagePort.postMessage(new Utils.Message(Utils.Messages.Update, this.diffs));
         }
         this.update(this.diffs);
-        this.componentDiffs = new Utils.ComponentDiffs();
         this.diffs = new Utils.Diffs([], [], [], [], []);
     }
 }
-//        for (let cAI of this.components[Comps.Components.ComputedElement]) {
-//            let computedElement = cAI as Comps.ComputedElement
-//            computedElement.isChanged = false
-//            for (let [pCI, pC] of computedElement.changedProperties.entries()) {
-//                if (pCI == 0) {
-//                    let classesDiff = (pC as Comps.ClassesDiff)
-//                    classesDiff.added = []
-//                    classesDiff.deleted = []
-//                    continue;
-//                }
-//                pC = false
-//            }
-//        }

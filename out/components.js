@@ -82,7 +82,9 @@ export var ElementTypes;
 })(ElementTypes || (ElementTypes = {}));
 export class ComputedElement {
     constructor(newElementType, newEntityUid) {
+        this.isChanged = false;
         this.properties = [["base"], 0, 0, 0, "#000", "?"];
+        this.isChanged = false;
         this.changedProperties = [new ClassesDiff(), false, false, false, false, false];
         this.type = Components.ComputedElement;
         this.entityUid = newEntityUid;

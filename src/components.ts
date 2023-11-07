@@ -112,6 +112,7 @@ export enum ElementTypes {
 
 export class ComputedElement implements ECS.Component {
     properties: [string[], number, number, number, string, string]
+    isChanged = false
     changedProperties: [ClassesDiff, boolean, boolean, boolean, boolean, boolean]
     elementType: ElementTypes
 
@@ -121,6 +122,7 @@ export class ComputedElement implements ECS.Component {
 
     constructor(newElementType: ElementTypes, newEntityUid: number) {
         this.properties = [["base"], 0, 0, 0, "#000", "?"]
+        this.isChanged = false
         this.changedProperties = [new ClassesDiff(), false, false, false, false, false]
         this.type = Components.ComputedElement
         this.entityUid = newEntityUid

@@ -216,7 +216,6 @@ class DocumentObject {
 
 function onWorkerMessage(data: any) {
 
-
     let msg = (data.data as Utils.Message)
     let newData = msg.data as Utils.GraphicDiff
 

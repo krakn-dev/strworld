@@ -1,5 +1,4 @@
 import * as Utils from "./utils.js";
-import * as Comps from "./components.js";
 import * as Cmds from "./commands.js";
 let onWorkerError = (e) => {
     console.log("ERROR!");
@@ -77,9 +76,15 @@ function initializeWorkers() {
 }
 initializeWorkers();
 let documentObjects = [];
+var Transforms;
+(function (Transforms) {
+    Transforms[Transforms["TranslateX"] = 0] = "TranslateX";
+    Transforms[Transforms["TranslateY"] = 1] = "TranslateY";
+})(Transforms || (Transforms = {}));
 class DocumentObject {
     constructor(newComponentUid) {
-        this.currentTransform = new Utils.Vector2(0, 0);
+        this.transformOrder = [Transforms.TranslateX, Transforms.TranslateY];
+        this.transform = [null, null];
         this.componentUid = newComponentUid;
         let worldView = document.getElementById("world-view");
         worldView.insertAdjacentHTML("beforeend", `<div id="${newComponentUid}"></div>`);
@@ -105,22 +110,31 @@ class DocumentObject {
     setColor(newColor) {
         this.stateElement.style.color = newColor;
     }
-    //    setLeft(newLeft: number) {
-    //    }
-    setTransform(newLeft, newTop) {
-        if (newLeft && newTop) {
-            this.currentTransform.y = newTop;
-            this.currentTransform.x = newLeft;
-            this.stateElement.style.transform = `translateY(${newTop}px) translateX(${newLeft}px)`;
+    setTranslateX(newXTranslation) {
+        this.transform[Transforms.TranslateX] = newXTranslation;
+        this.setTransform();
+    }
+    setTranslateY(newYTranslation) {
+        this.transform[Transforms.TranslateY] = newYTranslation;
+        this.setTransform();
+    }
+    setTransform() {
+        let result = [];
+        for (let tO of this.transformOrder) {
+            switch (tO) {
+                case Transforms.TranslateX:
+                    if (this.transform[Transforms.TranslateX] == null)
+                        continue;
+                    result.push(`translateX(${this.transform[Transforms.TranslateX]}px)`);
+                    break;
+                case Transforms.TranslateY:
+                    if (this.transform[Transforms.TranslateY] == null)
+                        continue;
+                    result.push(`translateY(${this.transform[Transforms.TranslateY]}px)`);
+                    break;
+            }
         }
-        if (newLeft && !newTop) {
-            this.currentTransform.x = newLeft;
-            this.stateElement.style.transform = `translateY(${this.currentTransform.y}px) translateX(${newLeft}px)`;
-        }
-        if (!newLeft && newTop) {
-            this.currentTransform.y = newTop;
-            this.stateElement.style.transform = `translateY(${newTop}px) translateX(${this.currentTransform.x}px)`;
-        }
+        this.stateElement.style.transform = result.join(" ");
     }
     setZIndex(newZIndex) {
         this.stateElement.style.zIndex = newZIndex.toString();
@@ -137,52 +151,37 @@ function onWorkerMessage(data) {
     let newData = msg.data;
     switch (msg.message) {
         case Utils.Messages.RenderIt:
-            let isFound = false;
             for (let cAI of newData.changedComputedElements) {
                 let cCE = cAI.component;
                 for (let dO of documentObjects) {
-                    if (cCE.componentUid == dO.componentUid) {
-                        for (let [pCI, pC] of cCE.changedProperties.entries()) {
-                            if (!pC)
-                                continue;
-                            switch (pCI) {
-                                case Comps.Properties.Classes:
-                                    let classesDiff = pC;
-                                    dO.addClasses(classesDiff.added);
-                                    dO.removeClasses(classesDiff.deleted);
-                                    break;
-                                case Comps.Properties.Color:
-                                    dO.setColor(cCE.properties[pCI]);
-                                    break;
-                                case Comps.Properties.DisplayElement:
-                                    dO.setDisplayElement(cCE.properties[pCI]);
-                                    break;
-                                case Comps.Properties.Left:
-                                case Comps.Properties.Top:
-                                    dO.setTransform(cCE.changedProperties[Comps.Properties.Left] ?
-                                        cCE.properties[Comps.Properties.Left] : null, cCE.changedProperties[Comps.Properties.Top] ?
-                                        cCE.properties[Comps.Properties.Top] : null);
-                                    break;
-                                case Comps.Properties.ZIndex:
-                                    dO.setZIndex(cCE.properties[pCI]);
-                                    break;
-                            }
-                        }
-                        //                       isFound = true
-                        break;
-                    }
-                    //                    if (isFound) break;
-                    //                    isFound = false
+                    if (cCE.componentUid != dO.componentUid)
+                        continue;
+                    if (cCE.isColorChanged)
+                        dO.setColor(cCE.color);
+                    if (cCE.isDisplayElementChanged)
+                        dO.setDisplayElement(cCE.displayElement);
+                    if (cCE.isTranslateXChanged)
+                        dO.setTranslateX(cCE.translateX);
+                    if (cCE.isTranslateYChanged)
+                        dO.setTranslateY(cCE.translateY);
+                    if (cCE.isZIndexChanged)
+                        dO.setZIndex(cCE.zIndex);
+                    if (cCE.classesDiff.added.length != 0)
+                        dO.addClasses(cCE.classesDiff.added);
+                    if (cCE.classesDiff.deleted.length != 0)
+                        dO.removeClasses(cCE.classesDiff.deleted);
+                    break;
                 }
             }
             for (let cAI of newData.addedComputedElements) {
                 let nCE = cAI.component;
                 let documentObject = new DocumentObject(nCE.componentUid);
-                documentObject.addClasses(nCE.properties[Comps.Properties.Classes]);
-                documentObject.setColor(nCE.properties[Comps.Properties.Color]);
-                documentObject.setDisplayElement(nCE.properties[Comps.Properties.DisplayElement]);
-                documentObject.setTransform(nCE.properties[Comps.Properties.Left], nCE.properties[Comps.Properties.Top]);
-                documentObject.setZIndex(nCE.properties[Comps.Properties.ZIndex]);
+                documentObject.addClasses(nCE.classes);
+                documentObject.setColor(nCE.color);
+                documentObject.setDisplayElement(nCE.displayElement);
+                documentObject.setTranslateX(nCE.translateX);
+                documentObject.setTranslateY(nCE.translateY);
+                documentObject.setZIndex(nCE.zIndex);
                 documentObjects.push(documentObject);
             }
             for (let cAI of newData.removedComputedElements) {

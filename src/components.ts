@@ -11,6 +11,7 @@ export enum Components {
     ComputedElement,
     EntityType,
     Animation,
+    Timer,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -33,26 +34,29 @@ export class EntityState implements ECS.Component {
     entityUid: number
     componentUid: number
     type: Components
-    state: EntityStates
+    states: Map<EntityStates, null>
 
-    constructor(newState: EntityStates, newEntityUid: number) {
+    constructor(newState: Map<EntityStates, null>, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.type = Components.EntityState
-        this.state = newState
+        this.states = newState
     }
 }
 export class Position implements ECS.Component {
     entityUid: number
     componentUid: number
     type: Components
-    position: Utils.Vector2
+    x: number
+    y: number
 
-    constructor(newPosition: Utils.Vector2, newEntityUid: number) {
+    constructor(newX: number, newY: number, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.type = Components.Position
-        this.position = newPosition
+
+        this.x = newX
+        this.y = newY
     }
 }
 
@@ -86,13 +90,33 @@ export class Animation implements ECS.Component {
     }
 }
 
-export enum Properties {
-    Classes = 0,
-    Left,
-    Top,
-    ZIndex,
-    Color,
-    DisplayElement,
+export enum TimerTypes {
+    Animation
+}
+
+export class Timer implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    timeLeft: number
+    originalTime: number
+    timerType: TimerTypes
+
+    isFinished: boolean
+    isRestart: boolean
+
+    constructor(newTimeLeft: number, newTimerType: number, newEntityUid: number) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.Timer
+
+        this.isFinished = false
+        this.isRestart = false
+
+        this.timeLeft = newTimeLeft
+        this.originalTime = newTimeLeft
+        this.timerType = newTimerType
+    }
 }
 
 export class ClassesDiff {
@@ -111,19 +135,45 @@ export enum ElementTypes {
 }
 
 export class ComputedElement implements ECS.Component {
-    properties: [string[], number, number, number, string, string]
-    isChanged = false
-    changedProperties: [ClassesDiff, boolean, boolean, boolean, boolean, boolean]
     elementType: ElementTypes
+    isChanged = false
 
-    entityUid: number
+    classes: string[]
+    translateX: number
+    translateY: number
+    zIndex: number
+    color: string
+    displayElement: string
+
+    classesDiff: ClassesDiff
+    isTranslateXChanged: boolean
+    isTranslateYChanged: boolean
+    isZIndexChanged: boolean
+    isColorChanged: boolean
+    isDisplayElementChanged: boolean
+
     componentUid: number
+    entityUid: number
     type: Components
 
     constructor(newElementType: ElementTypes, newEntityUid: number) {
-        this.properties = [["base"], 0, 0, 0, "#000", "?"]
         this.isChanged = false
-        this.changedProperties = [new ClassesDiff(), false, false, false, false, false]
+
+        this.classes = ["base"]
+        this.translateX = 0
+        this.translateY = 0
+        this.zIndex = 0
+        this.color = "#000"
+        this.displayElement = "?"
+
+        this.classesDiff = new ClassesDiff()
+        this.isTranslateXChanged = false
+        this.isTranslateYChanged = false
+        this.isZIndexChanged = false
+        this.isColorChanged = false
+        this.isDisplayElementChanged = false
+
+
         this.type = Components.ComputedElement
         this.entityUid = newEntityUid
         this.componentUid = Utils.newUid()

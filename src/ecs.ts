@@ -43,11 +43,25 @@ export interface Command {
     run(system: System): void
 }
 
+export class Delta {
+    command: Cmds.Commands
+    time: number
+
+    constructor(newTime: number, newCommand: Cmds.Commands) {
+        this.time = newTime
+        this.command = newCommand
+    }
+}
+
 export class System {
     private commands: Command[]
     private components: Component[][]
     private state: Map<string, [Cmds.Commands, any]>
     private diffs: Utils.Diffs
+    private deltas: Delta[]
+    private firstTimes: Cmds.Commands[]
+    private currentExecutingCommand: Cmds.Commands | null;
+
     workerId: number
     workers: Utils.WorkerInfo[]
 
@@ -56,6 +70,9 @@ export class System {
     componentDiffs: Utils.ComponentDiffs
 
     constructor(newWorkerId: number, newWorkers: Utils.WorkerInfo[]) {
+        this.currentExecutingCommand = null
+        this.firstTimes = []
+        this.deltas = []
         this.devBox = new Utils.DevBox(false, false, false, false)
         this.workerId = newWorkerId
         this.workers = newWorkers
@@ -71,13 +88,36 @@ export class System {
         this.input = new Utils.Input(new Utils.Vector2(0, 0))
     }
 
+    isFirstTime(): boolean {
+        for (let fT of this.firstTimes) {
+            if (fT == this.currentExecutingCommand!) {
+                return false
+            }
+        }
+        this.firstTimes.push(this.currentExecutingCommand!)
+        return true
+    }
+    delta(): number | null {
+        for (let d of this.deltas) {
+            if (d.command == this.currentExecutingCommand!) {
+                let oldTime = d.time
+                d.time = performance.now()
 
-    setState(command: Cmds.Commands, key: string, value: any) {
-        this.state.set(key, [command, value])
+                return performance.now() - oldTime
+            }
+        }
+
+        let delta = new Delta(performance.now(), this.currentExecutingCommand!)
+        this.deltas.push(delta)
+        return null
     }
 
-    getState(key: string): any {
-        let value = this.state.get(key)
+    setState(key: string, value: any) {
+        this.state.set(key + this.currentExecutingCommand!, [this.currentExecutingCommand!, value])
+    }
+
+    getState(key: string): any | null {
+        let value = this.state.get(key + this.currentExecutingCommand!)
         if (value == undefined)
             return null
         else
@@ -156,10 +196,46 @@ export class System {
             workerWithLessCommands[0] = this.workerId
             workerWithLessCommands[1] = this.commands.length
         }
-        this.diffs!.addedCommands.push(
+        this.diffs.addedCommands.push(
             new Utils.CommandChange(
                 workerWithLessCommands[0],
                 command)
+        )
+    }
+
+    addElementToMapProperty<T, K extends keyof T>(component: ComponentAndIndex, mapProperty: K, newEntry: Utils.MapEntry,) {
+        if (component == undefined) {
+            console.log("no component at such index")
+            return
+        }
+        this.diffs.changedProperties.push(
+            new Utils.MapPropertyChange(
+                component.component.type,
+                component.index,
+                mapProperty as string,
+                component.component.componentUid,
+                Utils.MapPropertyChangeType.Add,
+                newEntry,
+            )
+        )
+    }
+
+    removeElementFromMapProperty<T, K extends keyof T>(component: ComponentAndIndex, mapProperty: K, key: any) {
+        if (component == undefined) {
+            console.log("no component at such index")
+            return
+        }
+
+        this.diffs.changedProperties.push(
+            new Utils.MapPropertyChange(
+                component.component.type,
+                component.index,
+                mapProperty as string,
+                component.component.componentUid,
+                Utils.MapPropertyChangeType.Remove,
+                null,
+                key
+            )
         )
     }
 
@@ -210,7 +286,19 @@ export class System {
                     this.commands.splice(wCI, 1)
 
                     for (const [k, v] of this.state.entries()) {
-                        if (v[0] == rWC.commandType) this.state.delete(k)
+                        if (v[0] == wC.type) this.state.delete(k)
+                    }
+                    for (let [fTI, fT] of this.firstTimes.entries()) {
+                        if (fT == wC.type) {
+                            this.firstTimes.splice(fTI, 1)
+                            break;
+                        }
+                    }
+                    for (let [dI, d] of this.deltas.entries()) {
+                        if (d.command == wC.type) {
+                            this.deltas.splice(dI, 1)
+                            break;
+                        }
                     }
                 }
             }
@@ -240,7 +328,21 @@ export class System {
                     console.log("$ component was found")
                 }
             }
-            (this.components[pC.componentType][pC.componentIndex] as Utils.IIndexable)[pC.property] = pC.value
+
+            // change component property
+            if ("value" in pC) {
+                (this.components[pC.componentType][pC.componentIndex] as Utils.IIndexable)[pC.property] = pC.value
+            } else {
+                if (pC.addedMapEntry != null)
+                    ((this.components[pC.componentType][pC.componentIndex] as
+                        Utils.IIndexable)[pC.property] as
+                        Map<any, any>)
+                        .set(pC.addedMapEntry.key, pC.addedMapEntry.value)
+                else
+                    ((this.components[pC.componentType][pC.componentIndex] as
+                        Utils.IIndexable)[pC.property] as
+                        Map<any, any>).delete(pC.removedMapKey)
+            }
 
             // add changed component to component diffs
             let isFound = false
@@ -457,8 +559,11 @@ export class System {
     run() {
 
         for (let c of this.commands) {
+            this.currentExecutingCommand = c.type
             c.run(this)
         }
+        this.currentExecutingCommand = null
+
         this.componentDiffs = new Utils.ComponentDiffs()
 
         if (this.diffs.addedCommands.length == 0 &&

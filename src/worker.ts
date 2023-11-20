@@ -37,7 +37,7 @@ onmessage = (data) => {
             for (let w of workers) {
                 w.messagePort.onmessage = onWorkerMessage
             }
-            setInterval(system.run.bind(system), 4)
+            setInterval(system.run.bind(system), 5)
 
         } break;
 

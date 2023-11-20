@@ -31,6 +31,28 @@ export class DevBox {
         this.isEnableFreeCamera = newIsEnableFreeCamera;
     }
 }
+export var MapPropertyChangeType;
+(function (MapPropertyChangeType) {
+    MapPropertyChangeType[MapPropertyChangeType["Add"] = 0] = "Add";
+    MapPropertyChangeType[MapPropertyChangeType["Remove"] = 1] = "Remove";
+})(MapPropertyChangeType || (MapPropertyChangeType = {}));
+export class MapEntry {
+    constructor(newKey, newValue) {
+        this.key = newKey;
+        this.value = newValue;
+    }
+}
+export class MapPropertyChange {
+    constructor(newComponentType, newIndex, newProperty, newComponentUid, newType, newAddedMapEntry = null, newRemovedMapEntry = null) {
+        this.type = newType;
+        this.componentIndex = newIndex;
+        this.componentType = newComponentType;
+        this.property = newProperty;
+        this.addedMapEntry = newAddedMapEntry;
+        this.removedMapKey = newRemovedMapEntry;
+        this.componentUid = newComponentUid;
+    }
+}
 export class PropertyChange {
     constructor(newComponentType, newIndex, newProperty, newValue, newComponentUid) {
         this.componentIndex = newIndex;

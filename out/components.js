@@ -9,6 +9,7 @@ export var Components;
     Components[Components["ComputedElement"] = 5] = "ComputedElement";
     Components[Components["EntityType"] = 6] = "EntityType";
     Components[Components["Animation"] = 7] = "Animation";
+    Components[Components["Timer"] = 8] = "Timer";
 })(Components || (Components = {}));
 export const NUMBER_OF_COMPONENTS = (() => {
     let n = 0;
@@ -32,15 +33,16 @@ export class EntityState {
         this.componentUid = Utils.newUid();
         this.entityUid = newEntityUid;
         this.type = Components.EntityState;
-        this.state = newState;
+        this.states = newState;
     }
 }
 export class Position {
-    constructor(newPosition, newEntityUid) {
+    constructor(newX, newY, newEntityUid) {
         this.componentUid = Utils.newUid();
         this.entityUid = newEntityUid;
         this.type = Components.Position;
-        this.position = newPosition;
+        this.x = newX;
+        this.y = newY;
     }
 }
 export class Health {
@@ -60,15 +62,22 @@ export class Animation {
         this.animations = newAnimations;
     }
 }
-export var Properties;
-(function (Properties) {
-    Properties[Properties["Classes"] = 0] = "Classes";
-    Properties[Properties["Left"] = 1] = "Left";
-    Properties[Properties["Top"] = 2] = "Top";
-    Properties[Properties["ZIndex"] = 3] = "ZIndex";
-    Properties[Properties["Color"] = 4] = "Color";
-    Properties[Properties["DisplayElement"] = 5] = "DisplayElement";
-})(Properties || (Properties = {}));
+export var TimerTypes;
+(function (TimerTypes) {
+    TimerTypes[TimerTypes["Animation"] = 0] = "Animation";
+})(TimerTypes || (TimerTypes = {}));
+export class Timer {
+    constructor(newTimeLeft, newTimerType, newEntityUid) {
+        this.componentUid = Utils.newUid();
+        this.entityUid = newEntityUid;
+        this.type = Components.Timer;
+        this.isFinished = false;
+        this.isRestart = false;
+        this.timeLeft = newTimeLeft;
+        this.originalTime = newTimeLeft;
+        this.timerType = newTimerType;
+    }
+}
 export class ClassesDiff {
     constructor() {
         this.deleted = [];
@@ -83,9 +92,19 @@ export var ElementTypes;
 export class ComputedElement {
     constructor(newElementType, newEntityUid) {
         this.isChanged = false;
-        this.properties = [["base"], 0, 0, 0, "#000", "?"];
         this.isChanged = false;
-        this.changedProperties = [new ClassesDiff(), false, false, false, false, false];
+        this.classes = ["base"];
+        this.translateX = 0;
+        this.translateY = 0;
+        this.zIndex = 0;
+        this.color = "#000";
+        this.displayElement = "?";
+        this.classesDiff = new ClassesDiff();
+        this.isTranslateXChanged = false;
+        this.isTranslateYChanged = false;
+        this.isZIndexChanged = false;
+        this.isColorChanged = false;
+        this.isDisplayElementChanged = false;
         this.type = Components.ComputedElement;
         this.entityUid = newEntityUid;
         this.componentUid = Utils.newUid();

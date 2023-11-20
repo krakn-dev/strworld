@@ -150,14 +150,23 @@ initializeWorkers()
 
 let documentObjects: DocumentObject[] = []
 
+enum Transforms {
+    TranslateX,
+    TranslateY,
+}
+
 class DocumentObject {
     private stateElement: HTMLElement
-    private currentTransform: Utils.Vector2
+    private transform: [number | null, number | null]
+    private transformOrder: Transforms[]
+
     componentUid: number
 
 
     constructor(newComponentUid: number) {
-        this.currentTransform = new Utils.Vector2(0, 0)
+
+        this.transformOrder = [Transforms.TranslateX, Transforms.TranslateY]
+        this.transform = [null, null]
         this.componentUid = newComponentUid;
 
         let worldView = document.getElementById("world-view")
@@ -186,23 +195,33 @@ class DocumentObject {
     setColor(newColor: string) {
         this.stateElement.style.color = newColor
     }
-    //    setLeft(newLeft: number) {
-    //    }
-    setTransform(newLeft: number | null, newTop: number | null) {
-        if (newLeft && newTop) {
-            this.currentTransform.y = newTop
-            this.currentTransform.x = newLeft
-            this.stateElement.style.transform = `translateY(${newTop}px) translateX(${newLeft}px)`
-        }
-        if (newLeft && !newTop) {
-            this.currentTransform.x = newLeft
-            this.stateElement.style.transform = `translateY(${this.currentTransform.y}px) translateX(${newLeft}px)`
-        }
-        if (!newLeft && newTop) {
-            this.currentTransform.y = newTop
-            this.stateElement.style.transform = `translateY(${newTop}px) translateX(${this.currentTransform.x}px)`
-        }
+
+    setTranslateX(newXTranslation: number) {
+        this.transform[Transforms.TranslateX] = newXTranslation
+        this.setTransform()
     }
+    setTranslateY(newYTranslation: number) {
+        this.transform[Transforms.TranslateY] = newYTranslation
+        this.setTransform()
+    }
+
+    private setTransform() {
+        let result: string[] = []
+        for (let tO of this.transformOrder) {
+            switch (tO) {
+                case Transforms.TranslateX:
+                    if (this.transform[Transforms.TranslateX] == null) continue;
+                    result.push(`translateX(${this.transform[Transforms.TranslateX]}px)`)
+                    break;
+                case Transforms.TranslateY:
+                    if (this.transform[Transforms.TranslateY] == null) continue;
+                    result.push(`translateY(${this.transform[Transforms.TranslateY]}px)`)
+                    break;
+            }
+        }
+        this.stateElement.style.transform = result.join(" ")
+    }
+
     setZIndex(newZIndex: number) {
         this.stateElement.style.zIndex = newZIndex.toString()
     }
@@ -221,59 +240,45 @@ function onWorkerMessage(data: any) {
 
     switch (msg.message) {
         case Utils.Messages.RenderIt:
-            let isFound = false
             for (let cAI of newData.changedComputedElements) {
                 let cCE = cAI.component as Comps.ComputedElement
                 for (let dO of documentObjects) {
-                    if (cCE.componentUid == dO.componentUid) {
-                        for (let [pCI, pC] of cCE.changedProperties.entries()) {
-                            if (!pC) continue
+                    if (cCE.componentUid != dO.componentUid) continue
 
-                            switch (pCI) {
-                                case Comps.Properties.Classes:
-                                    let classesDiff = pC as Comps.ClassesDiff
-                                    dO.addClasses(classesDiff.added)
-                                    dO.removeClasses(classesDiff.deleted)
-                                    break;
+                    if (cCE.isColorChanged)
+                        dO.setColor(cCE.color)
 
-                                case Comps.Properties.Color:
-                                    dO.setColor(cCE.properties[pCI])
-                                    break;
+                    if (cCE.isDisplayElementChanged)
+                        dO.setDisplayElement(cCE.displayElement)
 
-                                case Comps.Properties.DisplayElement:
-                                    dO.setDisplayElement(cCE.properties[pCI])
-                                    break;
+                    if (cCE.isTranslateXChanged)
+                        dO.setTranslateX(cCE.translateX)
 
-                                case Comps.Properties.Left: case Comps.Properties.Top:
-                                    dO.setTransform(
-                                        cCE.changedProperties[Comps.Properties.Left] ?
-                                            cCE.properties[Comps.Properties.Left] as number : null,
-                                        cCE.changedProperties[Comps.Properties.Top] ?
-                                            cCE.properties[Comps.Properties.Top] as number : null)
-                                    break;
+                    if (cCE.isTranslateYChanged)
+                        dO.setTranslateY(cCE.translateY)
 
-                                case Comps.Properties.ZIndex:
-                                    dO.setZIndex(cCE.properties[pCI] as number)
-                                    break;
-                            }
-                        }
+                    if (cCE.isZIndexChanged)
+                        dO.setZIndex(cCE.zIndex)
 
-                        //                       isFound = true
-                        break;
-                    }
-                    //                    if (isFound) break;
-                    //                    isFound = false
+                    if (cCE.classesDiff.added.length != 0)
+                        dO.addClasses(cCE.classesDiff.added)
+
+                    if (cCE.classesDiff.deleted.length != 0)
+                        dO.removeClasses(cCE.classesDiff.deleted)
+
+                    break;
                 }
             }
 
             for (let cAI of newData.addedComputedElements) {
                 let nCE = cAI.component as Comps.ComputedElement
                 let documentObject = new DocumentObject(nCE.componentUid)
-                documentObject.addClasses(nCE.properties[Comps.Properties.Classes])
-                documentObject.setColor(nCE.properties[Comps.Properties.Color])
-                documentObject.setDisplayElement(nCE.properties[Comps.Properties.DisplayElement])
-                documentObject.setTransform(nCE.properties[Comps.Properties.Left], nCE.properties[Comps.Properties.Top])
-                documentObject.setZIndex(nCE.properties[Comps.Properties.ZIndex])
+                documentObject.addClasses(nCE.classes)
+                documentObject.setColor(nCE.color)
+                documentObject.setDisplayElement(nCE.displayElement)
+                documentObject.setTranslateX(nCE.translateX)
+                documentObject.setTranslateY(nCE.translateY)
+                documentObject.setZIndex(nCE.zIndex)
 
                 documentObjects.push(documentObject)
             }

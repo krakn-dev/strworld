@@ -56,6 +56,51 @@ export class DevBox {
         this.isEnableFreeCamera = newIsEnableFreeCamera
     }
 }
+export enum MapPropertyChangeType {
+    Add,
+    Remove,
+}
+export class MapEntry {
+    key: any
+    value: any
+    constructor(
+        newKey: any,
+        newValue: any
+    ) {
+        this.key = newKey
+        this.value = newValue
+    }
+}
+export class MapPropertyChange {
+    type: MapPropertyChangeType
+    property: string
+    componentUid: number
+
+    // to index
+    componentIndex: number
+    componentType: Comps.Components
+
+    // map changes
+    addedMapEntry: MapEntry | null
+    removedMapKey: any | null
+    constructor(
+        newComponentType: Comps.Components,
+        newIndex: number,
+        newProperty: string,
+        newComponentUid: number,
+        newType: MapPropertyChangeType,
+        newAddedMapEntry: MapEntry | null = null,
+        newRemovedMapEntry: any | null = null,
+    ) {
+        this.type = newType
+        this.componentIndex = newIndex
+        this.componentType = newComponentType
+        this.property = newProperty
+        this.addedMapEntry = newAddedMapEntry
+        this.removedMapKey = newRemovedMapEntry
+        this.componentUid = newComponentUid
+    }
+}
 
 export class PropertyChange {
     componentIndex: number
@@ -117,13 +162,13 @@ export class CommandChange {
 }
 // w# sends to w0
 export class Diffs {
-    changedProperties: PropertyChange[]
+    changedProperties: (PropertyChange | MapPropertyChange)[]
     removedComponents: RemovedComponent[]
     addedComponents: ECS.Component[]
     removedCommands: CommandChange[]
     addedCommands: CommandChange[]
     constructor(
-        newChangedProperties: PropertyChange[],
+        newChangedProperties: (PropertyChange | MapPropertyChange)[],
         newRemovedComponents: RemovedComponent[],
         newAddedComponents: ECS.Component[],
         newRemovedCommands: CommandChange[],

@@ -263,8 +263,8 @@ function onWorkerMessage(data: any) {
                     if (cCE.classesDiff.added.length != 0)
                         dO.addClasses(cCE.classesDiff.added)
 
-                    if (cCE.classesDiff.deleted.length != 0)
-                        dO.removeClasses(cCE.classesDiff.deleted)
+                    if (cCE.classesDiff.removed.length != 0)
+                        dO.removeClasses(cCE.classesDiff.removed)
 
                     break;
                 }

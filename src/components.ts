@@ -120,11 +120,11 @@ export class Timer implements ECS.Component {
 }
 
 export class ClassesDiff {
-    deleted: string[]
+    removed: string[]
     added: string[]
 
     constructor() {
-        this.deleted = []
+        this.removed = []
         this.added = []
     }
 }

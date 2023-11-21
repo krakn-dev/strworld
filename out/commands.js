@@ -18,11 +18,14 @@ export var Commands;
     Commands[Commands["TickTimer"] = 11] = "TickTimer";
     Commands[Commands["UpdateAnimationTimerNumber"] = 12] = "UpdateAnimationTimerNumber";
     Commands[Commands["CreateAnimationTimers"] = 13] = "CreateAnimationTimers";
+    Commands[Commands["MoveCameraWithPlayer"] = 14] = "MoveCameraWithPlayer";
 })(Commands || (Commands = {}));
 export function getInstanceFromEnum(commandEnum) {
     switch (commandEnum) {
         case Commands.TheFirst:
             return new TheFirst();
+        case Commands.MoveCameraWithPlayer:
+            return new MoveCameraWithPlayer();
         case Commands.UpdateAnimationTimerNumber:
             return new UpdateAnimationTimerNumber();
         case Commands.TickTimer:
@@ -79,14 +82,14 @@ export class CreatePlayer {
         this.type = Commands.CreatePlayer;
     }
     run(system) {
-        for (let x = 0; x < 2; x++) {
-            for (let y = 0; y < 2; y++) {
+        for (let x = 0; x < 1; x++) {
+            for (let y = 0; y < 1; y++) {
                 let player = Utils.newUid();
                 let position = new Comps.Position(x * 70, y * 70, player);
                 let entityState = new Comps.EntityState(new Map([[Comps.EntityStates.Idle, null]]), player);
                 let computedElement = new Comps.ComputedElement(Comps.ElementTypes.Entity, player);
-                computedElement.translateX = x * 70;
-                computedElement.translateY = y * 70;
+                computedElement.translateX = position.x;
+                computedElement.translateY = position.y;
                 computedElement.zIndex = y;
                 system.addComponent(new Comps.Health(10, player));
                 system.addComponent(new Comps.Animation([new Anims.PlayerIdle(), new Anims.PlayerRunning()], player));
@@ -114,28 +117,27 @@ export class MovePlayer {
         }
         if (system.input.movementDirection.x == 0 &&
             system.input.movementDirection.y == 0) {
-            let foundEntStateAndAnimation = system.find([
+            let foundEntityState = system.find([
                 ECS.Get.All,
                 [
                     Comps.Components.EntityState,
-                    Comps.Components.Animation
                 ],
                 ECS.By.EntityId,
                 foundComponents[0][0].component.entityUid
             ]);
-            if (foundEntStateAndAnimation[0].length == 0) {
+            if (foundEntityState[0].length == 0) {
                 console.log("entityState not found");
                 return;
             }
-            if (foundEntStateAndAnimation[1].length == 0) {
-                console.log("animation not found");
-                return;
-            }
-            let entityState = foundEntStateAndAnimation[0][0].component;
-            let animation = foundEntStateAndAnimation[1][0].component;
+            let entityStateComponent = foundEntityState[0][0].component;
             // cannot change state if
-            if (!entityState.states.has(Comps.EntityStates.Run))
-                return;
+            if (entityStateComponent.states.has(Comps.EntityStates.Run)) {
+                system.removeElementFromMapProperty(foundEntityState[0][0], "states", Comps.EntityStates.Run);
+                if (entityStateComponent.states.has(Comps.EntityStates.Idle))
+                    return;
+                system.addElementToMapProperty(foundEntityState[0][0], "states", new Utils.MapEntry(Comps.EntityStates.Idle, null));
+            }
+            return;
         }
         let fC = foundComponents[0][0];
         let positionComponent = fC.component;
@@ -147,12 +149,45 @@ export class MovePlayer {
             console.log("entityState not found");
             return;
         }
-        system.addElementToMapProperty(foundEntityState[0][0], "states", new Utils.MapEntry(Comps.EntityStates.Run, null));
+        let entityStateComponent = foundEntityState[0][0].component;
+        if (!entityStateComponent.states.has(Comps.EntityStates.Run)) {
+            system.addElementToMapProperty(foundEntityState[0][0], "states", new Utils.MapEntry(Comps.EntityStates.Run, null));
+        }
+        if (entityStateComponent.states.has(Comps.EntityStates.Idle)) {
+            system.removeElementFromMapProperty(foundEntityState[0][0], "states", Comps.EntityStates.Idle);
+        }
         if (newPosition.x != positionComponent.x) {
             system.setProperty(fC, "x", newPosition.x);
         }
         if (newPosition.y != positionComponent.y) {
             system.setProperty(fC, "y", newPosition.y);
+        }
+    }
+}
+// Camera
+export class MoveCameraWithPlayer {
+    constructor() {
+        this.type = Commands.MoveCameraWithPlayer;
+    }
+    run(system) {
+        let foundComponents = system.find([ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null]);
+        // 
+        for (let cC of system.componentDiffs.changedComponents) {
+            if (cC.component.type != Comps.Components.Position)
+                continue;
+            let positionComponent = cC.component;
+            for (let fC of foundComponents[0]) {
+                let computedElementComponent = fC.component;
+                if (computedElementComponent.entityUid ==
+                    positionComponent.entityUid) {
+                    system.setProperty(fC, "translateY", positionComponent.y - 10);
+                    system.setProperty(fC, "isTranslateYChanged", true);
+                    system.setProperty(fC, "translateX", positionComponent.x - 10);
+                    system.setProperty(fC, "isTranslateXChanged", true);
+                    system.setProperty(fC, "isChanged", true);
+                    break;
+                }
+            }
         }
     }
 }
@@ -279,18 +314,25 @@ export class SendComputedElementsToRender {
         for (let cC of system.componentDiffs.changedComponents) {
             if (cC.component.type != Comps.Components.ComputedElement)
                 continue;
-            let computedElement = cC.component;
-            if (!computedElement.isChanged)
+            let computedElementComponent = cC.component;
+            if (!computedElementComponent.isChanged)
                 continue;
             graphicDiff.changedComputedElements.push(cC);
             // set properties to not changed
             system.setProperty(cC, "isChanged", false);
-            system.setProperty(cC, "classesDiff", new Comps.ClassesDiff());
-            system.setProperty(cC, "isTranslateXChanged", false);
-            system.setProperty(cC, "isTranslateYChanged", false);
-            system.setProperty(cC, "isZIndexChanged", false);
-            system.setProperty(cC, "isColorChanged", false);
-            system.setProperty(cC, "isDisplayElementChanged", false);
+            if (computedElementComponent.classesDiff.added.length != 0 &&
+                computedElementComponent.classesDiff.removed.length != 0)
+                system.setProperty(cC, "classesDiff", new Comps.ClassesDiff());
+            if (computedElementComponent.isTranslateXChanged)
+                system.setProperty(cC, "isTranslateXChanged", false);
+            if (computedElementComponent.isTranslateYChanged)
+                system.setProperty(cC, "isTranslateYChanged", false);
+            if (computedElementComponent.isZIndexChanged)
+                system.setProperty(cC, "isZIndexChanged", false);
+            if (computedElementComponent.isColorChanged)
+                system.setProperty(cC, "isColorChanged", false);
+            if (computedElementComponent.isDisplayElementChanged)
+                system.setProperty(cC, "isDisplayElementChanged", false);
         }
         // check for new
         for (let aC of system.componentDiffs.addedComponents) {
@@ -350,15 +392,15 @@ export class SetEntityElementsPositionAndDisplayElement {
         for (let cC of system.componentDiffs.changedComponents) {
             if (cC.component.type != Comps.Components.Animation)
                 continue;
-            let animation = cC.component;
+            let animationComponent = cC.component;
             for (let fC of foundComponents[0]) {
-                let computedElement = fC.component;
-                if (computedElement.entityUid ==
-                    animation.entityUid &&
-                    computedElement.elementType ==
+                let computedElementComponent = fC.component;
+                if (computedElementComponent.entityUid ==
+                    animationComponent.entityUid &&
+                    computedElementComponent.elementType ==
                         Comps.ElementTypes.Entity) {
                     system.setProperty(fC, "isChanged", true);
-                    system.setProperty(fC, "displayElement", animation.currentDisplayElement);
+                    system.setProperty(fC, "displayElement", animationComponent.currentDisplayElement);
                     system.setProperty(fC, "isDisplayElementChanged", true);
                     break;
                 }
@@ -405,9 +447,9 @@ export class CreateAnimationTimers {
             }
             if (currentStateAnimation == null)
                 continue;
-            let timer = new Comps.Timer(currentStateAnimation.frameTimes[currentStateAnimation.frameTimes.length - 1], Comps.TimerTypes.Animation, entityState.entityUid);
+            let timer = new Comps.Timer(currentStateAnimation.frames[currentStateAnimation.frames.length - 1].frameTime, Comps.TimerTypes.Animation, entityState.entityUid);
             system.addComponent(timer);
-            system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[0]);
+            system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[0].frameDisplay);
         }
         system.removeCommand(this.type);
     }
@@ -418,34 +460,45 @@ export class UpdateAnimationTimerNumber {
     }
     run(system) {
         // on new graphic entity
-        for (let cC of system.componentDiffs.addedComponents) {
-            if (cC.component.type != Comps.Components.Animation)
+        for (let aC of system.componentDiffs.addedComponents) {
+            // get added animation components
+            if (aC.component.type != Comps.Components.Animation)
                 continue;
+            // get entityState Components
             let foundComponents = system.find([
                 ECS.Get.All,
                 [
                     Comps.Components.EntityState,
                 ],
                 ECS.By.EntityId,
-                cC.component.entityUid
+                aC.component.entityUid
             ]);
             if (foundComponents[0].length == 0) {
                 console.log("entityState component missing");
                 continue;
             }
-            let entityState = foundComponents[0][0].component;
-            let animationChangedComponent = cC.component;
+            let entityStateComponent = foundComponents[0][0].component;
+            let animationAddedComponent = aC.component;
             let currentStateAnimation = null;
-            for (let a of animationChangedComponent.animations) {
-                if (entityState.states.has(a.executeOn)) {
-                    currentStateAnimation = a;
+            let isFirstTime = true;
+            for (let a of animationAddedComponent.animations) {
+                if (entityStateComponent.states.has(a.executeOn)) {
+                    if (isFirstTime) {
+                        currentStateAnimation = a;
+                        isFirstTime = false;
+                        continue;
+                    }
+                    if (a.priority > currentStateAnimation.priority) {
+                        currentStateAnimation = a;
+                    }
                 }
             }
             if (currentStateAnimation == null)
                 continue;
-            let timer = new Comps.Timer(currentStateAnimation.frameTimes[currentStateAnimation.frameTimes.length - 1], Comps.TimerTypes.Animation, entityState.entityUid);
+            let timer = new Comps.Timer(currentStateAnimation.frames[currentStateAnimation.frames.length - 1].frameTime, Comps.TimerTypes.Animation, entityStateComponent.entityUid);
             system.addComponent(timer);
-            system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[0]);
+            system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[0].frameDisplay);
+            console.log("added timer");
         }
         // on graphic entity removed
         for (let cC of system.componentDiffs.removedComponents) {
@@ -466,6 +519,7 @@ export class UpdateAnimationTimerNumber {
             let timer = foundComponents[0][0].component;
             if (timer.timerType == Comps.TimerTypes.Animation) {
                 system.removeComponent(foundComponents[0][0]);
+                console.log("removed timer");
             }
         }
     }
@@ -475,7 +529,8 @@ export class PlayAnimations {
         this.type = Commands.PlayAnimations;
     }
     run(system) {
-        // on change entity state
+        let updatedTimersUid = [];
+        // change animation for entity state change
         for (let cC of system.componentDiffs.changedComponents) {
             if (cC.component.type != Comps.Components.EntityState)
                 continue;
@@ -497,32 +552,63 @@ export class PlayAnimations {
             }
             if (timer == null)
                 continue;
-            let animation = foundComponents[0][0].component;
-            let entityState = cC.component;
+            let animationComponent = foundComponents[0][0].component;
+            let entityStateComponent = cC.component;
             let currentStateAnimation = null;
-            for (let a of animation.animations) {
-                if (entityState.states.has(a.executeOn)) {
-                    currentStateAnimation = a;
+            let isFirstTime = true;
+            for (let a of animationComponent.animations) {
+                if (entityStateComponent.states.has(a.executeOn)) {
+                    if (isFirstTime) {
+                        currentStateAnimation = a;
+                        isFirstTime = false;
+                        continue;
+                    }
+                    if (a.priority > currentStateAnimation.priority) {
+                        currentStateAnimation = a;
+                    }
                 }
             }
             if (currentStateAnimation == null)
                 continue;
-            system.setProperty(timer, "originalTime", currentStateAnimation.frameTimes[currentStateAnimation.frameTimes.length - 1]);
+            updatedTimersUid.push(timer.component.componentUid);
+            system.setProperty(timer, "originalTime", currentStateAnimation.frames[currentStateAnimation.frames.length - 1].frameTime);
             system.setProperty(timer, "isRestart", true);
-            system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[0]);
+            //            system.setProperty<Comps.Animation, "currentDisplayElement">(
+            //                foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[0]!)
         }
         // play next frame
-        let foundComponents = system.find([ECS.Get.All, [Comps.Components.Timer], ECS.By.Any, null]);
-        if (foundComponents[0].length == 0)
+        // get animation timers
+        let foundTimers = system.find([ECS.Get.All, [Comps.Components.Timer], ECS.By.Any, null]);
+        if (foundTimers[0].length == 0) {
             console.log("no timers");
-        for (let fC of foundComponents[0]) {
-            let timer = fC.component;
-            if (timer.timerType != Comps.TimerTypes.Animation)
+            return;
+        }
+        for (let fC of foundTimers[0]) {
+            // check if is an updated timer
+            let isFound = false;
+            for (let uT of updatedTimersUid) {
+                if (fC.component.componentUid == uT) {
+                    isFound = true;
+                    break;
+                }
+            }
+            if (isFound)
                 continue;
+            // check that are animation timers
+            let timerComponent = fC.component;
+            if (timerComponent.timerType != Comps.TimerTypes.Animation)
+                continue;
+            // if timer is finised restart it 
+            if (timerComponent.isFinished) {
+                system.setProperty(fC, "isRestart", true);
+                console.log("restart");
+                continue;
+            }
+            // get animations and entity states
             let foundComponents = system.find([ECS.Get.One,
                 [Comps.Components.Animation, Comps.Components.EntityState],
                 ECS.By.EntityId,
-                timer.entityUid]);
+                timerComponent.entityUid]);
             if (foundComponents[0].length == 0) {
                 console.log("animation component missing");
                 break;
@@ -531,40 +617,62 @@ export class PlayAnimations {
                 console.log("entityState component missing");
                 break;
             }
-            let animation = foundComponents[0][0].component;
-            let entityState = foundComponents[1][0].component;
+            let animationComponent = foundComponents[0][0].component;
+            let entityStateComponent = foundComponents[1][0].component;
+            // get playing animation based on EntityState
             let currentStateAnimation = null;
-            for (let a of animation.animations) {
-                if (entityState.states.has(a.executeOn)) {
-                    currentStateAnimation = a;
+            let isFirstTime = true;
+            for (let a of animationComponent.animations) {
+                if (entityStateComponent.states.has(a.executeOn)) {
+                    if (isFirstTime) {
+                        currentStateAnimation = a;
+                        isFirstTime = false;
+                        continue;
+                    }
+                    if (a.priority > currentStateAnimation.priority) {
+                        currentStateAnimation = a;
+                    }
                 }
             }
             if (currentStateAnimation == null)
                 continue;
-            if (timer.isFinished) {
-                system.setProperty(fC, "isRestart", true);
-                system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[0]);
-                continue;
-            }
-            let elapsedTime = timer.originalTime - timer.timeLeft;
-            let currentFrameIndex = null;
-            for (let [fTI, fT] of currentStateAnimation.frameTimes.entries()) {
-                if (fTI == currentStateAnimation.frameTimes.length - 1)
-                    break;
-                if (fT > elapsedTime) {
-                    currentFrameIndex = fTI - 1;
+            // get current animation frame
+            let elapsedTime = timerComponent.originalTime - timerComponent.timeLeft;
+            let currentFrameIndex = 0;
+            for (let [fI, f] of currentStateAnimation.frames.entries()) {
+                if (f.frameTime > elapsedTime && fI != 0) {
+                    currentFrameIndex = fI - 1;
                     break;
                 }
+                if (f.isEndFrame)
+                    currentFrameIndex = fI - 1;
             }
-            if (currentFrameIndex == null || currentFrameIndex == -1) {
-                //                console.log("this is impossible.. or is it?", currentFrameIndex)
-                break;
-            }
-            // if already is in this frame
-            if (currentStateAnimation.frames[currentFrameIndex] ==
-                animation.currentDisplayElement)
+            if (currentStateAnimation.frames[currentFrameIndex].frameDisplay ==
+                animationComponent.currentDisplayElement)
                 continue;
-            system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[currentFrameIndex]);
+            // // if already is in this frame
+            //            if (currentStateAnimation.frames[currentFrameIndex] ==
+            //                animation.currentDisplayElement)
+            //                continue
+            //            console.log(elapsedTime,
+            //                currentFrameIndex
+            //                //                currentStateAnimation
+            //                //                    .frames[currentFrameIndex]!
+            //                //                    .charCodeAt(0)
+            //                //                    .toString()
+            //                //                    .split("")
+            //                //                    .map((e, i) => { if (i > 2) return e })
+            //                //                    .join("")
+            //            )
+            //currentFrameIndex
+            //                currentStateAnimation
+            //                    .frames[currentFrameIndex]!
+            //                    .charCodeAt(0)
+            //                    .toString()
+            //                    .split("")
+            //                    .map((e, i) => { if (i > 2) return e })
+            //                    .join("")
+            system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[currentFrameIndex].frameDisplay);
         }
     }
 }
@@ -581,17 +689,16 @@ export class TickTimer {
         for (let fC of foundComponents[0]) {
             let timer = fC.component;
             if (timer.isRestart) {
-                console.log("restart");
-                system.setProperty(fC, "isFinished", false);
                 system.setProperty(fC, "timeLeft", timer.originalTime);
+                system.setProperty(fC, "isFinished", false);
                 system.setProperty(fC, "isRestart", false);
+                continue;
             }
             if (timer.isFinished)
                 continue;
             let newTimeLeft = timer.timeLeft - delta;
             system.setProperty(fC, "timeLeft", newTimeLeft);
             if (newTimeLeft <= 0) {
-                console.log("finished");
                 system.setProperty(fC, "isFinished", true);
             }
         }

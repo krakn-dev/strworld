@@ -80,7 +80,7 @@ export class Timer {
 }
 export class ClassesDiff {
     constructor() {
-        this.deleted = [];
+        this.removed = [];
         this.added = [];
     }
 }

@@ -83,6 +83,7 @@ export class MapPropertyChange {
     // map changes
     addedMapEntry: MapEntry | null
     removedMapKey: any | null
+    isEmptied: boolean
     constructor(
         newComponentType: Comps.Components,
         newIndex: number,
@@ -91,6 +92,7 @@ export class MapPropertyChange {
         newType: MapPropertyChangeType,
         newAddedMapEntry: MapEntry | null = null,
         newRemovedMapEntry: any | null = null,
+        newIsEmptied: boolean = false
     ) {
         this.type = newType
         this.componentIndex = newIndex
@@ -98,6 +100,7 @@ export class MapPropertyChange {
         this.property = newProperty
         this.addedMapEntry = newAddedMapEntry
         this.removedMapKey = newRemovedMapEntry
+        this.isEmptied = newIsEmptied
         this.componentUid = newComponentUid
     }
 }

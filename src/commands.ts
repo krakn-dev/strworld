@@ -107,19 +107,22 @@ export class CreatePlayer implements ECS.Command {
         for (let x = 0; x < 1; x++) {
             for (let y = 0; y < 1; y++) {
                 let player = Utils.newUid()
-                let position = new Comps.Position(x * 70, y * 70, player)
-                let entityState = new Comps.EntityState(new Map([[Comps.EntityStates.Idle, null]]), player)
-
+                let positionComponent = new Comps.Position(x * 70, y * 70, player)
+                let entityStateComponent = new Comps.EntityState(new Map([[Comps.EntityStates.Idle, null]]), player)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Player, player)
+                let healthComponent = new Comps.Health(10, player)
+                let animationComponent = new Comps.Animation([new Anims.PlayerIdle(), new Anims.PlayerRunning()], player)
                 let computedElement = new Comps.ComputedElement(Comps.ElementTypes.Entity, player)
-                computedElement.translateX = position.x
-                computedElement.translateY = position.y
+                computedElement.translateX = positionComponent.x
+                computedElement.translateY = positionComponent.y
                 computedElement.zIndex = y
 
-                system.addComponent(new Comps.Health(10, player))
-                system.addComponent(new Comps.Animation([new Anims.PlayerIdle(), new Anims.PlayerRunning()], player))
-                system.addComponent(position)
-                system.addComponent(entityState)
+                system.addComponent(healthComponent)
+                system.addComponent(animationComponent)
+                system.addComponent(positionComponent)
+                system.addComponent(entityStateComponent)
                 system.addComponent(computedElement)
+                system.addComponent(entityTypeComponent)
             }
         }
         system.addCommand(Commands.MovePlayer)
@@ -243,36 +246,45 @@ export class MoveCameraWithPlayer implements ECS.Command {
     run(system: ECS.System) {
         let foundComponents = system.find(
             [ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null])
-        // 
+
+        let playerPosition = new Utils.Vector2(0, 0)
         for (let cC of system.componentDiffs.changedComponents) {
             if (cC.component.type != Comps.Components.Position) continue
             let positionComponent = cC.component as Comps.Position
+            let foundComponents = system.find(
+                [ECS.Get.All, [Comps.Components.EntityType], ECS.By.Any, null])
 
-            for (let fC of foundComponents[0]) {
-                let computedElementComponent = fC.component as Comps.ComputedElement
+            let entityTypeComponent = foundComponents[0][0].component as Comps.EntityType
+            if (entityTypeComponent.entityType == Comps.EntityTypes.Player) {
 
-                if (computedElementComponent.entityUid ==
-                    positionComponent.entityUid
-                ) {
-                    system.setProperty<Comps.ComputedElement, "translateY">(
-                        fC, "translateY", positionComponent.y - 10)
-                    system.setProperty<Comps.ComputedElement, "isTranslateYChanged">(
-                        fC, "isTranslateYChanged", true)
-
-                    system.setProperty<Comps.ComputedElement, "translateX">(
-                        fC, "translateX", positionComponent.x - 10)
-                    system.setProperty<Comps.ComputedElement, "isTranslateXChanged">(
-                        fC, "isTranslateXChanged", true)
-
-                    system.setProperty<Comps.ComputedElement, "isChanged">(
-                        fC, "isChanged", true)
-                    break;
-                }
             }
-
-
-
         }
+
+        //        for (let fC of foundComponents[0]) {
+        //            let computedElementComponent = fC.component as Comps.ComputedElement
+        //
+        //            if (computedElementComponent.entityUid ==
+        //                positionComponent.entityUid
+        //            ) {
+        //                system.setProperty<Comps.ComputedElement, "translateY">(
+        //                    fC, "translateY", positionComponent.y - 10)
+        //                system.setProperty<Comps.ComputedElement, "isTranslateYChanged">(
+        //                    fC, "isTranslateYChanged", true)
+        //
+        //                system.setProperty<Comps.ComputedElement, "translateX">(
+        //                    fC, "translateX", positionComponent.x - 10)
+        //                system.setProperty<Comps.ComputedElement, "isTranslateXChanged">(
+        //                    fC, "isTranslateXChanged", true)
+        //
+        //                system.setProperty<Comps.ComputedElement, "isChanged">(
+        //                    fC, "isChanged", true)
+        //                break;
+        //            }
+        //        }
+
+
+
+
     }
 }
 // shadows elements
@@ -456,10 +468,13 @@ export class SendComputedElementsToRender implements ECS.Command {
             system.setProperty<Comps.ComputedElement, "isChanged">(
                 cC, "isChanged", false)
 
-            if (computedElementComponent.classesDiff.added.length != 0 &&
-                computedElementComponent.classesDiff.removed.length != 0)
-                system.setProperty<Comps.ComputedElement, "classesDiff">(
-                    cC, "classesDiff", new Comps.ClassesDiff())
+            if (computedElementComponent.addedClasses.size != 0)
+                system.removeElementFromMapProperty<Comps.ComputedElement, "addedClasses">(
+                    cC, "addedClasses", null, true)
+
+            if (computedElementComponent.removedClasses.size != 0)
+                system.removeElementFromMapProperty<Comps.ComputedElement, "removedClasses">(
+                    cC, "removedClasses", null, true)
 
             if (computedElementComponent.isTranslateXChanged)
                 system.setProperty<Comps.ComputedElement, "isTranslateXChanged">(

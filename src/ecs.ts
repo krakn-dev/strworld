@@ -220,9 +220,24 @@ export class System {
         )
     }
 
-    removeElementFromMapProperty<T, K extends keyof T>(component: ComponentAndIndex, mapProperty: K, key: any) {
+    removeElementFromMapProperty<T, K extends keyof T>(component: ComponentAndIndex, mapProperty: K, key: any, all: boolean = false) {
         if (component == undefined) {
             console.log("no component at such index")
+            return
+        }
+        if (all) {
+            this.diffs.changedProperties.push(
+                new Utils.MapPropertyChange(
+                    component.component.type,
+                    component.index,
+                    mapProperty as string,
+                    component.component.componentUid,
+                    Utils.MapPropertyChangeType.Remove,
+                    null,
+                    null,
+                    true // remove all
+                )
+            )
             return
         }
 
@@ -304,6 +319,33 @@ export class System {
             }
         }
 
+        // order changed properties by priority 
+        // (the backmost will overwrite the foremost)
+        let highestPriorityChangedProperties:
+            (Utils.PropertyChange | Utils.MapPropertyChange)[] = []
+
+        for (let pCI = newData.changedProperties.length - 1; pCI >= 0; pCI--) {
+            let pC = newData.changedProperties[pCI]
+            if (pC.componentType ==
+                Comps.Components.ComputedElement
+            ) {
+                // if is setting values to changed
+                if ("value" in pC &&
+                    pC.value == true
+                ) {
+                    highestPriorityChangedProperties.push(pC)
+                    newData.changedProperties.splice(pCI, 1)
+                    continue;
+                }
+                if ("isEmptied" in pC &&
+                    pC.isEmptied == false
+                ) {
+                    highestPriorityChangedProperties.push(pC)
+                    newData.changedProperties.splice(pCI, 1)
+                }
+            }
+        }
+        newData.changedProperties = [...newData.changedProperties, ...highestPriorityChangedProperties]
         // change properties
         for (let pC of newData.changedProperties) {
 
@@ -338,6 +380,11 @@ export class System {
                         Utils.IIndexable)[pC.property] as
                         Map<any, any>)
                         .set(pC.addedMapEntry.key, pC.addedMapEntry.value)
+                else if (pC.isEmptied) {
+                    ((this.components[pC.componentType][pC.componentIndex] as
+                        Utils.IIndexable)[pC.property] as
+                        Map<any, any>).clear()
+                }
                 else
                     ((this.components[pC.componentType][pC.componentIndex] as
                         Utils.IIndexable)[pC.property] as

@@ -43,13 +43,14 @@ export class MapEntry {
     }
 }
 export class MapPropertyChange {
-    constructor(newComponentType, newIndex, newProperty, newComponentUid, newType, newAddedMapEntry = null, newRemovedMapEntry = null) {
+    constructor(newComponentType, newIndex, newProperty, newComponentUid, newType, newAddedMapEntry = null, newRemovedMapEntry = null, newIsEmptied = false) {
         this.type = newType;
         this.componentIndex = newIndex;
         this.componentType = newComponentType;
         this.property = newProperty;
         this.addedMapEntry = newAddedMapEntry;
         this.removedMapKey = newRemovedMapEntry;
+        this.isEmptied = newIsEmptied;
         this.componentUid = newComponentUid;
     }
 }

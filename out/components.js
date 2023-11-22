@@ -21,13 +21,22 @@ export const NUMBER_OF_COMPONENTS = (() => {
 export var EntityTypes;
 (function (EntityTypes) {
     EntityTypes[EntityTypes["Human"] = 0] = "Human";
-    EntityTypes[EntityTypes["Grass"] = 1] = "Grass";
+    EntityTypes[EntityTypes["Player"] = 1] = "Player";
+    EntityTypes[EntityTypes["Grass"] = 2] = "Grass";
 })(EntityTypes || (EntityTypes = {}));
 export var EntityStates;
 (function (EntityStates) {
     EntityStates[EntityStates["Idle"] = 0] = "Idle";
     EntityStates[EntityStates["Run"] = 1] = "Run";
 })(EntityStates || (EntityStates = {}));
+export class EntityType {
+    constructor(newEntityType, newEntityUid) {
+        this.componentUid = Utils.newUid();
+        this.entityUid = newEntityUid;
+        this.type = Components.EntityType;
+        this.entityType = newEntityType;
+    }
+}
 export class EntityState {
     constructor(newState, newEntityUid) {
         this.componentUid = Utils.newUid();
@@ -78,28 +87,27 @@ export class Timer {
         this.timerType = newTimerType;
     }
 }
-export class ClassesDiff {
-    constructor() {
-        this.removed = [];
-        this.added = [];
-    }
-}
 export var ElementTypes;
 (function (ElementTypes) {
     ElementTypes[ElementTypes["Shadow"] = 0] = "Shadow";
     ElementTypes[ElementTypes["Entity"] = 1] = "Entity";
 })(ElementTypes || (ElementTypes = {}));
+export var ElementClasses;
+(function (ElementClasses) {
+    ElementClasses[ElementClasses["Base"] = 0] = "Base";
+})(ElementClasses || (ElementClasses = {}));
 export class ComputedElement {
     constructor(newElementType, newEntityUid) {
         this.isChanged = false;
         this.isChanged = false;
-        this.classes = ["base"];
+        this.classes = new Map([[ElementClasses.Base, "base"]]);
         this.translateX = 0;
         this.translateY = 0;
         this.zIndex = 0;
         this.color = "#000";
         this.displayElement = "?";
-        this.classesDiff = new ClassesDiff();
+        this.removedClasses = new Map();
+        this.addedClasses = new Map();
         this.isTranslateXChanged = false;
         this.isTranslateYChanged = false;
         this.isZIndexChanged = false;

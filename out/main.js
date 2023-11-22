@@ -166,17 +166,17 @@ function onWorkerMessage(data) {
                         dO.setTranslateY(cCE.translateY);
                     if (cCE.isZIndexChanged)
                         dO.setZIndex(cCE.zIndex);
-                    if (cCE.classesDiff.added.length != 0)
-                        dO.addClasses(cCE.classesDiff.added);
-                    if (cCE.classesDiff.removed.length != 0)
-                        dO.removeClasses(cCE.classesDiff.removed);
+                    if (cCE.addedClasses.size != 0)
+                        dO.addClasses(Array.from(cCE.addedClasses.values()));
+                    if (cCE.removedClasses.size != 0)
+                        dO.removeClasses(Array.from(cCE.removedClasses.values()));
                     break;
                 }
             }
             for (let cAI of newData.addedComputedElements) {
                 let nCE = cAI.component;
                 let documentObject = new DocumentObject(nCE.componentUid);
-                documentObject.addClasses(nCE.classes);
+                documentObject.addClasses(Array.from(nCE.classes.values()));
                 documentObject.setColor(nCE.color);
                 documentObject.setDisplayElement(nCE.displayElement);
                 documentObject.setTranslateX(nCE.translateX);

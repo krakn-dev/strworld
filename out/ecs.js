@@ -143,9 +143,14 @@ export class System {
         }
         this.diffs.changedProperties.push(new Utils.MapPropertyChange(component.component.type, component.index, mapProperty, component.component.componentUid, Utils.MapPropertyChangeType.Add, newEntry));
     }
-    removeElementFromMapProperty(component, mapProperty, key) {
+    removeElementFromMapProperty(component, mapProperty, key, all = false) {
         if (component == undefined) {
             console.log("no component at such index");
+            return;
+        }
+        if (all) {
+            this.diffs.changedProperties.push(new Utils.MapPropertyChange(component.component.type, component.index, mapProperty, component.component.componentUid, Utils.MapPropertyChangeType.Remove, null, null, true // remove all
+            ));
             return;
         }
         this.diffs.changedProperties.push(new Utils.MapPropertyChange(component.component.type, component.index, mapProperty, component.component.componentUid, Utils.MapPropertyChangeType.Remove, null, key));
@@ -201,6 +206,28 @@ export class System {
                 }
             }
         }
+        // order changed properties by priority 
+        // (the backmost will overwrite the foremost)
+        let highestPriorityChangedProperties = [];
+        for (let pCI = newData.changedProperties.length - 1; pCI >= 0; pCI--) {
+            let pC = newData.changedProperties[pCI];
+            if (pC.componentType ==
+                Comps.Components.ComputedElement) {
+                // if is setting values to changed
+                if ("value" in pC &&
+                    pC.value == true) {
+                    highestPriorityChangedProperties.push(pC);
+                    newData.changedProperties.splice(pCI, 1);
+                    continue;
+                }
+                if ("isEmptied" in pC &&
+                    pC.isEmptied == false) {
+                    highestPriorityChangedProperties.push(pC);
+                    newData.changedProperties.splice(pCI, 1);
+                }
+            }
+        }
+        newData.changedProperties = [...newData.changedProperties, ...highestPriorityChangedProperties];
         // change properties
         for (let pC of newData.changedProperties) {
             // detect if index is incorrect or was removed
@@ -231,6 +258,9 @@ export class System {
                 if (pC.addedMapEntry != null)
                     this.components[pC.componentType][pC.componentIndex][pC.property]
                         .set(pC.addedMapEntry.key, pC.addedMapEntry.value);
+                else if (pC.isEmptied) {
+                    this.components[pC.componentType][pC.componentIndex][pC.property].clear();
+                }
                 else
                     this.components[pC.componentType][pC.componentIndex][pC.property].delete(pC.removedMapKey);
             }

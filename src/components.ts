@@ -24,11 +24,27 @@ export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the num
 
 export enum EntityTypes {
     Human,
+    Player,
     Grass,
 }
 export enum EntityStates {
     Idle,
     Run,
+}
+
+
+export class EntityType implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    entityType: EntityTypes
+
+    constructor(newEntityType: EntityTypes, newEntityUid: number) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.EntityType
+        this.entityType = newEntityType
+    }
 }
 export class EntityState implements ECS.Component {
     entityUid: number
@@ -119,33 +135,28 @@ export class Timer implements ECS.Component {
     }
 }
 
-export class ClassesDiff {
-    removed: string[]
-    added: string[]
-
-    constructor() {
-        this.removed = []
-        this.added = []
-    }
-}
-
 export enum ElementTypes {
     Shadow,
     Entity,
+}
+
+export enum ElementClasses {
+    Base,
 }
 
 export class ComputedElement implements ECS.Component {
     elementType: ElementTypes
     isChanged = false
 
-    classes: string[]
+    classes: Map<ElementClasses, string>
     translateX: number
     translateY: number
     zIndex: number
     color: string
     displayElement: string
 
-    classesDiff: ClassesDiff
+    removedClasses: Map<ElementClasses, string>
+    addedClasses: Map<ElementClasses, string>
     isTranslateXChanged: boolean
     isTranslateYChanged: boolean
     isZIndexChanged: boolean
@@ -159,14 +170,15 @@ export class ComputedElement implements ECS.Component {
     constructor(newElementType: ElementTypes, newEntityUid: number) {
         this.isChanged = false
 
-        this.classes = ["base"]
+        this.classes = new Map([[ElementClasses.Base, "base"]])
         this.translateX = 0
         this.translateY = 0
         this.zIndex = 0
         this.color = "#000"
         this.displayElement = "?"
 
-        this.classesDiff = new ClassesDiff()
+        this.removedClasses = new Map()
+        this.addedClasses = new Map()
         this.isTranslateXChanged = false
         this.isTranslateYChanged = false
         this.isZIndexChanged = false

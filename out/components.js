@@ -23,6 +23,7 @@ export var EntityTypes;
     EntityTypes[EntityTypes["Human"] = 0] = "Human";
     EntityTypes[EntityTypes["Player"] = 1] = "Player";
     EntityTypes[EntityTypes["Grass"] = 2] = "Grass";
+    EntityTypes[EntityTypes["Dog"] = 3] = "Dog";
 })(EntityTypes || (EntityTypes = {}));
 export var EntityStates;
 (function (EntityStates) {

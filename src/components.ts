@@ -26,6 +26,7 @@ export enum EntityTypes {
     Human,
     Player,
     Grass,
+    Dog,
 }
 export enum EntityStates {
     Idle,

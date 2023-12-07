@@ -115,24 +115,27 @@ export class CreateDog implements ECS.Command {
     }
 
     run(system: ECS.System) {
-        let dog = Utils.newUid()
-        let positionComponent = new Comps.Position(-90, -1, dog)
-        let entityStateComponent = new Comps.EntityState(new Map([[Comps.EntityStates.Idle, null]]), dog)
-        let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Dog, dog)
-        let healthComponent = new Comps.Health(10, dog)
-        let animationComponent = new Comps.Animation([new Anims.PlayerIdle(), new Anims.PlayerRunning()], dog)
-        let computedElement = new Comps.ComputedElement(Comps.ElementTypes.Entity, dog)
-        computedElement.translateX = positionComponent.x
-        computedElement.translateY = positionComponent.y
-        computedElement.zIndex = positionComponent.y
+        for (let x = 0; x < 5; x++) {
+            let dog = Utils.newUid()
+            let positionComponent = new Comps.Position(90, 100 * x, dog)
+            let entityStateComponent = new Comps.EntityState(new Map([[Comps.EntityStates.Idle, null]]), dog)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Dog, dog)
+            let healthComponent = new Comps.Health(10, dog)
+            let animationComponent = new Comps.Animation([new Anims.PlayerIdle(), new Anims.PlayerRunning()], dog)
+            let computedElement = new Comps.ComputedElement(Comps.ElementTypes.Entity, dog)
+            computedElement.translateX = positionComponent.x
+            computedElement.translateY = positionComponent.y
+            computedElement.zIndex = positionComponent.y
 
 
-        system.addComponent(healthComponent)
-        system.addComponent(animationComponent)
-        system.addComponent(positionComponent)
-        system.addComponent(entityStateComponent)
-        system.addComponent(computedElement)
-        system.addComponent(entityTypeComponent)
+            system.addComponent(healthComponent)
+            system.addComponent(animationComponent)
+            system.addComponent(positionComponent)
+            system.addComponent(entityStateComponent)
+            system.addComponent(computedElement)
+            system.addComponent(entityTypeComponent)
+
+        }
 
         system.addCommand(Commands.MoveDog)
         system.removeCommand(Commands.CreateDog)
@@ -158,186 +161,232 @@ export class MoveDog implements ECS.Command {
             console.log("no entity types found")
             return
         }
-        let dogUid: number | null = null
-        let playerUid: number | null = null
 
 
         for (let fC of foundEntityTypeComponents[0]) {
+            // for every dog
             let entityTypeComponent = fC.component as Comps.EntityType
-            if (entityTypeComponent.entityType == Comps.EntityTypes.Dog) {
-                dogUid = entityTypeComponent.entityUid
+            if (entityTypeComponent.entityType != Comps.EntityTypes.Dog) {
+                continue
             }
-            if (entityTypeComponent.entityType == Comps.EntityTypes.Player) {
-                playerUid = entityTypeComponent.entityUid
-            }
-        }
-        if (dogUid == null || playerUid == null) {
-            return
-        }
 
-        let foundPlayerPositionComponents = system.find(
-            [ECS.Get.One, [Comps.Components.Position], ECS.By.EntityId, playerUid])
-        if (foundPlayerPositionComponents[0].length == 0) {
-            console.log("no player position found")
-            return
-        }
-        let foundDogPositionComponents = system.find(
-            [ECS.Get.One, [Comps.Components.Position], ECS.By.EntityId, dogUid])
-        if (foundDogPositionComponents[0].length == 0) {
-            console.log("no dog position found")
-            return
-        }
+            // current dog uid
+            let dogUid = entityTypeComponent.entityUid
 
-
-        let playerPositionComponent = foundPlayerPositionComponents[0][0].component as Comps.Position
-        let dogPositionComponent = foundDogPositionComponents[0][0].component as Comps.Position
-
-        let isDogInPlayerRadius = false
-        let playerRadius = 100
-        if (
-            Math.abs(playerPositionComponent.x - dogPositionComponent.x) < playerRadius &&
-            Math.abs(playerPositionComponent.y - dogPositionComponent.y) < playerRadius
-        ) {
-            isDogInPlayerRadius = true
-        }
-
-        if (isDogInPlayerRadius) {
-            system.setState(this.targetPositionKey, null)
-        }
-        // follow player
-        if (!isDogInPlayerRadius) {
-            console.log("isnt radius")
-            let xTargetPosition = playerPositionComponent.x
-            let yTargetPosition = playerPositionComponent.y
-
-            system.setState(this.targetPositionKey, [xTargetPosition, yTargetPosition])
-        }
-
-        if (isDogInPlayerRadius) {
-            let foundEntityState = system.find(
-                [
-                    ECS.Get.All,
-                    [
-                        Comps.Components.EntityState,
-                    ],
-                    ECS.By.EntityId,
-                    dogUid
-                ]
-            )
-            if (foundEntityState[0].length == 0) {
-                console.log("dog entityState not found")
+            // dog position
+            let foundDogPositionComponents = system.find(
+                [ECS.Get.One, [Comps.Components.Position], ECS.By.EntityId, dogUid])
+            if (foundDogPositionComponents[0].length == 0) {
+                console.log("no dog position found")
                 return
             }
 
-            let entityStateComponent = foundEntityState[0][0].component as Comps.EntityState
+            let dogPositionComponent = foundDogPositionComponents[0][0].component as Comps.Position
 
-            // cannot change state to idle if wasnt runnning
-            if (entityStateComponent.states.has(Comps.EntityStates.Run)) {
-                system.removeElementFromMapProperty<Comps.EntityState, "states">(
-                    foundEntityState[0][0],
-                    "states",
-                    Comps.EntityStates.Run
+            // get closest player
+            let closestPlayerPositionComponent: Comps.Position | null = null
+            let closestPositionHypothenuse: number | null = null
+            // loop through players
+            for (let fETC of foundEntityTypeComponents[0]) {
+                let entityTypeComponent = fETC.component as Comps.EntityType
+                if (entityTypeComponent.entityType == Comps.EntityTypes.Player) {
+
+                    // get player position
+                    let foundPlayerPositionComponents = system.find(
+                        [ECS.Get.One, [Comps.Components.Position], ECS.By.EntityId, fETC.component.entityUid])
+                    if (foundPlayerPositionComponents[0].length == 0) {
+                        console.log("no player position found")
+                        break
+                    }
+                    let playerPositionComponent = foundPlayerPositionComponents[0][0].component as Comps.Position
+
+                    // calculate closest player
+                    let side1 = playerPositionComponent.x - dogPositionComponent.x
+                    let side2 = playerPositionComponent.y - dogPositionComponent.y
+
+                    let hypothenuse = Math.hypot(side1, side2)
+
+                    // if is the first set to closest
+                    if (closestPlayerPositionComponent == null) {
+                        closestPlayerPositionComponent = playerPositionComponent
+                        closestPositionHypothenuse = hypothenuse
+                        continue
+                    }
+                    if (hypothenuse < closestPositionHypothenuse!) {
+                        closestPlayerPositionComponent = playerPositionComponent
+                        closestPositionHypothenuse = hypothenuse
+                    }
+                }
+            }
+            if (closestPlayerPositionComponent == null) {
+                console.log("no player to follow")
+                return
+            }
+
+            let isDogInPlayerRadius = false
+            let playerRadius = 100
+            if (playerRadius >= closestPositionHypothenuse!) {
+                isDogInPlayerRadius = true
+            }
+
+            // follow player
+            if (!isDogInPlayerRadius) {
+                console.log("isnt radius")
+                system.setState(
+                    this.targetPositionKey,
+                    new Utils.Vector2(
+                        closestPlayerPositionComponent.x,
+                        closestPlayerPositionComponent.y))
+            }
+
+            // random movement
+            if (isDogInPlayerRadius) {
+                if (system.getState(this.targetPositionKey) != null) {
+                    system.setState(this.targetPositionKey, null)
+                }
+                if (Utils.randomNumber(900) != 10) {
+                    continue
+                }
+                let targetPosition = new Utils.Vector2(0, 0)
+                if (Utils.randomNumber(2) == 2) {
+                    targetPosition.x = closestPlayerPositionComponent.x + Utils.randomNumber(playerRadius * 10)
+                } else {
+                    targetPosition.x = closestPlayerPositionComponent.x + Utils.randomNumber(-playerRadius * 10)
+                }
+
+                if (Utils.randomNumber(2) == 2) {
+                    targetPosition.y = closestPlayerPositionComponent.y + Utils.randomNumber(playerRadius * 10)
+                } else {
+                    targetPosition.y = closestPlayerPositionComponent.y + Utils.randomNumber(-playerRadius * 10)
+                }
+
+                system.setState(this.targetPositionKey, targetPosition)
+            }
+
+            let targetPosition = system.getState(this.targetPositionKey)
+            if (targetPosition == null) return
+
+            let dogSpeed = 1
+            let direction = new Utils.Vector2(0, 0)
+
+            if (targetPosition.y - dogPositionComponent.y > 1) direction.y += 1
+            else if (targetPosition.y - dogPositionComponent.y < 1) direction.y -= 1
+            if (targetPosition.x - dogPositionComponent.x > 1) direction.x += 1
+            else if (targetPosition.x - dogPositionComponent.x < 1) direction.x -= 1
+            console.log(targetPosition)
+
+            // check if arrived at target position
+            let resultDogPosition =
+                new Utils.Vector2(
+                    direction.x * dogSpeed + dogPositionComponent.x,
+                    direction.y * dogSpeed + dogPositionComponent.y)
+            if (
+                Math.abs(targetPosition.x - resultDogPosition.x) < 2 &&
+                Math.abs(targetPosition.y - resultDogPosition.y) < 2
+            ) {
+                resultDogPosition.x = targetPosition.x
+                resultDogPosition.y = targetPosition.y
+
+                system.setState(this.targetPositionKey, null)
+            }
+
+            if (resultDogPosition.x != dogPositionComponent.x) {
+                system.setProperty<Comps.Position, "x">(
+                    foundDogPositionComponents[0][0],
+                    "x",
+                    resultDogPosition.x
                 )
-
-                if (entityStateComponent.states.has(Comps.EntityStates.Idle)) return
-
-                system.addElementToMapProperty<Comps.EntityState, "states">(
-                    foundEntityState[0][0],
-                    "states",
-                    new Utils.MapEntry(Comps.EntityStates.Idle, null)
+                //   console.log("x")
+            }
+            if (resultDogPosition.y != dogPositionComponent.y) {
+                system.setProperty<Comps.Position, "y">(
+                    foundDogPositionComponents[0][0],
+                    "y",
+                    resultDogPosition.y
                 )
             }
-            return
-
 
         }
-        // random movement
-        //if (isDogInPlayerRadius && system.getState(this.targetPositionKey) == null) {
-        //    if (Utils.randomNumber(100) != 10) {
-        //        return
-        //    }
-        //    let xTargetPosition = Utils.randomNumber(playerRadius) - playerPositionComponent.x
-        //    let yTargetPosition = Utils.randomNumber(playerRadius) - playerPositionComponent.y
 
-        //    system.setState(this.targetPositionKey, [xTargetPosition, yTargetPosition])
-        //}
+
+
+
+
+
+
+
+        //        if (isDogInPlayerRadius) {
+        //            let foundEntityState = system.find(
+        //                [
+        //                    ECS.Get.All,
+        //                    [
+        //                        Comps.Components.EntityState,
+        //                    ],
+        //                    ECS.By.EntityId,
+        //                    dogUid
+        //                ]
+        //            )
+        //            if (foundEntityState[0].length == 0) {
+        //                console.log("dog entityState not found")
+        //                return
+        //            }
+        //
+        //            let entityStateComponent = foundEntityState[0][0].component as Comps.EntityState
+        //
+        //            // cannot change state to idle if wasnt runnning
+        //            if (entityStateComponent.states.has(Comps.EntityStates.Run)) {
+        //                system.removeElementFromMapProperty<Comps.EntityState, "states">(
+        //                    foundEntityState[0][0],
+        //                    "states",
+        //                    Comps.EntityStates.Run
+        //                )
+        //
+        //                if (entityStateComponent.states.has(Comps.EntityStates.Idle)) return
+        //
+        //                system.addElementToMapProperty<Comps.EntityState, "states">(
+        //                    foundEntityState[0][0],
+        //                    "states",
+        //                    new Utils.MapEntry(Comps.EntityStates.Idle, null)
+        //                )
+        //            }
+        //            return
+        //
+        //
+        //        }
 
         // move to desired target position
-        let targetPosition = system.getState(this.targetPositionKey)
-        if (targetPosition == null) return
 
-        let dogSpeed = 1
-        let targetPositionVector = new Utils.Vector2(targetPosition[0], targetPosition[1])
-        let direction = new Utils.Vector2(0, 0)
+        //        let foundEntityState = system.find(
+        //            [
+        //                ECS.Get.All,
+        //                [
+        //                    Comps.Components.EntityState,
+        //                ],
+        //                ECS.By.EntityId,
+        //                dogUid
+        //            ]
+        //        )
+        //        if (foundEntityState[0].length == 0) {
+        //            console.log("dog entityState not found")
+        //            return
+        //        }
 
-        if (targetPositionVector.y - dogPositionComponent.y > 5) direction.y += 1
-        if (targetPositionVector.x - dogPositionComponent.x > 5) direction.x += 1
+        //  let entityStateComponent = foundEntityState[0][0].component as Comps.EntityState
 
-        if (targetPositionVector.y - dogPositionComponent.y < 5) direction.y -= 1
-        if (targetPositionVector.x - dogPositionComponent.x < 5) direction.x -= 1
-
-        // check if arrived at target position
-        let resultDogPosition =
-            new Utils.Vector2(
-                direction.x * dogSpeed + dogPositionComponent.x,
-                direction.y * dogSpeed + dogPositionComponent.y)
-
-        if (
-            Math.abs(targetPositionVector.x - resultDogPosition.x) < 1 &&
-            Math.abs(targetPositionVector.y - resultDogPosition.y) < 1
-        ) {
-            resultDogPosition.x = targetPositionVector.x
-            resultDogPosition.y = targetPositionVector.y
-
-            system.setState(this.targetPositionKey, null)
-        }
-
-        if (resultDogPosition.x != dogPositionComponent.x) {
-            system.setProperty<Comps.Position, "x">(
-                foundDogPositionComponents[0][0],
-                "x",
-                resultDogPosition.x
-            )
-        }
-        if (resultDogPosition.y != dogPositionComponent.y) {
-            system.setProperty<Comps.Position, "y">(
-                foundDogPositionComponents[0][0],
-                "y",
-                resultDogPosition.y
-            )
-        }
-
-        let foundEntityState = system.find(
-            [
-                ECS.Get.All,
-                [
-                    Comps.Components.EntityState,
-                ],
-                ECS.By.EntityId,
-                dogUid
-            ]
-        )
-        if (foundEntityState[0].length == 0) {
-            console.log("dog entityState not found")
-            return
-        }
-
-        let entityStateComponent = foundEntityState[0][0].component as Comps.EntityState
-
-        if (!entityStateComponent.states.has(Comps.EntityStates.Run)) {
-            system.addElementToMapProperty<Comps.EntityState, "states">(
-                foundEntityState[0][0],
-                "states",
-                new Utils.MapEntry(Comps.EntityStates.Run, null)
-            )
-        }
-        if (entityStateComponent.states.has(Comps.EntityStates.Idle)) {
-            system.removeElementFromMapProperty<Comps.EntityState, "states">(
-                foundEntityState[0][0],
-                "states",
-                Comps.EntityStates.Idle
-            )
-        }
+        //  if (!entityStateComponent.states.has(Comps.EntityStates.Run)) {
+        //      system.addElementToMapProperty<Comps.EntityState, "states">(
+        //          foundEntityState[0][0],
+        //          "states",
+        //          new Utils.MapEntry(Comps.EntityStates.Run, null)
+        //      )
+        //  }
+        //  if (entityStateComponent.states.has(Comps.EntityStates.Idle)) {
+        //      system.removeElementFromMapProperty<Comps.EntityState, "states">(
+        //          foundEntityState[0][0],
+        //          "states",
+        //          Comps.EntityStates.Idle
+        //      )
+        //  }
     }
 }
 export class CreatePlayer implements ECS.Command {

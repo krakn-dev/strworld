@@ -9,7 +9,8 @@ export var Components;
     Components[Components["ComputedElement"] = 5] = "ComputedElement";
     Components[Components["EntityType"] = 6] = "EntityType";
     Components[Components["Animation"] = 7] = "Animation";
-    Components[Components["Timer"] = 8] = "Timer";
+    Components[Components["TargetLocation"] = 8] = "TargetLocation";
+    Components[Components["Timer"] = 9] = "Timer";
 })(Components || (Components = {}));
 export const NUMBER_OF_COMPONENTS = (() => {
     let n = 0;
@@ -29,7 +30,19 @@ export var EntityStates;
 (function (EntityStates) {
     EntityStates[EntityStates["Idle"] = 0] = "Idle";
     EntityStates[EntityStates["Run"] = 1] = "Run";
+    EntityStates[EntityStates["Follow"] = 2] = "Follow";
+    EntityStates[EntityStates["Attack"] = 3] = "Attack";
+    EntityStates[EntityStates["Chase"] = 4] = "Chase";
 })(EntityStates || (EntityStates = {}));
+export class TargetLocation {
+    constructor(newLocation, newEntityUid) {
+        this.componentUid = Utils.newUid();
+        this.entityUid = newEntityUid;
+        this.type = Components.TargetLocation;
+        this.x = newLocation.x;
+        this.y = newLocation.y;
+    }
+}
 export class EntityType {
     constructor(newEntityType, newEntityUid) {
         this.componentUid = Utils.newUid();
@@ -47,12 +60,12 @@ export class EntityState {
     }
 }
 export class Position {
-    constructor(newX, newY, newEntityUid) {
+    constructor(newPosition, newEntityUid) {
         this.componentUid = Utils.newUid();
         this.entityUid = newEntityUid;
         this.type = Components.Position;
-        this.x = newX;
-        this.y = newY;
+        this.x = newPosition.x;
+        this.y = newPosition.y;
     }
 }
 export class Health {

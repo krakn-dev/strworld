@@ -11,6 +11,7 @@ export enum Components {
     ComputedElement,
     EntityType,
     Animation,
+    TargetLocation,
     Timer,
 }
 
@@ -31,9 +32,26 @@ export enum EntityTypes {
 export enum EntityStates {
     Idle,
     Run,
+    Follow,
+    Attack,
+    Chase,
 }
 
+export class TargetLocation implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    x: number
+    y: number
 
+    constructor(newLocation: Utils.Vector2, newEntityUid: number) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.TargetLocation
+        this.x = newLocation.x
+        this.y = newLocation.y
+    }
+}
 export class EntityType implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -67,13 +85,13 @@ export class Position implements ECS.Component {
     x: number
     y: number
 
-    constructor(newX: number, newY: number, newEntityUid: number) {
+    constructor(newPosition: Utils.Vector2, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.type = Components.Position
 
-        this.x = newX
-        this.y = newY
+        this.x = newPosition.x
+        this.y = newPosition.y
     }
 }
 

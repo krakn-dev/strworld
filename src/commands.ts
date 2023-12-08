@@ -117,7 +117,7 @@ export class CreateDog implements ECS.Command {
     run(system: ECS.System) {
         for (let x = 0; x < 5; x++) {
             let dog = Utils.newUid()
-            let positionComponent = new Comps.Position(90, 100 * x, dog)
+            let positionComponent = new Comps.Position(new Utils.Vector2(90, 100 * x), dog)
             let entityStateComponent = new Comps.EntityState(new Map([[Comps.EntityStates.Idle, null]]), dog)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Dog, dog)
             let healthComponent = new Comps.Health(10, dog)
@@ -147,15 +147,13 @@ export class MoveDog implements ECS.Command {
         this.type = Commands.MoveDog
     }
 
-    targetPositionKey = "targetPosition"
-
     run(system: ECS.System) {
 
         let delta = system.delta()
         if (delta == null) return
 
 
-        // get dog and player uid
+        // get dog and player entityTypes
         let foundEntityTypeComponents = system.find([ECS.Get.All, [Comps.Components.EntityType], ECS.By.Any, null])
         if (foundEntityTypeComponents[0].length == 0) {
             console.log("no entity types found")
@@ -174,15 +172,19 @@ export class MoveDog implements ECS.Command {
             let dogUid = entityTypeComponent.entityUid
 
             // dog position
-            let foundDogPositionComponents = system.find(
-                [ECS.Get.One, [Comps.Components.Position], ECS.By.EntityId, dogUid])
-            if (foundDogPositionComponents[0].length == 0) {
-                console.log("no dog position found")
+            let foundDogComponents = system.find(
+                [ECS.Get.One, [Comps.Components.Position, Comps.Components.TargetLocation], ECS.By.EntityId, dogUid])
+            if (foundDogComponents[0].length == 0) {
+                console.log("no dog component found")
                 return
             }
 
-            let dogPositionComponent = foundDogPositionComponents[0][0].component as Comps.Position
+            let dogPositionComponent = foundDogComponents[0][0].component as Comps.Position
+            let dogTargetLocationComponent: Comps.TargetLocation | null = null
 
+            if (foundDogComponents[1].length != 0) {
+                dogTargetLocationComponent = foundDogComponents[1][0].component as Comps.TargetLocation
+            }
             // get closest player
             let closestPlayerPositionComponent: Comps.Position | null = null
             let closestPositionHypothenuse: number | null = null
@@ -232,67 +234,70 @@ export class MoveDog implements ECS.Command {
             // follow player
             if (!isDogInPlayerRadius) {
                 console.log("isnt radius")
-                system.setState(
-                    this.targetPositionKey,
-                    new Utils.Vector2(
-                        closestPlayerPositionComponent.x,
-                        closestPlayerPositionComponent.y))
+                if (dogTargetLocationComponent != null) {
+                    system.setProperty<Comps.TargetLocation, "x">
+                        (foundDogComponents[1][0], "x", closestPlayerPositionComponent.x)
+                    system.setProperty<Comps.TargetLocation, "y">
+                        (foundDogComponents[1][0], "y", closestPlayerPositionComponent.y)
+                } else {
+                    let newTargetLocation = new Comps.TargetLocation(
+                        new Utils.Vector2(
+                            closestPlayerPositionComponent.x,
+                            closestPlayerPositionComponent.y), dogUid)
+                    system.addComponent(newTargetLocation)
+                }
             }
 
             // random movement
             if (isDogInPlayerRadius) {
-                if (system.getState(this.targetPositionKey) != null) {
-                    system.setState(this.targetPositionKey, null)
-                }
                 if (Utils.randomNumber(900) != 10) {
                     continue
                 }
-                let targetPosition = new Utils.Vector2(0, 0)
+                let targetLocation = new Utils.Vector2(0, 0)
                 if (Utils.randomNumber(2) == 2) {
-                    targetPosition.x = closestPlayerPositionComponent.x + Utils.randomNumber(playerRadius * 10)
+                    targetLocation.x = closestPlayerPositionComponent.x + Utils.randomNumber(playerRadius * 10)
                 } else {
-                    targetPosition.x = closestPlayerPositionComponent.x + Utils.randomNumber(-playerRadius * 10)
+                    targetLocation.x = closestPlayerPositionComponent.x + Utils.randomNumber(-playerRadius * 10)
                 }
 
                 if (Utils.randomNumber(2) == 2) {
-                    targetPosition.y = closestPlayerPositionComponent.y + Utils.randomNumber(playerRadius * 10)
+                    targetLocation.y = closestPlayerPositionComponent.y + Utils.randomNumber(playerRadius * 10)
                 } else {
-                    targetPosition.y = closestPlayerPositionComponent.y + Utils.randomNumber(-playerRadius * 10)
+                    targetLocation.y = closestPlayerPositionComponent.y + Utils.randomNumber(-playerRadius * 10)
                 }
-
-                system.setState(this.targetPositionKey, targetPosition)
+                if (dogTargetLocationComponent != null) {
+                    system.setProperty<Comps.TargetLocation, "x">
+                        (foundDogComponents[1][0], "x", targetLocation.x)
+                    system.setProperty<Comps.TargetLocation, "y">
+                        (foundDogComponents[1][0], "y", targetLocation.y)
+                } else {
+                    let newTargetLocation = new Comps.TargetLocation(
+                        new Utils.Vector2(
+                            targetLocation.x,
+                            targetLocation.y), dogUid)
+                    system.addComponent(newTargetLocation)
+                }
             }
 
-            let targetPosition = system.getState(this.targetPositionKey)
-            if (targetPosition == null) return
+            if (dogTargetLocationComponent == null) return
 
             let dogSpeed = 1
             let direction = new Utils.Vector2(0, 0)
 
-            if (targetPosition.y - dogPositionComponent.y > 1) direction.y += 1
-            else if (targetPosition.y - dogPositionComponent.y < 1) direction.y -= 1
-            if (targetPosition.x - dogPositionComponent.x > 1) direction.x += 1
-            else if (targetPosition.x - dogPositionComponent.x < 1) direction.x -= 1
-            console.log(targetPosition)
+            if (dogTargetLocationComponent.y - dogPositionComponent.y > 1) direction.y += 1
+            else if (dogTargetLocationComponent.y - dogPositionComponent.y < 1) direction.y -= 1
+            if (dogTargetLocationComponent.x - dogPositionComponent.x > 1) direction.x += 1
+            else if (dogTargetLocationComponent.x - dogPositionComponent.x < 1) direction.x -= 1
 
             // check if arrived at target position
             let resultDogPosition =
                 new Utils.Vector2(
                     direction.x * dogSpeed + dogPositionComponent.x,
                     direction.y * dogSpeed + dogPositionComponent.y)
-            if (
-                Math.abs(targetPosition.x - resultDogPosition.x) < 2 &&
-                Math.abs(targetPosition.y - resultDogPosition.y) < 2
-            ) {
-                resultDogPosition.x = targetPosition.x
-                resultDogPosition.y = targetPosition.y
-
-                system.setState(this.targetPositionKey, null)
-            }
 
             if (resultDogPosition.x != dogPositionComponent.x) {
                 system.setProperty<Comps.Position, "x">(
-                    foundDogPositionComponents[0][0],
+                    foundDogComponents[0][0],
                     "x",
                     resultDogPosition.x
                 )
@@ -300,7 +305,7 @@ export class MoveDog implements ECS.Command {
             }
             if (resultDogPosition.y != dogPositionComponent.y) {
                 system.setProperty<Comps.Position, "y">(
-                    foundDogPositionComponents[0][0],
+                    foundDogComponents[0][0],
                     "y",
                     resultDogPosition.y
                 )
@@ -399,7 +404,7 @@ export class CreatePlayer implements ECS.Command {
         for (let x = 0; x < 1; x++) {
             for (let y = 0; y < 1; y++) {
                 let player = Utils.newUid()
-                let positionComponent = new Comps.Position(x * 70, y * 70, player)
+                let positionComponent = new Comps.Position(new Utils.Vector2(x * 70, y * 70), player)
                 let entityStateComponent = new Comps.EntityState(new Map([[Comps.EntityStates.Idle, null]]), player)
                 let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Player, player)
                 let healthComponent = new Comps.Health(10, player)
@@ -1330,3 +1335,6 @@ export class WatchDevBox implements ECS.Command {
 
     }
 }
+
+
+

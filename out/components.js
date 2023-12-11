@@ -11,6 +11,9 @@ export var Components;
     Components[Components["Animation"] = 7] = "Animation";
     Components[Components["TargetLocation"] = 8] = "TargetLocation";
     Components[Components["Timer"] = 9] = "Timer";
+    Components[Components["Force"] = 10] = "Force";
+    Components[Components["Size"] = 11] = "Size";
+    Components[Components["Mass"] = 12] = "Mass";
 })(Components || (Components = {}));
 export const NUMBER_OF_COMPONENTS = (() => {
     let n = 0;
@@ -66,6 +69,7 @@ export class Position {
         this.type = Components.Position;
         this.x = newPosition.x;
         this.y = newPosition.y;
+        this.z = newPosition.z;
     }
 }
 export class Health {
@@ -83,6 +87,34 @@ export class Animation {
         this.type = Components.Animation;
         this.currentDisplayElement = "?";
         this.animations = newAnimations;
+    }
+}
+export class Force {
+    constructor(newMomentum, newEntityUid) {
+        this.x = newMomentum.x;
+        this.y = newMomentum.y;
+        this.z = newMomentum.z;
+        this.componentUid = Utils.newUid();
+        this.entityUid = newEntityUid;
+        this.type = Components.Force;
+    }
+}
+export class Mass {
+    constructor(newMass, newEntityUid) {
+        this.mass = newMass;
+        this.componentUid = Utils.newUid();
+        this.entityUid = newEntityUid;
+        this.type = Components.Mass;
+    }
+}
+export class Size {
+    constructor(newSize, newEntityUid) {
+        this.x = newSize.x;
+        this.y = newSize.y;
+        this.z = newSize.z;
+        this.componentUid = Utils.newUid();
+        this.entityUid = newEntityUid;
+        this.type = Components.Size;
     }
 }
 export var TimerTypes;

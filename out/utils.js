@@ -148,3 +148,10 @@ export class Vector2 {
         this.y = newY;
     }
 }
+export class Vector3 {
+    constructor(newX, newY, newZ) {
+        this.x = newX;
+        this.y = newY;
+        this.z = newZ;
+    }
+}

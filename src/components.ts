@@ -13,6 +13,9 @@ export enum Components {
     Animation,
     TargetLocation,
     Timer,
+    Force,
+    Size,
+    Mass,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -84,14 +87,16 @@ export class Position implements ECS.Component {
     type: Components
     x: number
     y: number
+    z: number
 
-    constructor(newPosition: Utils.Vector2, newEntityUid: number) {
+    constructor(newPosition: Utils.Vector3, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.type = Components.Position
 
         this.x = newPosition.x
         this.y = newPosition.y
+        this.z = newPosition.z
     }
 }
 
@@ -122,6 +127,54 @@ export class Animation implements ECS.Component {
         this.type = Components.Animation
         this.currentDisplayElement = "?"
         this.animations = newAnimations
+    }
+}
+
+export class Force implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    x: number
+    y: number
+    z: number
+
+    constructor(newMomentum: Utils.Vector3, newEntityUid: number) {
+        this.x = newMomentum.x
+        this.y = newMomentum.y
+        this.z = newMomentum.z
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.Force
+    }
+}
+export class Mass implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    mass: number
+
+    constructor(newMass: number, newEntityUid: number) {
+        this.mass = newMass
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.Mass
+    }
+}
+export class Size implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    x: number
+    y: number
+    z: number
+
+    constructor(newSize: Utils.Vector3, newEntityUid: number) {
+        this.x = newSize.x
+        this.y = newSize.y
+        this.z = newSize.z
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.Size
     }
 }
 

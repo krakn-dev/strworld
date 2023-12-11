@@ -282,3 +282,17 @@ export class Vector2 {
         this.y = newY
     }
 }
+export class Vector3 {
+    x: number
+    y: number
+    z: number
+    constructor(
+        newX: number,
+        newY: number,
+        newZ: number
+    ) {
+        this.x = newX
+        this.y = newY
+        this.z = newZ
+    }
+}

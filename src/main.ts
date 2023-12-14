@@ -144,7 +144,7 @@ function initializeWorkers() {
             w3Id,
         ),
     ]
-    setInterval(updateWorkers, 5)
+    setInterval(updateWorkers, 70)
 }
 initializeWorkers()
 
@@ -301,14 +301,14 @@ function onWorkerMessage(data: any) {
 
 function updateWorkers() {
     for (let w of workers) {
-        w.messagePort.
+        w.messagePort!.
             postMessage(
                 new Utils.Message(
                     Utils.Messages.PlayerInput,
                     new Utils.Input(KeyboardInput.result)
                 )
             )
-        w.messagePort.
+        w.messagePort!.
             postMessage(
                 new Utils.Message(
                     Utils.Messages.DevBoxInput,

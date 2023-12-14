@@ -26,11 +26,11 @@ export enum Messages {
 }
 
 export class WorkerInfo {
-    messagePort: MessagePort | Worker
+    messagePort: MessagePort | Worker | null
     commands: Cmds.Commands[]
     workerId: number
     constructor(
-        newMessagePort: MessagePort | Worker,
+        newMessagePort: MessagePort | Worker | null,
         newWorkerId: number
     ) {
         this.messagePort = newMessagePort

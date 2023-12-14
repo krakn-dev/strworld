@@ -192,10 +192,14 @@ export class System {
                 workerWithLessCommands[1] = w.commands.length
             }
         }
-        if (this.commands.length < workerWithLessCommands[1]) {
-            workerWithLessCommands[0] = this.workerId
-            workerWithLessCommands[1] = this.commands.length
+
+        for (let w of this.workers) {
+            if (w.workerId == workerWithLessCommands[0]) {
+                w.commands.push(workerWithLessCommands[1])
+            }
         }
+
+        console.log(workerWithLessCommands[0])
         this.diffs.addedCommands.push(
             new Utils.CommandChange(
                 workerWithLessCommands[0],
@@ -276,6 +280,9 @@ export class System {
         for (let aWC of newData.addedCommands) {
             for (let w of this.workers) {
                 if (w.workerId == aWC.workerReceiver) {
+                    if (w.commands.includes(aWC.commandType)) {
+                        continue
+                    }
                     w.commands.push(aWC.commandType)
                 }
             }
@@ -353,7 +360,7 @@ export class System {
             if (this.components[pC.componentType].length - 1 < pC.componentIndex ||
                 this.components[pC.componentType][pC.componentIndex].componentUid != pC.componentUid) {
 
-                console.log("$ component probably was deleted or changed position")
+                //console.log("$ component probably was deleted or changed position")
                 console.log("$ trying to fix...")
                 let fixed = false
                 for (let [cI, c] of this.components[pC.componentType].entries()) {
@@ -416,7 +423,7 @@ export class System {
                 if (this.components[rC.componentType].length - 1 < rC.componentIndex ||
                     this.components[rC.componentType][rC.componentIndex].componentUid != rC.componentUid
                 ) {
-                    console.log("$ component probably was deleted or changed position")
+                    // console.log("$ component probably was deleted or changed position")
                     console.log("$ trying to fix...")
                     let fixed = false
                     for (let [cI, c] of this.components[rC.componentType].entries()) {
@@ -491,7 +498,7 @@ export class System {
                 this.components[cC.component.type][cC.index].componentUid !=
                 cC.component.componentUid
             ) {
-                console.log("$ component probably was deleted or changed position")
+                //console.log("$ component probably was deleted or changed position")
                 console.log("$ trying to fix...")
                 let fixed = false
                 for (let [cI, c] of this.components[cC.component.type].entries()) {
@@ -609,6 +616,7 @@ export class System {
             this.currentExecutingCommand = c.type
             c.run(this)
         }
+
         this.currentExecutingCommand = null
 
         this.componentDiffs = new Utils.ComponentDiffs()
@@ -621,12 +629,15 @@ export class System {
         ) {
             return
         }
-        for (let w of this.workers) {
-            w.messagePort.postMessage(
-                new Utils.Message(Utils.Messages.Update, this.diffs)
-            )
-        }
 
+
+        for (let w of this.workers) {
+            if (w.messagePort != null) {
+                w.messagePort.postMessage(
+                    new Utils.Message(Utils.Messages.Update, this.diffs)
+                )
+            }
+        }
 
         this.update(this.diffs)
         this.diffs = new Utils.Diffs([], [], [], [], [])

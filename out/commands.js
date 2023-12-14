@@ -97,29 +97,31 @@ export class CreateDog {
         this.type = Commands.CreateDog;
     }
     run(system) {
-        for (let x = 0; x < 5; x++) {
+        for (let x = 0; x < 200; x++) {
             let dog = Utils.newUid();
-            let positionComponent = new Comps.Position(new Utils.Vector3(50 * x + 100, 0, 0), dog);
+            let positionComponent = new Comps.Position(new Utils.Vector3(80 + 100, 0, 0), dog);
             let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), dog);
-            let massComponent = new Comps.Mass(2, dog);
+            let massComponent = new Comps.Mass(1, dog);
             let sizeComponent = new Comps.Size(new Utils.Vector3(40, 90, 30), dog);
             let entityStateComponent = new Comps.EntityState(new Map([[Comps.EntityStates.Idle, null]]), dog);
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Dog, dog);
             let healthComponent = new Comps.Health(10, dog);
             let animationComponent = new Comps.Animation([new Anims.PlayerIdle(), new Anims.PlayerRunning()], dog);
-            let computedElement = new Comps.ComputedElement(Comps.ElementTypes.Entity, dog);
-            computedElement.translateX = positionComponent.x;
-            computedElement.translateY = positionComponent.y;
-            computedElement.zIndex = positionComponent.y;
-            computedElement.color = "#ff0000";
+            let targetPositionComponent = new Comps.TargetPosition(new Utils.Vector2(0, 0), dog);
+            let computedElementComponent = new Comps.ComputedElement(Comps.ElementTypes.Entity, dog);
+            computedElementComponent.translateX = positionComponent.x;
+            computedElementComponent.translateY = positionComponent.y;
+            computedElementComponent.zIndex = positionComponent.y;
+            computedElementComponent.color = "#ff0000";
             system.addComponent(massComponent);
+            system.addComponent(targetPositionComponent);
             system.addComponent(sizeComponent);
             system.addComponent(forceComponent);
             system.addComponent(healthComponent);
             system.addComponent(animationComponent);
             system.addComponent(positionComponent);
             system.addComponent(entityStateComponent);
-            system.addComponent(computedElement);
+            system.addComponent(computedElementComponent);
             system.addComponent(entityTypeComponent);
         }
         system.addCommand(Commands.MoveDog);
@@ -140,7 +142,7 @@ export class CreatePlayer {
                 let healthComponent = new Comps.Health(10, player);
                 let animationComponent = new Comps.Animation([new Anims.PlayerIdle(), new Anims.PlayerRunning()], player);
                 let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), player);
-                let massComponent = new Comps.Mass(4, player);
+                let massComponent = new Comps.Mass(1, player);
                 let sizeComponent = new Comps.Size(new Utils.Vector3(40, 90, 30), player);
                 let computedElementComponent = new Comps.ComputedElement(Comps.ElementTypes.Entity, player);
                 computedElementComponent.translateX = positionComponent.x;
@@ -172,8 +174,8 @@ export class MovePlayer {
             return;
         //        let acceleration = 0.03
         //        let forceLimit = 0.5
-        let acceleration = 0.1;
-        let forceLimit = 1;
+        let acceleration = 0.01;
+        let forceLimit = 0.5;
         // get playerUid
         let foundEntityTypeComponents = system.find([ECS.Get.All, [Comps.Components.EntityType], ECS.By.Any, null]);
         if (foundEntityTypeComponents[0].length == 0) {
@@ -261,8 +263,8 @@ export class MoveDog {
         let delta = system.delta();
         if (delta == null)
             return;
-        let acceleration = 0.02;
-        let forceLimit = 1;
+        let acceleration = 0.01;
+        let forceLimit = 0.2;
         // get dog and player entityTypes
         let foundEntityTypeComponents = system.find([ECS.Get.All, [Comps.Components.EntityType], ECS.By.Any, null]);
         if (foundEntityTypeComponents[0].length == 0) {
@@ -278,16 +280,15 @@ export class MoveDog {
             // current dog uid
             let dogUid = entityTypeComponent.entityUid;
             // dog position
-            let foundDogComponents = system.find([ECS.Get.One, [Comps.Components.Position, Comps.Components.TargetLocation, Comps.Components.Force], ECS.By.EntityId, dogUid]);
-            if (foundDogComponents[0].length == 0 || foundDogComponents[2].length == 0) {
+            let foundDogComponents = system.find([ECS.Get.One, [Comps.Components.Position, Comps.Components.TargetPosition, Comps.Components.Force], ECS.By.EntityId, dogUid]);
+            if (foundDogComponents[0].length == 0 ||
+                foundDogComponents[1].length == 0 ||
+                foundDogComponents[2].length == 0) {
                 console.log("no dog component found");
                 return;
             }
             let dogPositionComponent = foundDogComponents[0][0].component;
-            let dogTargetLocationComponent = null;
-            if (foundDogComponents[1].length != 0) {
-                dogTargetLocationComponent = foundDogComponents[1][0].component;
-            }
+            let dogTargetPositionComponent = foundDogComponents[1][0].component;
             // get closest player
             let closestPlayerPositionComponent = null;
             let closestPositionHypothenuse = null;
@@ -328,50 +329,41 @@ export class MoveDog {
                 isDogInPlayerRadius = true;
             }
             // follow player
-            if (!isDogInPlayerRadius) {
-                if (dogTargetLocationComponent != null) {
-                    system.setProperty(foundDogComponents[1][0], "x", closestPlayerPositionComponent.x);
-                    system.setProperty(foundDogComponents[1][0], "y", closestPlayerPositionComponent.y);
-                }
-                else {
-                    let newTargetLocation = new Comps.TargetLocation(new Utils.Vector2(closestPlayerPositionComponent.x, closestPlayerPositionComponent.y), dogUid);
-                    system.addComponent(newTargetLocation);
-                }
+            if (!isDogInPlayerRadius && Utils.randomNumber(20) == 10) {
+                system.setProperty(foundDogComponents[1][0], "x", closestPlayerPositionComponent.x);
+                system.setProperty(foundDogComponents[1][0], "y", closestPlayerPositionComponent.y);
+                system.setProperty(foundDogComponents[1][0], "isMovingToTargetPosition", true);
             }
             // random movement
-            if (isDogInPlayerRadius && Utils.randomNumber(1000) == 10) {
-                let targetLocation = new Utils.Vector2(0, 0);
+            if (isDogInPlayerRadius &&
+                Utils.randomNumber(400) == 10) {
+                let newTargetLocation = new Utils.Vector2(0, 0);
                 if (Utils.randomNumber(2) == 2) {
-                    targetLocation.x = closestPlayerPositionComponent.x + Utils.randomNumber(playerRadius - 50);
+                    newTargetLocation.x = closestPlayerPositionComponent.x + Utils.randomNumber(playerRadius - 50);
                 }
                 else {
-                    targetLocation.x = closestPlayerPositionComponent.x - Utils.randomNumber(playerRadius - 50);
+                    newTargetLocation.x = closestPlayerPositionComponent.x - Utils.randomNumber(playerRadius - 50);
                 }
                 if (Utils.randomNumber(2) == 2) {
-                    targetLocation.y = closestPlayerPositionComponent.y + Utils.randomNumber(playerRadius - 50);
+                    newTargetLocation.y = closestPlayerPositionComponent.y + Utils.randomNumber(playerRadius - 50);
                 }
                 else {
-                    targetLocation.y = closestPlayerPositionComponent.y - Utils.randomNumber(playerRadius - 50);
+                    newTargetLocation.y = closestPlayerPositionComponent.y - Utils.randomNumber(playerRadius - 50);
                 }
-                if (dogTargetLocationComponent != null) {
-                    system.setProperty(foundDogComponents[1][0], "x", targetLocation.x);
-                    system.setProperty(foundDogComponents[1][0], "y", targetLocation.y);
-                }
-                else {
-                    let newTargetLocationComponent = new Comps.TargetLocation(new Utils.Vector2(targetLocation.x, targetLocation.y), dogUid);
-                    system.addComponent(newTargetLocationComponent);
-                }
+                system.setProperty(foundDogComponents[1][0], "x", newTargetLocation.x);
+                system.setProperty(foundDogComponents[1][0], "y", newTargetLocation.y);
+                system.setProperty(foundDogComponents[1][0], "isMovingToTargetPosition", true);
             }
-            if (dogTargetLocationComponent == null)
+            if (!dogTargetPositionComponent.isMovingToTargetPosition)
                 continue;
             let direction = new Utils.Vector2(0, 0);
-            if ((dogTargetLocationComponent.y - dogPositionComponent.y) > -40)
+            if ((dogTargetPositionComponent.y - dogPositionComponent.y) > -40)
                 direction.y += 1;
-            if ((dogTargetLocationComponent.y - dogPositionComponent.y) < 40)
+            if ((dogTargetPositionComponent.y - dogPositionComponent.y) < 40)
                 direction.y -= 1;
-            if ((dogTargetLocationComponent.x - dogPositionComponent.x) > -40)
+            if ((dogTargetPositionComponent.x - dogPositionComponent.x) > -40)
                 direction.x += 1;
-            if ((dogTargetLocationComponent.x - dogPositionComponent.x) < 40)
+            if ((dogTargetPositionComponent.x - dogPositionComponent.x) < 40)
                 direction.x -= 1;
             let forceComponent = foundDogComponents[2][0].component;
             let resultDogForce = new Utils.Vector2(forceComponent.x + direction.x * acceleration, forceComponent.y + direction.y * acceleration);
@@ -392,9 +384,9 @@ export class MoveDog {
                 }
             }
             // check if arrived at target position
-            if (Math.abs(dogPositionComponent.x - dogTargetLocationComponent.x) < 1 &&
-                Math.abs(dogPositionComponent.y - dogTargetLocationComponent.y) < 1) {
-                system.removeComponent(foundDogComponents[1][0]);
+            if (Math.abs(dogTargetPositionComponent.x - dogPositionComponent.x) < 10 &&
+                Math.abs(dogTargetPositionComponent.y - dogPositionComponent.y) < 10) {
+                system.setProperty(foundDogComponents[1][0], "isMovingToTargetPosition", false);
             }
             if (resultDogForce.x != 0) {
                 system.setProperty(foundDogComponents[2][0], "x", resultDogForce.x);
@@ -840,7 +832,6 @@ export class UpdateAnimationTimerNumber {
             let timer = new Comps.Timer(currentStateAnimation.frames[currentStateAnimation.frames.length - 1].frameTime, Comps.TimerTypes.Animation, entityStateComponent.entityUid);
             system.addComponent(timer);
             system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[0].frameDisplay);
-            console.log("added timer");
         }
         // on graphic entity removed
         for (let cC of system.componentDiffs.removedComponents) {
@@ -915,8 +906,6 @@ export class PlayAnimations {
             updatedTimersUid.push(timer.component.componentUid);
             system.setProperty(timer, "originalTime", currentStateAnimation.frames[currentStateAnimation.frames.length - 1].frameTime);
             system.setProperty(timer, "isRestart", true);
-            //            system.setProperty<Comps.Animation, "currentDisplayElement">(
-            //                foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[0]!)
         }
         // play next frame
         // get animation timers
@@ -991,28 +980,6 @@ export class PlayAnimations {
             if (currentStateAnimation.frames[currentFrameIndex].frameDisplay ==
                 animationComponent.currentDisplayElement)
                 continue;
-            // // if already is in this frame
-            //            if (currentStateAnimation.frames[currentFrameIndex] ==
-            //                animation.currentDisplayElement)
-            //                continue
-            //            console.log(elapsedTime,
-            //                currentFrameIndex
-            //                //                currentStateAnimation
-            //                //                    .frames[currentFrameIndex]!
-            //                //                    .charCodeAt(0)
-            //                //                    .toString()
-            //                //                    .split("")
-            //                //                    .map((e, i) => { if (i > 2) return e })
-            //                //                    .join("")
-            //            )
-            //currentFrameIndex
-            //                currentStateAnimation
-            //                    .frames[currentFrameIndex]!
-            //                    .charCodeAt(0)
-            //                    .toString()
-            //                    .split("")
-            //                    .map((e, i) => { if (i > 2) return e })
-            //                    .join("")
             system.setProperty(foundComponents[0][0], "currentDisplayElement", currentStateAnimation.frames[currentFrameIndex].frameDisplay);
         }
     }
@@ -1098,12 +1065,14 @@ export class ApplyForce {
             return;
         }
         for (let fFC of foundForceComponents[0]) {
+            let forceComponent = fFC.component;
+            if (forceComponent.x == 0 && forceComponent.y == 0)
+                continue;
             let foundPositionComponents = system.find([ECS.Get.One, [Comps.Components.Position, Comps.Components.Mass], ECS.By.EntityId, fFC.component.entityUid]);
             if (foundPositionComponents[0].length == 0 || foundPositionComponents[1].length == 0) {
                 console.log("no position or mass component");
                 return;
             }
-            let forceComponent = fFC.component;
             let positionComponent = foundPositionComponents[0][0].component;
             let massComponent = foundPositionComponents[1][0].component;
             let velocity = new Utils.Vector2(0, 0);
@@ -1160,124 +1129,177 @@ export class Collide {
         this.type = Commands.Collide;
     }
     run(system) {
-        for (let cC of system.componentDiffs.changedComponents) {
-            if (cC.component.type != Comps.Components.Force)
-                continue;
-            let giverFoundComponents = system.find([ECS.Get.One, [Comps.Components.Position, Comps.Components.Size, Comps.Components.Mass], ECS.By.EntityId, cC.component.entityUid]);
-            if (giverFoundComponents[0].length == 0) {
-                console.log("no position component");
-                return;
-            }
-            let giverForceComponent = cC.component;
-            let giverPositionComponent = giverFoundComponents[0][0].component;
-            let giverSizeComponent = giverFoundComponents[1][0].component;
-            let giverMassComponent = giverFoundComponents[2][0].component;
-            let foundTakerSizeComponents = system.find([ECS.Get.All, [Comps.Components.Size], ECS.By.Any, null]);
-            for (let fSC of foundTakerSizeComponents[0]) {
-                if (fSC.component.entityUid == cC.component.entityUid)
-                    continue;
-                let foundComponents = system.find([ECS.Get.One, [Comps.Components.Position, Comps.Components.Force, Comps.Components.Mass], ECS.By.EntityId, fSC.component.entityUid]);
-                if (foundComponents[0].length == 0) {
-                    console.log("no position found");
-                    continue;
-                }
-                if (foundComponents[1].length == 0) {
-                    continue;
-                }
-                let takerSizeComponent = fSC.component;
-                let takerPositionComponent = foundComponents[0][0].component;
-                let takerForceComponent = foundComponents[1][0].component;
-                let takerMassComponent = foundComponents[2][0].component;
-                // from, to
-                let xRange1 = [
-                    giverPositionComponent.x - giverSizeComponent.x / 2,
-                    giverPositionComponent.x + giverSizeComponent.x / 2
-                ];
-                let yRange1 = [
-                    giverPositionComponent.y - giverSizeComponent.y / 2,
-                    giverPositionComponent.y + giverSizeComponent.y / 2
-                ];
-                let xRange2 = [
-                    takerPositionComponent.x - (takerSizeComponent.x / 2),
-                    takerPositionComponent.x + (takerSizeComponent.x / 2)
-                ];
-                let yRange2 = [
-                    takerPositionComponent.y - (takerSizeComponent.y / 2),
-                    takerPositionComponent.y + (takerSizeComponent.y / 2)
-                ];
-                let numberHitPoints = 0;
-                let touchingDirection = new Utils.Vector2(0, 0);
-                if (xRange1[1] >= xRange2[0] &&
-                    !(xRange1[0] > xRange2[0]) &&
-                    !(xRange1[0] == xRange2[0] && xRange1[1] == xRange2[1])) {
-                    numberHitPoints += 1;
-                    touchingDirection.x += 1;
-                }
-                if (xRange1[0] <= xRange2[1] &&
-                    !(xRange1[1] < xRange2[1]) &&
-                    !(xRange1[0] == xRange2[0] && xRange1[1] == xRange2[1])) {
-                    numberHitPoints += 1;
-                    touchingDirection.x -= 1;
-                }
-                if (yRange1[1] >= yRange2[0] &&
-                    !(yRange1[0] > yRange2[0]) &&
-                    !(yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1])) {
-                    numberHitPoints += 1;
-                    touchingDirection.y += 1;
-                }
-                if (yRange1[0] <= yRange2[1] &&
-                    !(yRange1[1] < yRange2[1]) &&
-                    !(yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1])) {
-                    numberHitPoints += 1;
-                    touchingDirection.y -= 1;
-                }
-                if (yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1]) {
-                    numberHitPoints += 1;
-                }
-                if (xRange1[0] == xRange2[0] && xRange1[1] == xRange2[1]) {
-                    numberHitPoints += 1;
-                }
-                if (numberHitPoints < 2)
-                    continue;
-                let forceDirection = new Utils.Vector2(0, 0);
-                if (giverForceComponent.x > 0) {
-                    forceDirection.x += 1;
-                }
-                if (giverForceComponent.y > 0) {
-                    forceDirection.y += 1;
-                }
-                if (giverForceComponent.x < 0) {
-                    forceDirection.x -= 1;
-                }
-                if (giverForceComponent.y < 0) {
-                    forceDirection.y -= 1;
-                }
-                //if (takerMassComponent.mass == takerMassComponent.mass) {
-                //    //skip
-                //}
-                //let giverNewForce = new Utils.Vector2(0, 0)
-                //let takerNewForce = new Utils.Vector2(0, 0)
-                //// one has more mass
-                //if (giverMassComponent.mass != takerMassComponent.mass) {
-                //    if (giverMassComponent.mass > takerMassComponent.mass) {
-                //    }
-                //}
-                //// they are the same mass
-                //if () { }
-                // console.log(forceDirection)
-                // calculate force taken for moving it out of reach
-                // substract force took for moving it
-                if (forceDirection.x == touchingDirection.x && forceDirection.x != 0) {
-                    system.setProperty(foundComponents[1][0], "x", giverForceComponent.x + takerForceComponent.x);
-                    system.setProperty(cC, "x", 0);
-                    system.setProperty(giverFoundComponents[0][0], "x", giverPositionComponent.x - giverForceComponent.x);
-                }
-                if (forceDirection.y == touchingDirection.y && forceDirection.y != 0) {
-                    system.setProperty(foundComponents[1][0], "y", giverForceComponent.y + takerForceComponent.y);
-                    system.setProperty(cC, "y", 0);
-                    system.setProperty(giverFoundComponents[0][0], "y", giverPositionComponent.y - giverForceComponent.y);
-                }
-            }
-        }
+        //// giver, taker
+        //let solvedCollisions: [number, number][] = []
+        //let iter = 0
+        //for (let cC of system.componentDiffs.changedComponents) {
+        //    if (cC.component.type != Comps.Components.Force) continue
+        //    let giverFoundComponents = system.find(
+        //        [ECS.Get.One, [Comps.Components.Position, Comps.Components.Size, Comps.Components.Mass], ECS.By.EntityId, cC.component.entityUid])
+        //    if (giverFoundComponents[0].length == 0) {
+        //        console.log("no position component")
+        //        return
+        //    }
+        //    let giverForceComponent = cC.component as Comps.Force
+        //    let giverPositionComponent = giverFoundComponents[0][0].component as Comps.Position
+        //    let giverSizeComponent = giverFoundComponents[1][0].component as Comps.Size
+        //    let giverMassComponent = giverFoundComponents[2][0].component as Comps.Mass
+        //    let foundTakerSizeComponents = system.find(
+        //        [ECS.Get.All, [Comps.Components.Size], ECS.By.Any, null])
+        //    console.log(iter)
+        //    for (let fSC of foundTakerSizeComponents[0]) {
+        //        iter += 1
+        //        let isSolved = false
+        //        for (let sC of solvedCollisions) {
+        //            if (
+        //                sC[0] == fSC.component.entityUid &&
+        //                sC[1] == cC.component.entityUid
+        //            ) {
+        //                isSolved = true
+        //                break;
+        //            }
+        //        }
+        //        if (isSolved) {
+        //            continue
+        //        }
+        //        solvedCollisions.push([cC.component.entityUid, fSC.component.entityUid])
+        //        if (fSC.component.entityUid == cC.component.entityUid) continue
+        //        let takerFoundComponents = system.find(
+        //            [ECS.Get.One, [Comps.Components.Position, Comps.Components.Force, Comps.Components.Mass], ECS.By.EntityId, fSC.component.entityUid])
+        //        if (takerFoundComponents[0].length == 0) {
+        //            console.log("no position found")
+        //            continue
+        //        }
+        //        if (takerFoundComponents[1].length == 0) {
+        //            continue
+        //        }
+        //        let takerSizeComponent = fSC.component as Comps.Size
+        //        let takerPositionComponent = takerFoundComponents[0][0].component as Comps.Position
+        //        let takerForceComponent = takerFoundComponents[1][0].component as Comps.Force
+        //        let takerMassComponent = takerFoundComponents[2][0].component as Comps.Mass
+        //        // from, to
+        //        let xRange1 = [
+        //            giverPositionComponent.x - giverSizeComponent.x / 2,
+        //            giverPositionComponent.x + giverSizeComponent.x / 2]
+        //        let yRange1 = [
+        //            giverPositionComponent.y - giverSizeComponent.y / 2,
+        //            giverPositionComponent.y + giverSizeComponent.y / 2]
+        //        let xRange2 = [
+        //            takerPositionComponent.x - (takerSizeComponent.x / 2),
+        //            takerPositionComponent.x + (takerSizeComponent.x / 2)]
+        //        let yRange2 = [
+        //            takerPositionComponent.y - (takerSizeComponent.y / 2),
+        //            takerPositionComponent.y + (takerSizeComponent.y / 2)]
+        //        let numberHitPoints = 0
+        //        let touchingDirection = new Utils.Vector2(0, 0)
+        //        if (
+        //            xRange1[1] >= xRange2[0] &&
+        //            !(xRange1[0] > xRange2[0]) &&
+        //            !(xRange1[0] == xRange2[0] && xRange1[1] == xRange2[1])
+        //        ) {
+        //            numberHitPoints += 1
+        //            touchingDirection.x += 1
+        //        }
+        //        if (
+        //            xRange1[0] <= xRange2[1] &&
+        //            !(xRange1[1] < xRange2[1]) &&
+        //            !(xRange1[0] == xRange2[0] && xRange1[1] == xRange2[1])
+        //        ) {
+        //            numberHitPoints += 1
+        //            touchingDirection.x -= 1
+        //        }
+        //        if (
+        //            yRange1[1] >= yRange2[0] &&
+        //            !(yRange1[0] > yRange2[0]) &&
+        //            !(yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1])
+        //        ) {
+        //            numberHitPoints += 1
+        //            touchingDirection.y += 1
+        //        }
+        //        if (
+        //            yRange1[0] <= yRange2[1] &&
+        //            !(yRange1[1] < yRange2[1]) &&
+        //            !(yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1])
+        //        ) {
+        //            numberHitPoints += 1
+        //            touchingDirection.y -= 1
+        //        }
+        //        if (yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1]) {
+        //            numberHitPoints += 1
+        //        }
+        //        if (xRange1[0] == xRange2[0] && xRange1[1] == xRange2[1]) {
+        //            numberHitPoints += 1
+        //        }
+        //        if (numberHitPoints < 2) continue
+        //        let forceDirection = new Utils.Vector2(0, 0)
+        //        if (giverForceComponent.x > 0) {
+        //            forceDirection.x += 1
+        //        }
+        //        if (giverForceComponent.y > 0) {
+        //            forceDirection.y += 1
+        //        }
+        //        if (giverForceComponent.x < 0) {
+        //            forceDirection.x -= 1
+        //        }
+        //        if (giverForceComponent.y < 0) {
+        //            forceDirection.y -= 1
+        //        }
+        //        let giverVelocity = new Utils.Vector2(
+        //            (giverForceComponent.x / giverMassComponent.mass),
+        //            (giverForceComponent.y / giverMassComponent.mass))
+        //        let takerVelocity = new Utils.Vector2(
+        //            (takerForceComponent.x / takerMassComponent.mass),
+        //            (takerForceComponent.y / takerMassComponent.mass))
+        //        if (forceDirection.x == touchingDirection.x && forceDirection.x != 0) {
+        //            // necessary x-axis force to make it go the
+        //            // same velocity and direction
+        //            let necessaryForce = 0
+        //            necessaryForce = -takerForceComponent.x
+        //            necessaryForce += giverVelocity.x * takerMassComponent.mass
+        //            system.setProperty<Comps.Force, "x">(
+        //                takerFoundComponents[1][0],
+        //                "x",
+        //                takerForceComponent.x + giverForceComponent.x)
+        //            if (
+        //                (giverForceComponent.x - necessaryForce > 0) ==
+        //                (giverForceComponent.x > 0)
+        //            ) {
+        //                system.setProperty<Comps.Force, "x">(
+        //                    cC,
+        //                    "x",
+        //                    giverForceComponent.x - necessaryForce)
+        //            }
+        //            system.setProperty<Comps.Position, "x">(
+        //                giverFoundComponents[0][0],
+        //                "x",
+        //                giverPositionComponent.x - (giverForceComponent.x / giverMassComponent.mass))
+        //        }
+        //        if (forceDirection.y == touchingDirection.y && forceDirection.y != 0) {
+        //            // necessary y-axis force to make it go the
+        //            // same velocity and direction
+        //            let necessaryForce = 0
+        //            necessaryForce = -takerForceComponent.y
+        //            necessaryForce += giverVelocity.y * takerMassComponent.mass
+        //            system.setProperty<Comps.Force, "y">(
+        //                takerFoundComponents[1][0],
+        //                "y",
+        //                takerForceComponent.y + giverForceComponent.y)
+        //            if (
+        //                (giverForceComponent.y - necessaryForce > 0) ==
+        //                (giverForceComponent.y > 0)
+        //            ) {
+        //                system.setProperty<Comps.Force, "y">(
+        //                    cC,
+        //                    "y",
+        //                    giverForceComponent.y - necessaryForce)
+        //            }
+        //            system.setProperty<Comps.Position, "y">(
+        //                giverFoundComponents[0][0],
+        //                "y",
+        //                giverPositionComponent.y - (giverForceComponent.y / giverMassComponent.mass))
+        //        }
+        //    }
+        //}
+        //console.log("end")
     }
 }

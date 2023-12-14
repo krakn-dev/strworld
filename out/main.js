@@ -72,7 +72,7 @@ function initializeWorkers() {
         new Utils.WorkerInfo(w2, w2Id),
         new Utils.WorkerInfo(w3, w3Id),
     ];
-    setInterval(updateWorkers, 5);
+    setInterval(updateWorkers, 70);
 }
 initializeWorkers();
 let documentObjects = [];

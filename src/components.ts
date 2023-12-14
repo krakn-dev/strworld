@@ -11,7 +11,7 @@ export enum Components {
     ComputedElement,
     EntityType,
     Animation,
-    TargetLocation,
+    TargetPosition,
     Timer,
     Force,
     Size,
@@ -40,17 +40,19 @@ export enum EntityStates {
     Chase,
 }
 
-export class TargetLocation implements ECS.Component {
+export class TargetPosition implements ECS.Component {
     entityUid: number
     componentUid: number
     type: Components
+    isMovingToTargetPosition: boolean
     x: number
     y: number
 
     constructor(newLocation: Utils.Vector2, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.TargetLocation
+        this.type = Components.TargetPosition
+        this.isMovingToTargetPosition = false
         this.x = newLocation.x
         this.y = newLocation.y
     }

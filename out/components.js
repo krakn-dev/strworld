@@ -9,7 +9,7 @@ export var Components;
     Components[Components["ComputedElement"] = 5] = "ComputedElement";
     Components[Components["EntityType"] = 6] = "EntityType";
     Components[Components["Animation"] = 7] = "Animation";
-    Components[Components["TargetLocation"] = 8] = "TargetLocation";
+    Components[Components["TargetPosition"] = 8] = "TargetPosition";
     Components[Components["Timer"] = 9] = "Timer";
     Components[Components["Force"] = 10] = "Force";
     Components[Components["Size"] = 11] = "Size";
@@ -37,11 +37,12 @@ export var EntityStates;
     EntityStates[EntityStates["Attack"] = 3] = "Attack";
     EntityStates[EntityStates["Chase"] = 4] = "Chase";
 })(EntityStates || (EntityStates = {}));
-export class TargetLocation {
+export class TargetPosition {
     constructor(newLocation, newEntityUid) {
         this.componentUid = Utils.newUid();
         this.entityUid = newEntityUid;
-        this.type = Components.TargetLocation;
+        this.type = Components.TargetPosition;
+        this.isMovingToTargetPosition = false;
         this.x = newLocation.x;
         this.y = newLocation.y;
     }

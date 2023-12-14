@@ -32,12 +32,15 @@ onmessage = (data) => {
             for (let [i, wId] of newData.workerIds.entries()) {
                 workers.push(new Utils.WorkerInfo(data.ports[i], wId))
             }
+            workers.push(new Utils.WorkerInfo(null, newData.yourWorkerId))
 
             system = new ECS.System(newData.yourWorkerId, workers)
             for (let w of workers) {
-                w.messagePort.onmessage = onWorkerMessage
+                if (w.messagePort != null) {
+                    w.messagePort.onmessage = onWorkerMessage
+                }
             }
-            setInterval(system.run.bind(system), 5)
+            setInterval(system.run.bind(system), 20)
 
         } break;
 

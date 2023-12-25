@@ -1,54 +1,26 @@
-import * as Cmds from "./commands.js";
-import * as ECS from "./ecs.js"
-import * as Utils from "./utils.js"
+import * as ECS from "./ecs"
+import * as Ser from "./serialization"
+import * as Res from "./resources"
+import * as Cmds from "./commands"
 
-let system: ECS.System;
-
-
-function onWorkerMessage(data: any) {
-    let msg = (data.data) as Utils.Message
-    switch (msg.message) {
-        case Utils.Messages.Update:
-            let newData = msg.data as Utils.Diffs
-            system.update(newData)
-            break;
-    }
-}
+let currentExecutingCommand = new ECS.CurrentExecutingCommand()
+let resources = new Res.Resources(currentExecutingCommand)
+let system = new ECS.System(resources, currentExecutingCommand);
 
 onmessage = (data) => {
-    let msg = data.data as Utils.Message
+    let msg = data.data as Ser.Message
 
     switch (msg.message) {
-        case Utils.Messages.Update: {
-            let newData = msg.data as Utils.Diffs
-            system.update(newData)
+        case Ser.Messages.Start: {
+            system.addCommand(Cmds.Commands.TheFirst)
+            setInterval(system.run.bind(system), 100)
         } break;
-
-        case Utils.Messages.Start: {
-
-            let workers: Utils.WorkerInfo[] = []
-            let newData = msg.data as Utils.WorkerInitializationData
-
-            for (let [i, wId] of newData.workerIds.entries()) {
-                workers.push(new Utils.WorkerInfo(data.ports[i], wId))
-            }
-
-            system = new ECS.System(newData.yourWorkerId, workers)
-            for (let w of workers) {
-                w.messagePort.onmessage = onWorkerMessage
-            }
-            setInterval(system.run.bind(system), 5)
-
+        case Ser.Messages.Input: {
+            let newData = msg.data as Ser.Input
+            resources.input.movementDirection = newData.movementDirection
         } break;
-
-        case Utils.Messages.PlayerInput: {
-            let newData = msg.data as Utils.Input
-            system.input = newData
-        } break;
-
-        case Utils.Messages.DevBoxInput: {
-            let newData = msg.data as Utils.DevBox
-            system.devBox = newData
+        case Ser.Messages.Options: {
+            let newData = msg.data as Ser.Options
         } break;
     }
 }

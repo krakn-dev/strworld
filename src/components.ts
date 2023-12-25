@@ -1,21 +1,23 @@
-import * as ECS from "./ecs.js"
-import * as Utils from "./utils.js"
-import * as Anims from "./animations.js"
+import { Vector2 } from "three"
+import * as ECS from "./ecs"
+import * as Utils from "./utils"
 
 export enum Components {
     Health = 0,
+    Camera,
+    Light,
+    Rotation,
+    EntityState,
     Name,
+    EntityType,
     Position,
     LookingDirection,
-    EntityState,
     ComputedElement,
-    EntityType,
-    Animation,
     TargetLocation,
     Timer,
-    Force,
     Size,
     Mass,
+    Force,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -27,10 +29,11 @@ export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the num
 })()
 
 export enum EntityTypes {
-    Human,
-    Player,
+    Stickman,
     Grass,
     Dog,
+    Camera,
+    Light,
 }
 export enum EntityStates {
     Idle,
@@ -38,6 +41,63 @@ export enum EntityStates {
     Follow,
     Attack,
     Chase,
+}
+export enum LightTypes {
+    AmbientLight,
+    PointLight,
+    DirectionalLight,
+    SpotLight,
+}
+export class Light implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    lightType: LightTypes
+    power: number
+    color: string
+    distance: number
+    decay: number
+    constructor(
+        newLightType: LightTypes,
+        newPower: number,
+        newColor: string,
+        newDistance: number,
+        newDecay: number,
+        newEntityUid: number,
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.Light
+        this.lightType = newLightType
+        this.power = newPower
+        this.color = newColor
+        this.distance = newDistance
+        this.decay = newDecay
+    }
+}
+export class Camera implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    fov: number
+    near: number
+    far: number
+    aspect: number
+    constructor(
+        newFov: number,
+        newNear: number,
+        newFar: number,
+        newAspect: number,
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.Camera
+        this.fov = newFov
+        this.near = newNear
+        this.far = newFar
+        this.aspect = newAspect
+    }
 }
 
 export class TargetLocation implements ECS.Component {
@@ -72,9 +132,9 @@ export class EntityState implements ECS.Component {
     entityUid: number
     componentUid: number
     type: Components
-    states: Map<EntityStates, null>
+    states: EntityStates[]
 
-    constructor(newState: Map<EntityStates, null>, newEntityUid: number) {
+    constructor(newState: EntityStates[], newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.type = Components.EntityState
@@ -114,21 +174,21 @@ export class Health implements ECS.Component {
     }
 }
 
-export class Animation implements ECS.Component {
-    entityUid: number
-    componentUid: number
-    type: Components
-    currentDisplayElement: string
-    animations: Anims.Animation[]
-
-    constructor(newAnimations: Anims.Animation[], newEntityUid: number) {
-        this.componentUid = Utils.newUid()
-        this.entityUid = newEntityUid
-        this.type = Components.Animation
-        this.currentDisplayElement = "?"
-        this.animations = newAnimations
-    }
-}
+//export class Animation implements ECS.Component {
+//    entityUid: number
+//    componentUid: number
+//    type: Components
+//    currentDisplayElement: string
+//    animations: Anims.Animation[]
+//
+//    constructor(newAnimations: Anims.Animation[], newEntityUid: number) {
+//        this.componentUid = Utils.newUid()
+//        this.entityUid = newEntityUid
+//        this.type = Components.Animation
+//        this.currentDisplayElement = "?"
+//        this.animations = newAnimations
+//    }
+//}
 
 export class Force implements ECS.Component {
     entityUid: number
@@ -160,6 +220,23 @@ export class Mass implements ECS.Component {
         this.type = Components.Mass
     }
 }
+export class Rotation implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    type: Components
+    x: number
+    y: number
+    z: number
+
+    constructor(newRotation: Utils.Vector3, newEntityUid: number) {
+        this.x = newRotation.x
+        this.y = newRotation.y
+        this.z = newRotation.z
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.type = Components.Size
+    }
+}
 export class Size implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -186,10 +263,10 @@ export class Timer implements ECS.Component {
     entityUid: number
     componentUid: number
     type: Components
-    timeLeft: number
     originalTime: number
-    timerType: TimerTypes
 
+    timeLeft: number
+    timerType: TimerTypes
     isFinished: boolean
     isRestart: boolean
 
@@ -207,60 +284,16 @@ export class Timer implements ECS.Component {
     }
 }
 
-export enum ElementTypes {
-    Shadow,
-    Entity,
-}
-
-export enum ElementClasses {
-    Base,
-}
-
-export class ComputedElement implements ECS.Component {
-    elementType: ElementTypes
-    isChanged = false
-
-    classes: Map<ElementClasses, string>
-    translateX: number
-    translateY: number
-    zIndex: number
-    color: string
-    displayElement: string
-
-    removedClasses: Map<ElementClasses, string>
-    addedClasses: Map<ElementClasses, string>
-    isTranslateXChanged: boolean
-    isTranslateYChanged: boolean
-    isZIndexChanged: boolean
-    isColorChanged: boolean
-    isDisplayElementChanged: boolean
-
+export class ChangedGraphicProperties implements ECS.Component {
+    properties: ECS.Component[]
     componentUid: number
     entityUid: number
     type: Components
 
-    constructor(newElementType: ElementTypes, newEntityUid: number) {
-        this.isChanged = false
-
-        this.classes = new Map([[ElementClasses.Base, "base"]])
-        this.translateX = 0
-        this.translateY = 0
-        this.zIndex = 0
-        this.color = "#000"
-        this.displayElement = "?"
-
-        this.removedClasses = new Map()
-        this.addedClasses = new Map()
-        this.isTranslateXChanged = false
-        this.isTranslateYChanged = false
-        this.isZIndexChanged = false
-        this.isColorChanged = false
-        this.isDisplayElementChanged = false
-
-
+    constructor(newEntityUid: number) {
+        this.properties = []
         this.type = Components.ComputedElement
         this.entityUid = newEntityUid
         this.componentUid = Utils.newUid()
-        this.elementType = newElementType
     }
 }

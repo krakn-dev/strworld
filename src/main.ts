@@ -1,393 +1,111 @@
-import * as Utils from "./utils.js"
-import * as Comps from "./components.js"
-import * as Cmds from "./commands.js"
+import * as Ser from "./serialization"
+import * as Graph from "./graphics"
+import * as Input from "./input"
 
-let onWorkerError = (e: any) => {
-    console.log("ERROR!")
-    console.error(e)
-}
+let world = new Graph.World()
+let graphicChangesHandler = new Graph.GraphicChangesHandler()
+world.setup()
 
-let workers: Utils.WorkerInfo[];
+let keyboardInput = new Input.KeyboardInput()
+let worker = new Worker(
+    new URL('worker', import.meta.url),
+    { type: "module" });
 
+worker.postMessage(
+    new Ser.Message(
+        Ser.Messages.Start,
+        new Ser.DOMData(window.innerWidth, window.innerHeight)
+    ));
 
-function initializeWorkers() {
-    let w0w1MsgChannel = new MessageChannel();
-    let w0w2MsgChannel = new MessageChannel();
-    let w0w3MsgChannel = new MessageChannel();
+worker.onmessage = onWorkerMessage
+setInterval(sendInputToWorker, 30)
 
-    let w1w2MsgChannel = new MessageChannel();
-    let w1w3MsgChannel = new MessageChannel();
+world.renderLoop()
 
-    let w2w3MsgChannel = new MessageChannel();
-
-    let w0 = new Worker("worker.js", { type: "module" });
-    let w1 = new Worker("worker.js", { type: "module" });
-    let w2 = new Worker("worker.js", { type: "module" });
-    let w3 = new Worker("worker.js", { type: "module" });
-
-    w0.onerror = onWorkerError
-    w1.onerror = onWorkerError
-    w2.onerror = onWorkerError
-    w3.onerror = onWorkerError
-
-    let w0Id = 0
-    let w1Id = 1
-    let w2Id = 2
-    let w3Id = 3
-
-    w0.postMessage(
-        new Utils.Message(
-            Utils.Messages.Start,
-            new Utils.WorkerInitializationData(
-                w0Id,
-                [
-                    w1Id,
-                    w2Id,
-                    w3Id,
-                ]
+function sendInputToWorker() {
+    worker.postMessage(
+        new Ser.Message(
+            Ser.Messages.Input,
+            new Ser.Input(
+                keyboardInput.movementDirection
             )
-        ),
-        [
-            w0w1MsgChannel.port1,
-            w0w2MsgChannel.port1,
-            w0w3MsgChannel.port1,
-        ]
-    )
-
-    w1.postMessage(
-        new Utils.Message(
-            Utils.Messages.Start,
-            new Utils.WorkerInitializationData(
-                w1Id,
-                [
-                    w0Id,
-                    w2Id,
-                    w3Id
-                ]
-            )
-        ),
-        [
-            w0w1MsgChannel.port2,
-            w1w2MsgChannel.port1,
-            w1w3MsgChannel.port1,
-        ]
-    )
-    w2.postMessage(
-        new Utils.Message(
-            Utils.Messages.Start,
-            new Utils.WorkerInitializationData(
-                w2Id,
-                [
-                    w0Id,
-                    w1Id,
-                    w3Id
-                ]
-            )
-        ),
-        [
-            w0w2MsgChannel.port2,
-            w1w2MsgChannel.port2,
-            w2w3MsgChannel.port1,
-        ]
-    )
-    w3.postMessage(
-        new Utils.Message(
-            Utils.Messages.Start,
-            new Utils.WorkerInitializationData(
-                w3Id,
-                [
-                    w0Id,
-                    w1Id,
-                    w2Id
-                ]
-            )
-        ),
-        [
-            w0w3MsgChannel.port2,
-            w1w3MsgChannel.port2,
-            w2w3MsgChannel.port2,
-        ]
-    )
-
-    //    setInterval(sendInput, 20)
-
-    w0.onmessage = onWorkerMessage
-    w1.onmessage = onWorkerMessage
-    w2.onmessage = onWorkerMessage
-    w3.onmessage = onWorkerMessage
-
-
-    w0.postMessage(
-        new Utils.Message(
-            Utils.Messages.Update,
-            new Utils.Diffs([], [], [], [],
-                [new Utils.CommandChange(w0Id, Cmds.Commands.TheFirst)]
-            )
-
         )
     )
-    workers = [
-        new Utils.WorkerInfo(
-            w0,
-            w0Id,
-        ),
-        new Utils.WorkerInfo(
-            w1,
-            w1Id,
-        ),
-        new Utils.WorkerInfo(
-            w2,
-            w2Id,
-        ),
-        new Utils.WorkerInfo(
-            w3,
-            w3Id,
-        ),
-    ]
-    setInterval(updateWorkers, 70)
-}
-initializeWorkers()
-
-let documentObjects: DocumentObject[] = []
-
-enum Transforms {
-    TranslateX,
-    TranslateY,
-}
-
-class DocumentObject {
-    private stateElement: HTMLElement
-    private transform: [number | null, number | null]
-    private transformOrder: Transforms[]
-
-    componentUid: number
-
-
-    constructor(newComponentUid: number) {
-
-        this.transformOrder = [Transforms.TranslateX, Transforms.TranslateY]
-        this.transform = [null, null]
-        this.componentUid = newComponentUid;
-
-        let worldView = document.getElementById("world-view")
-        worldView!.insertAdjacentHTML("beforeend", `<div id="${newComponentUid}"></div>`);
-        //        for (let lI = 0; lI < 20; lI++) {
-        //            let layer = document.getElementById("world-view" + lI)
-        //            if (layer!.childElementCount < 500) {
-        //                layer!.insertAdjacentHTML("beforeend", `<div id="${newEntityUid}"></div>`);
-        //                break;
-        //            }
-        //        }
-
-        this.stateElement = document.getElementById(this.componentUid.toString())!
-    }
-
-    addClasses(newClasses: string[]) {
-        for (let nC of newClasses) {
-            this.stateElement.classList.add(nC)
-        }
-    }
-    removeClasses(classesToRemove: string[]) {
-        for (let nC of classesToRemove) {
-            this.stateElement.classList.remove(nC)
-        }
-    }
-    setColor(newColor: string) {
-        this.stateElement.style.color = newColor
-    }
-
-    setTranslateX(newXTranslation: number) {
-        this.transform[Transforms.TranslateX] = newXTranslation
-        this.setTransform()
-    }
-    setTranslateY(newYTranslation: number) {
-        this.transform[Transforms.TranslateY] = newYTranslation
-        this.setTransform()
-    }
-
-    private setTransform() {
-        let result: string[] = []
-        for (let tO of this.transformOrder) {
-            switch (tO) {
-                case Transforms.TranslateX:
-                    if (this.transform[Transforms.TranslateX] == null) continue;
-                    result.push(`translateX(${this.transform[Transforms.TranslateX]}px)`)
-                    break;
-                case Transforms.TranslateY:
-                    if (this.transform[Transforms.TranslateY] == null) continue;
-                    result.push(`translateY(${this.transform[Transforms.TranslateY]}px)`)
-                    break;
-            }
-        }
-        this.stateElement.style.transform = result.join(" ")
-    }
-
-    setZIndex(newZIndex: number) {
-        this.stateElement.style.zIndex = newZIndex.toString()
-    }
-    setDisplayElement(newDisplayElement: string) {
-        this.stateElement.innerHTML = newDisplayElement
-    }
-    dispose() {
-        this.stateElement.remove()
-    }
 }
 
 function onWorkerMessage(data: any) {
-
-    let msg = (data.data as Utils.Message)
-    let newData = msg.data as Utils.GraphicDiff
-
+    let msg = (data.data as Ser.Message)
     switch (msg.message) {
-        case Utils.Messages.RenderIt:
-            for (let cAI of newData.changedComputedElements) {
-                let cCE = cAI.component as Comps.ComputedElement
-                for (let dO of documentObjects) {
-                    if (cCE.componentUid != dO.componentUid) continue
-
-                    if (cCE.isColorChanged)
-                        dO.setColor(cCE.color)
-
-                    if (cCE.isDisplayElementChanged)
-                        dO.setDisplayElement(cCE.displayElement)
-
-                    if (cCE.isTranslateXChanged)
-                        dO.setTranslateX(cCE.translateX)
-
-                    if (cCE.isTranslateYChanged)
-                        dO.setTranslateY(cCE.translateY)
-
-                    if (cCE.isZIndexChanged)
-                        dO.setZIndex(cCE.zIndex)
-
-                    if (cCE.addedClasses.size != 0)
-                        dO.addClasses(Array.from(cCE.addedClasses.values()))
-
-                    if (cCE.removedClasses.size != 0)
-                        dO.removeClasses(Array.from(cCE.removedClasses.values()))
-
-                    break;
-                }
-            }
-
-            for (let cAI of newData.addedComputedElements) {
-                let nCE = cAI.component as Comps.ComputedElement
-                let documentObject = new DocumentObject(nCE.componentUid)
-                documentObject.addClasses(Array.from(nCE.classes.values()))
-                documentObject.setColor(nCE.color)
-                documentObject.setDisplayElement(nCE.displayElement)
-                documentObject.setTranslateX(nCE.translateX)
-                documentObject.setTranslateY(nCE.translateY)
-                documentObject.setZIndex(nCE.zIndex)
-
-                documentObjects.push(documentObject)
-            }
-            for (let cAI of newData.removedComputedElements) {
-                let rCE = cAI.component as Comps.ComputedElement
-
-                for (let dOI = documentObjects.length - 1; dOI >= 0; dOI--) {
-                    if (rCE.componentUid == documentObjects[dOI].componentUid) {
-                        documentObjects[dOI].dispose()
-                        documentObjects.splice(dOI, 1)
-                    }
-                }
-            }
-            break;
-
-
+        case Ser.Messages.GraphicChanges: {
+            let newData = msg.data as Ser.GraphicChanges
+            graphicChangesHandler.run(world, newData)
+        } break;
     }
 }
 
 
-function updateWorkers() {
-    for (let w of workers) {
-        w.messagePort!.
-            postMessage(
-                new Utils.Message(
-                    Utils.Messages.PlayerInput,
-                    new Utils.Input(KeyboardInput.result)
-                )
-            )
-        w.messagePort!.
-            postMessage(
-                new Utils.Message(
-                    Utils.Messages.DevBoxInput,
-                    new Utils.DevBox(
-                        (document.getElementById("enable-shadows") as HTMLInputElement).checked,
-                        (document.getElementById("set-night") as HTMLInputElement).checked,
-                        (document.getElementById("enable-physics") as HTMLInputElement).checked,
-                        (document.getElementById("enable-free-camera") as HTMLInputElement).checked,
-                    )
-                )
-            )
-    }
-}
+//    let msg = (data.data as Ser.Message)
+//    let newData = msg.data as Ser.GraphicChanges
+//
+//    switch (msg.message) {
+//        case Ser.Messages.GraphicChanges:
+//            for (let cAI of newData.changedGraphicProperties) {
+//                let cCE = cAI as Comps.GraphicProperties
+//                for (let dO of documentObjects) {
+//                    if (cCE.componentUid != dO.componentUid) continue
+//
+//                    if (cCE.isColorChanged)
+//                        dO.setColor(cCE.color)
+//
+//                    if (cCE.isDisplayElementChanged)
+//                        dO.setDisplayElement(cCE.displayElement)
+//
+//                    if (cCE.isTranslateXChanged)
+//                        dO.setTranslateX(cCE.translateX)
+//
+//                    if (cCE.isTranslateYChanged)
+//                        dO.setTranslateY(cCE.translateY)
+//
+//                    if (cCE.isZIndexChanged)
+//                        dO.setZIndex(cCE.zIndex)
+//
+//                    if (cCE.addedClasses.size != 0)
+//                        dO.addClasses(Array.from(cCE.addedClasses.values()))
+//
+//                    if (cCE.removedClasses.size != 0)
+//                        dO.removeClasses(Array.from(cCE.removedClasses.values()))
+//
+//                    break;
+//                }
+//            }
+//
+//            for (let cAI of newData.addedGraphicProperties) {
+//                let nCE = cAI as Comps.GraphicProperties
+//                let documentObject = new DocumentObject(nCE.componentUid)
+//                documentObject.addClasses(Array.from(nCE.classes.values()))
+//                documentObject.setColor(nCE.color)
+//                documentObject.setDisplayElement(nCE.displayElement)
+//                documentObject.setTranslateX(nCE.translateX)
+//                documentObject.setTranslateY(nCE.translateY)
+//                documentObject.setZIndex(nCE.zIndex)
+//
+//                documentObjects.push(documentObject)
+//            }
+//            for (let cAI of newData.removedComputedElements) {
+//                let rCE = cAI.component as Comps.GraphicProperties
+//
+//                for (let dOI = documentObjects.length - 1; dOI >= 0; dOI--) {
+//                    if (rCE.componentUid == documentObjects[dOI].componentUid) {
+//                        documentObjects[dOI].dispose()
+//                        documentObjects.splice(dOI, 1)
+//                    }
+//                }
+//            }
+//            break;
+//
+//
+//    }
+//}
 
 
 
-class KeyboardInput {
-    static up = false
-    static down = false
-    static left = false
-    static right = false
-
-    static result = new Utils.Vector2(0, 0)
-
-    static onKeyDown(event: any) {
-        if (event.key == "w" || event.key == "ArrowUp")
-            KeyboardInput.up = true
-
-        if (event.key == "s" || event.key == "ArrowDown")
-            KeyboardInput.down = true
-
-        if (event.key == "a" || event.key == "ArrowLeft")
-            KeyboardInput.left = true
-
-        if (event.key == "d" || event.key == "ArrowRight")
-            KeyboardInput.right = true
-
-        KeyboardInput.setPlayerInput()
-    }
-    static onKeyUp(event: any) {
-
-        if (event.key == "w" || event.key == "ArrowUp")
-            KeyboardInput.up = false
-
-        if (event.key == "s" || event.key == "ArrowDown")
-            KeyboardInput.down = false
-
-        if (event.key == "a" || event.key == "ArrowLeft")
-            KeyboardInput.left = false
-
-        if (event.key == "d" || event.key == "ArrowRight")
-            KeyboardInput.right = false
-
-        KeyboardInput.setPlayerInput()
-    }
-
-    static setPlayerInput() {
-        KeyboardInput.result.x = 0
-        KeyboardInput.result.y = 0
-
-        if (KeyboardInput.down)
-            KeyboardInput.result.y++
-
-        if (KeyboardInput.up)
-            KeyboardInput.result.y--
-
-        if (KeyboardInput.left)
-            KeyboardInput.result.x--
-
-        if (KeyboardInput.right)
-            KeyboardInput.result.x++
-    }
-}
-
-document.addEventListener(
-    "keyup",
-    KeyboardInput.onKeyUp,
-);
-document.addEventListener(
-    "keydown",
-    KeyboardInput.onKeyDown,
-);

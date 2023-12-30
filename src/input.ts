@@ -10,6 +10,8 @@ export class KeyboardInput {
 
     constructor() {
         let outer = this
+        this.movementDirection = new Utils.Vector2(0, 0)
+
         document.addEventListener(
             "keyup",
             (event: any) => {
@@ -22,7 +24,62 @@ export class KeyboardInput {
                 outer.onKeyDown(event)
             }
         );
-        this.movementDirection = new Utils.Vector2(0, 0)
+        document.getElementById("left-button")!.addEventListener(
+            "mousedown",
+            (event: any) => {
+                outer.left = true
+                this.setPlayerInput()
+            }
+        );
+        document.getElementById("up-button")!.addEventListener(
+            "mousedown",
+            (event: any) => {
+                outer.up = true
+                this.setPlayerInput()
+            }
+        );
+        document.getElementById("down-button")!.addEventListener(
+            "mousedown",
+            (event: any) => {
+                outer.down = true
+                this.setPlayerInput()
+            }
+        );
+        document.getElementById("right-button")!.addEventListener(
+            "mousedown",
+            (event: any) => {
+                outer.right = true
+                this.setPlayerInput()
+            }
+        );
+        document.getElementById("left-button")!.addEventListener(
+            "mouseup",
+            (event: any) => {
+                outer.left = false
+                this.setPlayerInput()
+            }
+        );
+        document.getElementById("up-button")!.addEventListener(
+            "mouseup",
+            (event: any) => {
+                outer.up = false
+                this.setPlayerInput()
+            }
+        );
+        document.getElementById("down-button")!.addEventListener(
+            "mouseup",
+            (event: any) => {
+                outer.down = false
+                this.setPlayerInput()
+            }
+        );
+        document.getElementById("right-button")!.addEventListener(
+            "mouseup",
+            (event: any) => {
+                outer.right = false
+                this.setPlayerInput()
+            }
+        );
     }
     onKeyDown(event: any) {
         if (event.key == "w" || event.key == "ArrowUp")

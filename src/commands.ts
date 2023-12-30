@@ -3,12 +3,14 @@ import * as Res from "./resources"
 import * as Utils from "./utils"
 import * as Comps from "./components"
 import * as Ser from "./serialization"
+import { Vector3 } from "three"
 
 // order in which they get executed
 export enum CommandTypes {
     TheFirst = 0,
     CreateStickman,
     MovePlayer,
+    MoveGeometry,
     //    SetEntityElementsPositionAndDisplayElement = 3,
     //    SendComputedElementsToRender = 4,
     //    CreateShadows = 5,
@@ -26,6 +28,7 @@ export enum CommandTypes {
     ApplyForce,
     CreateGravity,
     CreateScene,
+    Collide,
     SendGraphicComponentsToRender,
 }
 
@@ -37,11 +40,13 @@ export function getInstanceFromEnum(commandEnum: CommandTypes): ECS.Command {
         //        case Commands.MoveCameraWithPlayer:
         //            return new MoveCameraWithPlayer()
         //
-        //        case Commands.Collide:
-        //            return new Collide()
+        case CommandTypes.Collide:
+            return new Collide()
         //
         case CommandTypes.ApplyForce:
             return new ApplyForce()
+        case CommandTypes.MoveGeometry:
+            return new MoveGeometry()
         //
         //        case Commands.MoveDog:
         //            return new MoveDog()
@@ -109,7 +114,7 @@ export class TheFirst implements ECS.Command {
         // first ensure that commands
         // that depend of some components are created first
         //
-        system.addCommand(CommandTypes.CreateStickman)
+        //        system.addCommand(CommandTypes.CreateStickman)
         system.addCommand(CommandTypes.CreateScene)
         system.addCommand(CommandTypes.SendGraphicComponentsToRender)
         //system.addCommand(Commands.CreateDog)
@@ -120,7 +125,7 @@ export class TheFirst implements ECS.Command {
         //system.addCommand(Commands.TickTimer)
         system.addCommand(CommandTypes.ApplyForce)
         //system.addCommand(CommandTypes.CreateGravity)
-        //system.addCommand(Commands.Collide)
+        system.addCommand(CommandTypes.Collide)
         //system.addCommand(Commands.WatchDevBox)
 
         system.removeCommand(CommandTypes.TheFirst)
@@ -153,7 +158,7 @@ export class CreateScene implements ECS.Command {
         {
             let pointLight = Utils.newUid()
             let lightComponent = new Comps.Light(Comps.LightTypes.PointLight, 10, 0xffffff, 10, 0, pointLight)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, 2, 1), pointLight)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 3, 1), pointLight)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Light, pointLight)
             system.addComponent(lightComponent)
             system.addComponent(positionComponent)
@@ -168,8 +173,8 @@ export class CreateScene implements ECS.Command {
         }
         {
             let plane = Utils.newUid()
-            let boxShapeComponent = new Comps.BoxShape(new Utils.Vector3(8, 0.5, 8), plane)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, -2, 0), plane)
+            let boxShapeComponent = new Comps.BoxShape(8, 0.2, 8, plane)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, -1.1, 0), plane)
             let shapeColorComponent = new Comps.ShapeColor(0x88ffcc, plane)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, plane)
             system.addComponent(boxShapeComponent)
@@ -177,7 +182,82 @@ export class CreateScene implements ECS.Command {
             system.addComponent(shapeColorComponent)
             system.addComponent(entityTypeComponent)
         }
+        {
+            let movingCube = Utils.newUid()
+            let boxShapeComponent = new Comps.BoxShape(1, 2, 1, movingCube)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, 0), movingCube)
+            let shapeColorComponent = new Comps.ShapeColor(0xff55cc, movingCube)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, movingCube)
+            let forceComponent = new Comps.Force(new Vector3(0, 0, 0), movingCube)
+            let massComponent = new Comps.Mass(3.5, movingCube)
+            let hardCodedIdComponent = new Comps.HardCodedId(0, movingCube)
+            system.addComponent(boxShapeComponent)
+            system.addComponent(hardCodedIdComponent)
+            system.addComponent(massComponent)
+            system.addComponent(positionComponent)
+            system.addComponent(forceComponent)
+            system.addComponent(shapeColorComponent)
+            system.addComponent(entityTypeComponent)
+            system.addCommand(CommandTypes.MoveGeometry)
+        }
+        {
+            let staticCube = Utils.newUid()
+            let boxShapeComponent = new Comps.BoxShape(1, 1, 1, staticCube)
+            let positionComponent = new Comps.Position(new Utils.Vector3(1, -0.5, 2), staticCube)
+            let shapeColorComponent = new Comps.ShapeColor(0x1122aa, staticCube)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, staticCube)
+            let forceComponent = new Comps.Force(new Vector3(0, 0, 0), staticCube)
+            let massComponent = new Comps.Mass(3.5, staticCube)
+            system.addComponent(boxShapeComponent)
+            system.addComponent(massComponent)
+            system.addComponent(positionComponent)
+            system.addComponent(forceComponent)
+            system.addComponent(shapeColorComponent)
+            system.addComponent(entityTypeComponent)
+        }
         system.removeCommand(CommandTypes.CreateScene)
+    }
+}
+export class MoveGeometry implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.MoveGeometry
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        let acceleration = 0.003
+        let forceLimit = 0.02
+        // get playerUid
+        let foundHardCodedIdComponent = system.find([ECS.Get.All, [Comps.ComponentTypes.HardCodedId], ECS.By.Any, null])
+        if (foundHardCodedIdComponent[0].length == 0) {
+            console.log("no hardcodedid found")
+            return
+        }
+        let geometryUid = (foundHardCodedIdComponent[0][0] as Comps.HardCodedId).entityUid
+
+        let foundForceComponent = system.find([ECS.Get.One, [Comps.ComponentTypes.Force], ECS.By.EntityId, geometryUid])
+        if (foundForceComponent[0].length == 0) {
+            console.log("no geometry force found")
+            return
+        }
+        let forceComponent = foundForceComponent[0][0] as Comps.Force
+        let newForce = new Utils.Vector3(0, 0, 0)
+        newForce.x = forceComponent.x + resources.input.movementDirection.x * acceleration
+        newForce.z = forceComponent.z + (-resources.input.movementDirection.y) * acceleration
+
+        if (Math.abs(newForce.x) > forceLimit) {
+            newForce.x = forceLimit * (newForce.x < 0 ? -1 : 1)
+        }
+        if (Math.abs(newForce.z) > forceLimit) {
+            newForce.z = forceLimit * (newForce.z < 0 ? -1 : 1)
+        }
+
+        if (resources.input.movementDirection.x != 0) {
+            forceComponent.x = newForce.x
+        }
+        if (resources.input.movementDirection.y != 0) {
+            forceComponent.z = newForce.z
+        }
     }
 }
 // create entity
@@ -236,7 +316,7 @@ export class CreateStickman implements ECS.Command {
                 let healthComponent = new Comps.Health(10, stickman)
                 let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), stickman)
                 let massComponent = new Comps.Mass(4, stickman)
-                let sizeComponent = new Comps.BoxShape(new Utils.Vector3(40, 90, 30), stickman)
+                let sizeComponent = new Comps.BoxShape(40, 90, 30, stickman)
 
                 system.addComponent(massComponent)
                 system.addComponent(sizeComponent)
@@ -260,7 +340,7 @@ export class MovePlayer implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        let acceleration = 0.01
+        let acceleration = 0.003
         let forceLimit = 0.02
         // get playerUid
         let foundEntityTypeComponents = system.find([ECS.Get.All, [Comps.ComponentTypes.EntityType], ECS.By.Any, null])
@@ -1277,7 +1357,7 @@ export class ApplyForce implements ECS.Command {
             let massComponent = foundPositionComponents[1][0] as Comps.Mass
 
             let velocity = new Utils.Vector3(0, 0, 0)
-            let airDrag = 0.0015
+            let airDrag = 0.001
             let resultForce = new Utils.Vector3(0, 0, 0)
 
 
@@ -1337,162 +1417,151 @@ export class ApplyForce implements ECS.Command {
         }
     }
 }
-//export class Collide implements ECS.Command {
-//    readonly type: Commands
-//    constructor() {
-//        this.type = Commands.Collide
-//    }
-//
-//    run(system: ECS.System, resources: Res.Resources) {
-//        for (let cFC of resources.componentChanges.changedComponents[Comps.Components.Force]) {
-//
-//            let giverFoundComponents = system.find(
-//                [ECS.Get.One, [Comps.Components.Position, Comps.Components.Size, Comps.Components.Mass], ECS.By.EntityId, cFC.component.entityUid])
-//            if (
-//                giverFoundComponents[0].length == 0 ||
-//                giverFoundComponents[1].length == 0 ||
-//                giverFoundComponents[2].length == 0
-//            ) {
-//                console.log("no giver components found")
-//                continue
-//            }
-//
-//            let giverForceComponent = cFC as Comps.Force
-//            let giverPositionComponent = giverFoundComponents[0][0] as Comps.Position
-//            let giverSizeComponent = giverFoundComponents[1][0] as Comps.Size
-//            let giverMassComponent = giverFoundComponents[2][0] as Comps.Mass
-//
-//            let foundTakerSizeComponents = system.find(
-//                [ECS.Get.All, [Comps.Components.Size], ECS.By.Any, null])
-//
-//            for (let fSC of foundTakerSizeComponents[0]) {
-//                if (fSC.entityUid == cFC.entityUid) continue
-//                let foundTakerComponents = system.find(
-//                    [ECS.Get.One, [Comps.Components.Position, Comps.Components.Force, Comps.Components.Mass], ECS.By.EntityId, fSC.component.entityUid])
-//                if (foundTakerComponents[0].length == 0) {
-//                    console.log("no position found")
-//                    continue
-//                }
-//                if (foundTakerComponents[1].length == 0) {
-//                    continue
-//                }
-//                let takerSizeComponent = fSC as Comps.Size
-//                let takerPositionComponent = foundTakerComponents[0][0] as Comps.Position
-//                let takerForceComponent = foundTakerComponents[1][0] as Comps.Force
-//                let takerMassComponent = foundTakerComponents[2][0] as Comps.Mass
-//
-//                // from, to
-//                let xRange1 = [
-//                    giverPositionComponent.x - giverSizeComponent.x / 2,
-//                    giverPositionComponent.x + giverSizeComponent.x / 2]
-//                let yRange1 = [
-//                    giverPositionComponent.y - giverSizeComponent.y / 2,
-//                    giverPositionComponent.y + giverSizeComponent.y / 2]
-//
-//                let xRange2 = [
-//                    takerPositionComponent.x - (takerSizeComponent.x / 2),
-//                    takerPositionComponent.x + (takerSizeComponent.x / 2)]
-//                let yRange2 = [
-//                    takerPositionComponent.y - (takerSizeComponent.y / 2),
-//                    takerPositionComponent.y + (takerSizeComponent.y / 2)]
-//
-//                let numberHitPoints = 0
-//                let touchingDirection = new Utils.Vector2(0, 0)
-//                if (
-//                    xRange1[1] >= xRange2[0] &&
-//                    !(xRange1[0] > xRange2[0]) &&
-//                    !(xRange1[0] == xRange2[0] && xRange1[1] == xRange2[1])
-//                ) {
-//                    numberHitPoints += 1
-//                    touchingDirection.x += 1
-//                }
-//                if (
-//                    xRange1[0] <= xRange2[1] &&
-//                    !(xRange1[1] < xRange2[1]) &&
-//                    !(xRange1[0] == xRange2[0] && xRange1[1] == xRange2[1])
-//                ) {
-//                    numberHitPoints += 1
-//                    touchingDirection.x -= 1
-//                }
-//                if (
-//                    yRange1[1] >= yRange2[0] &&
-//                    !(yRange1[0] > yRange2[0]) &&
-//                    !(yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1])
-//                ) {
-//                    numberHitPoints += 1
-//                    touchingDirection.y += 1
-//                }
-//                if (
-//                    yRange1[0] <= yRange2[1] &&
-//                    !(yRange1[1] < yRange2[1]) &&
-//                    !(yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1])
-//                ) {
-//                    numberHitPoints += 1
-//                    touchingDirection.y -= 1
-//                }
-//                if (yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1]) {
-//                    numberHitPoints += 1
-//                }
-//                if (xRange1[0] == xRange2[0] && xRange1[1] == xRange2[1]) {
-//                    numberHitPoints += 1
-//                }
-//
-//                if (numberHitPoints < 2) continue
-//                let forceDirection = new Utils.Vector2(0, 0)
-//                if (giverForceComponent.x > 0) {
-//                    forceDirection.x += 1
-//                }
-//                if (giverForceComponent.y > 0) {
-//                    forceDirection.y += 1
-//                }
-//                if (giverForceComponent.x < 0) {
-//                    forceDirection.x -= 1
-//                }
-//                if (giverForceComponent.y < 0) {
-//                    forceDirection.y -= 1
-//                }
-//
-//                //if (takerMassComponent.mass == takerMassComponent.mass) {
-//                //    //skip
-//                //}
-//
-//                //let giverNewForce = new Utils.Vector2(0, 0)
-//                //let takerNewForce = new Utils.Vector2(0, 0)
-//
-//                //// one has more mass
-//                //if (giverMassComponent.mass != takerMassComponent.mass) {
-//                //    if (giverMassComponent.mass > takerMassComponent.mass) {
-//                //    }
-//                //}
-//                //// they are the same mass
-//                //if () { }
-//
-//                // console.log(forceDirection)
-//                // calculate force taken for moving it out of reach
-//                // substract force took for moving it
-//                if (forceDirection.x == touchingDirection.x && forceDirection.x != 0) {
-//                    system.setProperty<Comps.Force, "x">(
-//                        foundTakerComponents[1][0],
-//                        "x",
-//                        giverForceComponent.x + takerForceComponent.x)
-//                    system.setProperty<Comps.Force, "x">(cFC, "x", 0)
-//                    system.setProperty<Comps.Position, "x">(
-//                        giverFoundComponents[0][0],
-//                        "x",
-//                        giverPositionComponent.x - giverForceComponent.x)
-//                }
-//                if (forceDirection.y == touchingDirection.y && forceDirection.y != 0) {
-//                    system.setProperty<Comps.Force, "y">(
-//                        foundTakerComponents[1][0],
-//                        "y",
-//                        giverForceComponent.y + takerForceComponent.y)
-//                    system.setProperty<Comps.Force, "y">(cFC, "y", 0)
-//                    system.setProperty<Comps.Position, "y">(
-//                        giverFoundComponents[0][0],
-//                        "y",
-//                        giverPositionComponent.y - giverForceComponent.y)
-//                }
-//            }
-//        }
-//    }
-//}
+export class Collide implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.Collide
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        for (let cFC of resources.componentChanges.changedComponents[Comps.ComponentTypes.Force]) {
+
+            let giverFoundComponents = system.find(
+                [ECS.Get.One, [Comps.ComponentTypes.Position, Comps.ComponentTypes.BoxShape, Comps.ComponentTypes.Mass], ECS.By.EntityId, cFC.entityUid])
+            if (
+                giverFoundComponents[0].length == 0 ||
+                giverFoundComponents[1].length == 0 ||
+                giverFoundComponents[2].length == 0
+            ) {
+                console.log("no giver components found")
+                continue
+            }
+
+            let giverForceComponent = cFC as Comps.Force
+            let giverPositionComponent = giverFoundComponents[0][0] as Comps.Position
+            let giverBoxShapeComponent = giverFoundComponents[1][0] as Comps.BoxShape
+            let giverMassComponent = giverFoundComponents[2][0] as Comps.Mass
+
+            let foundTakerSizeComponents = system.find(
+                [ECS.Get.All, [Comps.ComponentTypes.BoxShape], ECS.By.Any, null])
+
+            for (let fSC of foundTakerSizeComponents[0]) {
+                if (fSC.entityUid == cFC.entityUid) continue
+                let foundTakerComponents = system.find(
+                    [ECS.Get.One, [Comps.ComponentTypes.Position, Comps.ComponentTypes.Force, Comps.ComponentTypes.Mass], ECS.By.EntityId, fSC.entityUid])
+                if (foundTakerComponents[0].length == 0) {
+                    console.log("no position found")
+                    continue
+                }
+                if (foundTakerComponents[1].length == 0) {
+                    continue
+                }
+                let takerSizeComponent = fSC as Comps.BoxShape
+                let takerPositionComponent = foundTakerComponents[0][0] as Comps.Position
+                let takerForceComponent = foundTakerComponents[1][0] as Comps.Force
+                let takerMassComponent = foundTakerComponents[2][0] as Comps.Mass
+
+                // from, to
+                let zRange1 = [
+                    giverPositionComponent.z - giverBoxShapeComponent.z / 2,
+                    giverPositionComponent.z + giverBoxShapeComponent.z / 2]
+                let yRange1 = [
+                    giverPositionComponent.x - giverBoxShapeComponent.x / 2,
+                    giverPositionComponent.x + giverBoxShapeComponent.x / 2]
+
+                let zRange2 = [
+                    takerPositionComponent.z - (takerSizeComponent.z / 2),
+                    takerPositionComponent.z + (takerSizeComponent.z / 2)]
+                let yRange2 = [
+                    takerPositionComponent.x - (takerSizeComponent.x / 2),
+                    takerPositionComponent.x + (takerSizeComponent.x / 2)]
+
+                let numberHitPoints = 0
+                let touchingDirection = new Utils.Vector3(0, 0, 0)
+                if (
+                    zRange1[1] >= zRange2[0] &&
+                    !(zRange1[0] > zRange2[0]) &&
+                    !(zRange1[0] == zRange2[0] && zRange1[1] == zRange2[1])
+                ) {
+                    numberHitPoints += 1
+                    touchingDirection.z += 1
+                }
+                if (
+                    zRange1[0] <= zRange2[1] &&
+                    !(zRange1[1] < zRange2[1]) &&
+                    !(zRange1[0] == zRange2[0] && zRange1[1] == zRange2[1])
+                ) {
+                    numberHitPoints += 1
+                    touchingDirection.z -= 1
+                }
+                if (
+                    yRange1[1] >= yRange2[0] &&
+                    !(yRange1[0] > yRange2[0]) &&
+                    !(yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1])
+                ) {
+                    numberHitPoints += 1
+                    touchingDirection.x += 1
+                }
+                if (
+                    yRange1[0] <= yRange2[1] &&
+                    !(yRange1[1] < yRange2[1]) &&
+                    !(yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1])
+                ) {
+                    numberHitPoints += 1
+                    touchingDirection.x -= 1
+                }
+                if (yRange1[0] == yRange2[0] && yRange1[1] == yRange2[1]) {
+                    numberHitPoints += 1
+                }
+                if (zRange1[0] == zRange2[0] && zRange1[1] == zRange2[1]) {
+                    numberHitPoints += 1
+                }
+
+                if (numberHitPoints < 2) continue
+                console.log("hitting")
+                let forceDirection = new Utils.Vector3(0, 0, 0)
+                if (giverForceComponent.z > 0) {
+                    forceDirection.z += 1
+                }
+                if (giverForceComponent.x > 0) {
+                    forceDirection.x += 1
+                }
+                if (giverForceComponent.z < 0) {
+                    forceDirection.z -= 1
+                }
+                if (giverForceComponent.x < 0) {
+                    forceDirection.x -= 1
+                }
+
+                //if (takerMassComponent.mass == takerMassComponent.mass) {
+                //    //skip
+                //}
+
+                //let giverNewForce = new Utils.Vector2(0, 0)
+                //let takerNewForce = new Utils.Vector2(0, 0)
+
+                //// one has more mass
+                //if (giverMassComponent.mass != takerMassComponent.mass) {
+                //    if (giverMassComponent.mass > takerMassComponent.mass) {
+                //    }
+                //}
+                //// they are the same mass
+                //if () { }
+
+                // console.log(forceDirection)
+                // calculate force taken for moving it out of reach
+                // substract force took for moving it
+                if (forceDirection.z == touchingDirection.z && forceDirection.z != 0) {
+                    takerForceComponent.z = giverForceComponent.z + takerForceComponent.z
+                    giverForceComponent.z = 0
+                    giverPositionComponent.z = giverPositionComponent.z - giverForceComponent.z
+                }
+                if (forceDirection.x == touchingDirection.x && forceDirection.x != 0) {
+                    takerForceComponent.x = giverForceComponent.x + takerForceComponent.x
+                    giverForceComponent.x = 0
+                    giverPositionComponent.x = giverPositionComponent.x - giverForceComponent.x
+                }
+            }
+        }
+    }
+}

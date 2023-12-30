@@ -12,6 +12,7 @@ export class Resources {
     input: InputResource
     options: OptionsResource
     domState: DOMStateResouce
+    positionGrid: PositionGridResource
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
         this.domState = new DOMStateResouce()
         this.delta = new DeltaResource(newCurrentExecutingCommand)
@@ -20,6 +21,7 @@ export class Resources {
         this.componentChanges = new ComponentChanges()
         this.input = new InputResource()
         this.options = new OptionsResource()
+        this.positionGrid = new PositionGridResource()
     }
 }
 
@@ -178,5 +180,9 @@ export class ComponentChanges {
         this.changedComponentsBuffer = structuredClone(this.baseStructure)
         this.removedComponentsBuffer = structuredClone(this.baseStructure)
         this.addedComponentsBuffer = structuredClone(this.baseStructure)
+    }
+}
+export class PositionGridResource {
+    constructor() {
     }
 }

@@ -193,11 +193,13 @@ export class GraphicChangesHandler {
                     case Comps.EntityTypes.GeometricShape: {
                         let material = new THREE.MeshPhongMaterial();
                         const geometry = new THREE.BoxGeometry(
-                            boxShapeComponent!.size.x,
-                            boxShapeComponent!.size.y,
-                            boxShapeComponent!.size.z);
+                            boxShapeComponent!.x,
+                            boxShapeComponent!.y,
+                            boxShapeComponent!.z);
                         const mesh = new THREE.Mesh(geometry, material);
                         newGraphicObject = new GraphicObject(mesh, eC.entityUid)
+                        newGraphicObject.object.castShadow = true
+                        newGraphicObject.object.receiveShadow = true
                     } break;
 
                     case Comps.EntityTypes.Light: {
@@ -214,16 +216,19 @@ export class GraphicChangesHandler {
                                         newGraphicObject = new GraphicObject(
                                             new THREE.PointLight(),
                                             eC.entityUid)
+                                        newGraphicObject.object.castShadow = true
                                         break;
                                     case Comps.LightTypes.DirectionalLight:
                                         newGraphicObject = new GraphicObject(
                                             new THREE.DirectionalLight(),
                                             eC.entityUid)
+                                        newGraphicObject.object.castShadow = true
                                         break;
                                     case Comps.LightTypes.SpotLight:
                                         newGraphicObject = new GraphicObject(
                                             new THREE.SpotLight(),
                                             eC.entityUid)
+                                        newGraphicObject.object.castShadow = true
                                         break;
                                 }
                             }
@@ -315,6 +320,7 @@ export class World {
     }
     setup() {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        (this.renderer as any).shadowMap.enabled = true
         document.body.appendChild(this.renderer.domElement);
     }
     renderLoop() {
@@ -322,7 +328,6 @@ export class World {
 
         let delta = this.clock.getDelta()
         if (this.camera == undefined) {
-            console.log("no camera found")
             return
         }
         for (let gO of this.graphicObjects) {

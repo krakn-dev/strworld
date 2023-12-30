@@ -17,6 +17,7 @@ export enum ComponentTypes {
     Mass,
     ShapeColor,
     Force,
+    HardCodedId,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -53,6 +54,21 @@ export enum LightTypes {
     SpotLight,
 }
 
+export class HardCodedId implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    id: number
+    constructor(
+        newId: number,
+        newEntityUid: number,
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.HardCodedId
+        this.id = newId
+    }
+}
 export class ShapeColor implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -72,15 +88,21 @@ export class BoxShape implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    size: Utils.Vector3
+    x: number
+    y: number
+    z: number
     constructor(
-        newSize: Utils.Vector3,
+        newX: number,
+        newY: number,
+        newZ: number,
         newEntityUid: number,
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.BoxShape
-        this.size = newSize
+        this.x = newX
+        this.y = newY
+        this.z = newZ
     }
 }
 export class Light implements ECS.Component {

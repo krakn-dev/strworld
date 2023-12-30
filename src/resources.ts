@@ -10,21 +10,23 @@ export class Resources {
     commandState: CommandStateResource
     componentChanges: ComponentChanges
     input: InputResource
-    configuration: ConfigurationResource
+    options: OptionsResource
+    domState: DOMStateResouce
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
+        this.domState = new DOMStateResouce()
         this.delta = new DeltaResource(newCurrentExecutingCommand)
         this.isFirstTime = new IsFirstTimeResource(newCurrentExecutingCommand)
         this.commandState = new CommandStateResource(newCurrentExecutingCommand)
         this.componentChanges = new ComponentChanges()
         this.input = new InputResource()
-        this.configuration = new ConfigurationResource()
+        this.options = new OptionsResource()
     }
 }
 
 class LastTimeCommandWasRun {
-    command: Cmds.Commands
+    command: Cmds.CommandTypes
     time: number
-    constructor(newTime: number, newCommand: Cmds.Commands) {
+    constructor(newTime: number, newCommand: Cmds.CommandTypes) {
         this.time = newTime
         this.command = newCommand
     }
@@ -62,13 +64,13 @@ export class DeltaResource {
 export class CommandStateResource {
     private currentExecutingCommand: ECS.CurrentExecutingCommand
 
-    private state: Map<[string, Cmds.Commands], [Cmds.Commands, any]>
+    private state: Map<[string, Cmds.CommandTypes], [Cmds.CommandTypes, any]>
 
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
         this.currentExecutingCommand = newCurrentExecutingCommand
         this.state = new Map()
     }
-    removeCommandStates(command: Cmds.Commands) {
+    removeCommandStates(command: Cmds.CommandTypes) {
         for (let [k, _] of this.state) {
             if (k[1] == command) {
                 this.state.delete(k)
@@ -82,11 +84,11 @@ export class CommandStateResource {
         )
     }
 
-    get(key: string): any | null {
+    get(key: string): any {
         console.log(this.state)
         let value = this.state.get([key, this.currentExecutingCommand.command!])
         if (value == undefined) {
-            return null
+            return undefined
         }
         else {
             return value[1]
@@ -116,16 +118,24 @@ export class IsFirstTimeResource {
     }
 }
 
-export class ConfigurationResource {
-    isShadowsEnabled: boolean | null
-    isSetNight: boolean | null
-    isEnablePhysics: boolean | null
-    isEnableFreeCamera: boolean | null
+export class OptionsResource {
+    isShadowsEnabled: boolean | undefined
+    isSetNight: boolean | undefined
+    isEnablePhysics: boolean | undefined
+    isEnableFreeCamera: boolean | undefined
     constructor() {
-        this.isSetNight = null
-        this.isShadowsEnabled = null
-        this.isEnablePhysics = null
-        this.isEnableFreeCamera = null
+        this.isSetNight = undefined
+        this.isShadowsEnabled = undefined
+        this.isEnablePhysics = undefined
+        this.isEnableFreeCamera = undefined
+    }
+}
+export class DOMStateResouce {
+    windowWidth: number | undefined
+    windowHeight: number | undefined
+    constructor() {
+        this.windowWidth = undefined
+        this.windowHeight = undefined
     }
 }
 export class InputResource {

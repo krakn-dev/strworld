@@ -6,7 +6,7 @@ import * as Res from "./resources"
 export interface Component {
     entityUid: number
     componentUid: number
-    type: Comps.Components
+    componentType: Comps.ComponentTypes
 }
 
 export enum Get {
@@ -22,13 +22,23 @@ export enum By {
 }
 
 export interface Command {
-    type: Cmds.Commands
+    commandType: Cmds.CommandTypes
     run(system: System, resources: Res.Resources): void
 }
 
+export class EntityComponents {
+    components: Component[]
+    entityUid: number
+
+    constructor(newEntityUid: number) {
+        this.components = []
+        this.entityUid = newEntityUid
+    }
+}
+
 class CommandChanges {
-    removedCommands: Cmds.Commands[]
-    addedCommands: Cmds.Commands[]
+    removedCommands: Cmds.CommandTypes[]
+    addedCommands: Cmds.CommandTypes[]
     constructor() {
         this.removedCommands = []
         this.addedCommands = []
@@ -40,7 +50,7 @@ class CommandChanges {
 }
 
 export class CurrentExecutingCommand {
-    command: Cmds.Commands | null
+    command: Cmds.CommandTypes | null
     constructor() {
         this.command = null
     }
@@ -66,28 +76,29 @@ export class System {
         }
     }
 
-    removeCommand(command: Cmds.Commands) {
+    removeCommand(command: Cmds.CommandTypes) {
         this.commandChangesBuffer.removedCommands.push(command)
     }
-
+    addCommand(command: Cmds.CommandTypes) {
+        this.commandChangesBuffer.addedCommands.push(command)
+    }
     addComponent(component: Component) {
-        this.components[component.type].push(
+        this.components[component.componentType].push(
             this.createProxy(component)
         )
         this
             .resources
             .componentChanges
-            .addedComponentsBuffer[component.type]
+            .addedComponentsBuffer[component.componentType]
             .push(component)
     }
-
     removeComponent(component: Component) {
-        for (let [cI, c] of this.components[component.type].entries()) {
+        for (let [cI, c] of this.components[component.componentType].entries()) {
             if (c.componentUid == component.componentUid) {
                 this
                     .resources
                     .componentChanges
-                    .removedComponentsBuffer[component.type]
+                    .removedComponentsBuffer[component.componentType]
                     .push(component)
 
                 this.components.splice(cI, 1)
@@ -109,7 +120,7 @@ export class System {
                     let cC of outer
                         .resources
                         .componentChanges
-                        .changedComponentsBuffer[outer.accessedComponent!.type]
+                        .changedComponentsBuffer[outer.accessedComponent!.componentType]
                 ) {
                     if (cC.componentUid == outer.accessedComponent!.componentUid) {
                         isAlreadyChanged = true
@@ -119,7 +130,7 @@ export class System {
                     outer
                         .resources
                         .componentChanges
-                        .changedComponentsBuffer[outer.accessedComponent!.type]
+                        .changedComponentsBuffer[outer.accessedComponent!.componentType]
                         .push(outer.accessedComponent!)
                 }
                 obj[prop] = value;
@@ -139,11 +150,8 @@ export class System {
 
         return new Proxy<T>(obj, handler);
     }
-    addCommand(command: Cmds.Commands) {
-        this.commandChangesBuffer.addedCommands.push(command)
-    }
 
-    find(query: [Get, Comps.Components[], By, Comps.EntityTypes | number | null]): Component[][] {
+    find(query: [Get, Comps.ComponentTypes[], By, Comps.EntityTypes | number | null]): Component[][] {
         // Comment on production !TODO
         if (query[1].length == 0) {
             console.log("no components expecified")
@@ -238,7 +246,7 @@ export class System {
         for (let aC of this.commandChangesBuffer.addedCommands) {
             let isFound = false
             for (let c of this.commands) {
-                if (aC == c.type) {
+                if (aC == c.commandType) {
                     console.log("$ command already exists")
                     isFound = true
                 }
@@ -250,9 +258,10 @@ export class System {
             let command = Cmds.getInstanceFromEnum(aC)
             let isInserted = false
             for (let [cI, c] of this.commands.entries()) {
-                if (aC < c.type) {
+                if (aC < c.commandType) {
                     isInserted = true
                     this.commands.splice(cI, 0, command)
+                    break
                 }
             }
             if (!isInserted) {
@@ -262,7 +271,7 @@ export class System {
         for (let rC of this.commandChangesBuffer.removedCommands) {
             let isFound = false
             for (let cI = this.commands.length - 1; cI >= 0; cI--) {
-                if (rC == this.commands[cI].type) {
+                if (rC == this.commands[cI].commandType) {
                     isFound = true
 
                     this.commands.splice(cI, 1)
@@ -275,8 +284,10 @@ export class System {
         }
     }
     run() {
+        //    console.log("commands", this.commands)
+        //console.log("components", this.components)
         for (let c of this.commands) {
-            this.currentExecutingCommand.command = c.type
+            this.currentExecutingCommand.command = c.commandType
             c.run(this, this.resources)
         }
 

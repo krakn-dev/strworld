@@ -2,15 +2,25 @@ import * as Ser from "./serialization"
 import * as Graph from "./graphics"
 import * as Input from "./input"
 
+let world = new Graph.World()
+let graphicChangesHandler = new Graph.GraphicChangesHandler()
+world.setup()
+
 let keyboardInput = new Input.KeyboardInput()
 let worker = new Worker(
     new URL('worker', import.meta.url),
     { type: "module" });
 
 worker.postMessage(
-    new Ser.Message(Ser.Messages.Start))
+    new Ser.Message(
+        Ser.Messages.Start,
+        new Ser.DOMData(window.innerWidth, window.innerHeight)
+    ));
+
 worker.onmessage = onWorkerMessage
-setInterval(sendInputToWorker, 40)
+setInterval(sendInputToWorker, 30)
+
+world.renderLoop()
 
 function sendInputToWorker() {
     worker.postMessage(
@@ -24,7 +34,15 @@ function sendInputToWorker() {
 }
 
 function onWorkerMessage(data: any) {
+    let msg = (data.data as Ser.Message)
+    switch (msg.message) {
+        case Ser.Messages.GraphicChanges: {
+            let newData = msg.data as Ser.GraphicChanges
+            graphicChangesHandler.run(world, newData)
+        } break;
+    }
 }
+
 
 //    let msg = (data.data as Ser.Message)
 //    let newData = msg.data as Ser.GraphicChanges

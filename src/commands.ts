@@ -2,12 +2,13 @@ import * as ECS from "./ecs"
 import * as Res from "./resources"
 import * as Utils from "./utils"
 import * as Comps from "./components"
+import * as Ser from "./serialization"
 
 // order in which they get executed
-export enum Commands {
+export enum CommandTypes {
     TheFirst = 0,
-    CreatePlayer = 1,
-    MovePlayer = 2,
+    CreateStickman,
+    MovePlayer,
     //    SetEntityElementsPositionAndDisplayElement = 3,
     //    SendComputedElementsToRender = 4,
     //    CreateShadows = 5,
@@ -23,21 +24,23 @@ export enum Commands {
     //    CreateDog = 15,
     //    MoveDog = 16,
     ApplyForce,
-    Collide,
+    CreateGravity,
+    CreateScene,
+    SendGraphicComponentsToRender,
 }
 
-export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
+export function getInstanceFromEnum(commandEnum: CommandTypes): ECS.Command {
     switch (commandEnum) {
-        case Commands.TheFirst:
+        case CommandTypes.TheFirst:
             return new TheFirst()
 
         //        case Commands.MoveCameraWithPlayer:
         //            return new MoveCameraWithPlayer()
         //
-        case Commands.Collide:
-            return new Collide()
-
-        case Commands.ApplyForce:
+        //        case Commands.Collide:
+        //            return new Collide()
+        //
+        case CommandTypes.ApplyForce:
             return new ApplyForce()
         //
         //        case Commands.MoveDog:
@@ -70,11 +73,17 @@ export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
         //        case Commands.WatchDevBox:
         //            return new WatchDevBox()
         //
-        case Commands.CreatePlayer:
-            return new CreatePlayer()
-        //
-        case Commands.MovePlayer:
+        case CommandTypes.SendGraphicComponentsToRender:
+            return new SendGraphicComponentsToRender()
+        case CommandTypes.CreateStickman:
+            return new CreateStickman()
+        case CommandTypes.MovePlayer:
             return new MovePlayer()
+        case CommandTypes.CreateScene:
+            return new CreateScene()
+
+        case CommandTypes.CreateGravity:
+            return new CreateGravity()
         //
         //        case Commands.SetEntityElementsPositionAndDisplayElement:
         //            return new SetEntityElementsPositionAndDisplayElement()
@@ -89,9 +98,9 @@ export function getInstanceFromEnum(commandEnum: Commands): ECS.Command {
 
 // the first
 export class TheFirst implements ECS.Command {
-    readonly type: Commands
+    readonly commandType: CommandTypes
     constructor() {
-        this.type = Commands.TheFirst
+        this.commandType = CommandTypes.TheFirst
     }
 
     run(system: ECS.System, _: Res.Resources) {
@@ -100,21 +109,77 @@ export class TheFirst implements ECS.Command {
         // first ensure that commands
         // that depend of some components are created first
         //
-        system.addCommand(Commands.CreatePlayer)
+        system.addCommand(CommandTypes.CreateStickman)
+        system.addCommand(CommandTypes.CreateScene)
+        system.addCommand(CommandTypes.SendGraphicComponentsToRender)
         //system.addCommand(Commands.CreateDog)
         //system.addCommand(Commands.SetEntityElementsPositionAndDisplayElement)
         //system.addCommand(Commands.SendComputedElementsToRender)
         //system.addCommand(Commands.PlayAnimations)
         //system.addCommand(Commands.UpdateAnimationTimerNumber)
         //system.addCommand(Commands.TickTimer)
-        //system.addCommand(Commands.ApplyForce)
+        system.addCommand(CommandTypes.ApplyForce)
+        //system.addCommand(CommandTypes.CreateGravity)
         //system.addCommand(Commands.Collide)
         //system.addCommand(Commands.WatchDevBox)
 
-        system.removeCommand(Commands.TheFirst)
+        system.removeCommand(CommandTypes.TheFirst)
     }
 }
 
+export class CreateScene implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.CreateScene
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        {
+            let camera = Utils.newUid()
+            let cameraComponent = new Comps.Camera(
+                60,
+                0.1,
+                500,
+                resources.domState.windowWidth! / resources.domState.windowHeight!,
+                camera)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 14, 8), camera)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(-60, 0, 0), camera)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Camera, camera)
+            system.addComponent(cameraComponent)
+            system.addComponent(rotationComponent)
+            system.addComponent(positionComponent)
+            system.addComponent(entityTypeComponent)
+        }
+        {
+            let pointLight = Utils.newUid()
+            let lightComponent = new Comps.Light(Comps.LightTypes.PointLight, 10, 0xffffff, 10, 0, pointLight)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 2, 1), pointLight)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Light, pointLight)
+            system.addComponent(lightComponent)
+            system.addComponent(positionComponent)
+            system.addComponent(entityTypeComponent)
+        }
+        {
+            let ambientLight = Utils.newUid()
+            let lightComponent = new Comps.Light(Comps.LightTypes.AmbientLight, 0.5, 0xffffff, 0, 0, ambientLight)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Light, ambientLight)
+            system.addComponent(lightComponent)
+            system.addComponent(entityTypeComponent)
+        }
+        {
+            let plane = Utils.newUid()
+            let boxShapeComponent = new Comps.BoxShape(new Utils.Vector3(8, 0.5, 8), plane)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, -2, 0), plane)
+            let shapeColorComponent = new Comps.ShapeColor(0x88ffcc, plane)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, plane)
+            system.addComponent(boxShapeComponent)
+            system.addComponent(positionComponent)
+            system.addComponent(shapeColorComponent)
+            system.addComponent(entityTypeComponent)
+        }
+        system.removeCommand(CommandTypes.CreateScene)
+    }
+}
 // create entity
 //export class CreateDog implements ECS.Command {
 //    readonly type: Commands
@@ -155,27 +220,23 @@ export class TheFirst implements ECS.Command {
 //        system.removeCommand(Commands.CreateDog)
 //    }
 //}
-export class CreatePlayer implements ECS.Command {
-    readonly type: Commands
+export class CreateStickman implements ECS.Command {
+    readonly commandType: CommandTypes
     constructor() {
-        this.type = Commands.CreatePlayer
+        this.commandType = CommandTypes.CreateStickman
     }
 
     run(system: ECS.System, _: Res.Resources) {
         for (let x = 0; x < 1; x++) {
             for (let y = 0; y < 1; y++) {
-                let player = Utils.newUid()
-                let positionComponent = new Comps.Position(new Utils.Vector3(x * 70, y * 70, 0), player)
-                let entityStateComponent = new Comps.EntityState([Comps.EntityStates.Idle], player)
-                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Player, player)
-                let healthComponent = new Comps.Health(10, player)
-                let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), player)
-                let massComponent = new Comps.Mass(4, player)
-                let sizeComponent = new Comps.Size(new Utils.Vector3(40, 90, 30), player)
-                let computedElementComponent = new Comps.ChangedGraphicProperties(Comps.ElementTypes.Entity, player)
-                computedElementComponent.translateX = positionComponent.x
-                computedElementComponent.translateY = positionComponent.y
-                computedElementComponent.zIndex = positionComponent.y
+                let stickman = Utils.newUid()
+                let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, 0), stickman)
+                let entityStateComponent = new Comps.EntityState([Comps.EntityStates.Idle], stickman)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Stickman, stickman)
+                let healthComponent = new Comps.Health(10, stickman)
+                let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), stickman)
+                let massComponent = new Comps.Mass(4, stickman)
+                let sizeComponent = new Comps.BoxShape(new Utils.Vector3(40, 90, 30), stickman)
 
                 system.addComponent(massComponent)
                 system.addComponent(sizeComponent)
@@ -183,31 +244,26 @@ export class CreatePlayer implements ECS.Command {
                 system.addComponent(healthComponent)
                 system.addComponent(positionComponent)
                 system.addComponent(entityStateComponent)
-                system.addComponent(computedElementComponent)
                 system.addComponent(entityTypeComponent)
             }
         }
-        system.addCommand(Commands.MovePlayer)
-        system.removeCommand(Commands.CreatePlayer)
+        system.addCommand(CommandTypes.MovePlayer)
+        system.removeCommand(CommandTypes.CreateStickman)
     }
 }
 //
 //// movement
 export class MovePlayer implements ECS.Command {
-    readonly type: Commands
+    readonly commandType: CommandTypes
     constructor() {
-        this.type = Commands.MovePlayer
+        this.commandType = CommandTypes.MovePlayer
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        let delta = resources.delta.get()
-        if (delta == null) return
-        //        let acceleration = 0.03
-        //        let forceLimit = 0.5
-        let acceleration = 0.1
-        let forceLimit = 1
+        let acceleration = 0.01
+        let forceLimit = 0.02
         // get playerUid
-        let foundEntityTypeComponents = system.find([ECS.Get.All, [Comps.Components.EntityType], ECS.By.Any, null])
+        let foundEntityTypeComponents = system.find([ECS.Get.All, [Comps.ComponentTypes.EntityType], ECS.By.Any, null])
         if (foundEntityTypeComponents[0].length == 0) {
             console.log("no entity types found")
             return
@@ -215,7 +271,7 @@ export class MovePlayer implements ECS.Command {
         let playerUid: number | null = null
         for (let fC of foundEntityTypeComponents[0]) {
             let entityTypeComponent = fC as Comps.EntityType
-            if (entityTypeComponent.entityType == Comps.EntityTypes.Player) {
+            if (entityTypeComponent.entityType == Comps.EntityTypes.Stickman) {
                 playerUid = entityTypeComponent.entityUid
             }
         }
@@ -230,7 +286,7 @@ export class MovePlayer implements ECS.Command {
                 [
                     ECS.Get.All,
                     [
-                        Comps.Components.EntityState,
+                        Comps.ComponentTypes.EntityState,
                     ],
                     ECS.By.EntityId,
                     foundEntityTypeComponents[0][0].entityUid
@@ -258,25 +314,25 @@ export class MovePlayer implements ECS.Command {
             }
         }
 
-        let foundForceComponent = system.find([ECS.Get.One, [Comps.Components.Force], ECS.By.EntityId, playerUid])
+        let foundForceComponent = system.find([ECS.Get.One, [Comps.ComponentTypes.Force], ECS.By.EntityId, playerUid])
         if (foundForceComponent[0].length == 0) {
             console.log("no player force found found")
             return
         }
         let forceComponent = foundForceComponent[0][0] as Comps.Force
-        let newForce = new Utils.Vector2(0, 0)
+        let newForce = new Utils.Vector3(0, 0, 0)
         newForce.x = forceComponent.x + resources.input.movementDirection.x * acceleration
-        newForce.y = forceComponent.y + resources.input.movementDirection.y * acceleration
+        newForce.z = forceComponent.z + (-resources.input.movementDirection.y) * acceleration
 
         if (Math.abs(newForce.x) > forceLimit) {
             newForce.x = forceLimit * (newForce.x < 0 ? -1 : 1)
         }
-        if (Math.abs(newForce.y) > forceLimit) {
-            newForce.y = forceLimit * (newForce.y < 0 ? -1 : 1)
+        if (Math.abs(newForce.z) > forceLimit) {
+            newForce.z = forceLimit * (newForce.z < 0 ? -1 : 1)
         }
 
         let foundEntityState = system.find(
-            [ECS.Get.One, [Comps.Components.EntityState], ECS.By.EntityId, playerUid])
+            [ECS.Get.One, [Comps.ComponentTypes.EntityState], ECS.By.EntityId, playerUid])
 
         if (foundEntityState[0].length == 0) {
             console.log("player entityState not found")
@@ -296,7 +352,7 @@ export class MovePlayer implements ECS.Command {
             forceComponent.x = newForce.x
         }
         if (resources.input.movementDirection.y != 0) {
-            forceComponent.y = newForce.y
+            forceComponent.z = newForce.z
         }
     }
 }
@@ -628,80 +684,68 @@ export class MovePlayer implements ECS.Command {
 //    }
 //}
 //
-//// computed elements
-//export class SendComputedElementsToRender implements ECS.Command {
-//    readonly type: Commands
-//    constructor() {
-//        this.type = Commands.SendComputedElementsToRender
-//    }
-//
-//    run(system: ECS.System) {
-//        let foundComponents = system.find(
-//            [ECS.Get.All, [Comps.Components.ComputedElement], ECS.By.Any, null])
-//
-//        if (foundComponents[0].length == 0) return
-//
-//        let graphicDiff = new Utils.GraphicDiff()
-//
-//        // for changed
-//        for (let cC of system.componentDiffs.changedComponents) {
-//            if (cC.component.type != Comps.Components.ComputedElement) continue
-//            let computedElementComponent = cC.component as Comps.GraphicProperties
-//
-//            if (!computedElementComponent.isChanged) continue
-//
-//            graphicDiff.changedComputedElements.push(cC)
-//            // set properties to not changed
-//            system.setProperty<Comps.GraphicProperties, "isChanged">(
-//                cC, "isChanged", false)
-//
-//            if (computedElementComponent.addedClasses.size != 0)
-//                system.removeElementFromMapProperty<Comps.GraphicProperties, "addedClasses">(
-//                    cC, "addedClasses", null, true)
-//
-//            if (computedElementComponent.removedClasses.size != 0)
-//                system.removeElementFromMapProperty<Comps.GraphicProperties, "removedClasses">(
-//                    cC, "removedClasses", null, true)
-//
-//            if (computedElementComponent.isTranslateXChanged)
-//                system.setProperty<Comps.GraphicProperties, "isTranslateXChanged">(
-//                    cC, "isTranslateXChanged", false)
-//            if (computedElementComponent.isTranslateYChanged)
-//                system.setProperty<Comps.GraphicProperties, "isTranslateYChanged">(
-//                    cC, "isTranslateYChanged", false)
-//            if (computedElementComponent.isZIndexChanged)
-//                system.setProperty<Comps.GraphicProperties, "isZIndexChanged">(
-//                    cC, "isZIndexChanged", false)
-//            if (computedElementComponent.isColorChanged)
-//                system.setProperty<Comps.GraphicProperties, "isColorChanged">(
-//                    cC, "isColorChanged", false)
-//            if (computedElementComponent.isDisplayElementChanged)
-//                system.setProperty<Comps.GraphicProperties, "isDisplayElementChanged">(
-//                    cC, "isDisplayElementChanged", false)
-//        }
-//        // check for new
-//        for (let aC of system.componentDiffs.addedComponents) {
-//            if (aC.component.type == Comps.Components.ComputedElement) {
-//                graphicDiff.addedComputedElements.push(aC)
-//            }
-//
-//        }
-//        // check for removed
-//        for (let rC of system.componentDiffs.removedComponents) {
-//            if (rC.component.type == Comps.Components.ComputedElement) {
-//                graphicDiff.removedComputedElements.push(rC)
-//            }
-//        }
-//
-//        if (graphicDiff.addedComputedElements.length == 0 &&
-//            graphicDiff.removedComputedElements.length == 0 &&
-//            graphicDiff.changedComputedElements.length == 0
-//        ) {
-//            return
-//        }
-//        postMessage(new Utils.Message(Utils.Messages.RenderIt, graphicDiff))
-//    }
-//}
+//// render
+export class SendGraphicComponentsToRender implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.SendGraphicComponentsToRender
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        let graphicChanges = new Ser.GraphicChanges()
+        // for changed
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.changedComponents[Comps.ComponentTypes.Camera])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.changedComponents[Comps.ComponentTypes.Light])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.changedComponents[Comps.ComponentTypes.Position])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.changedComponents[Comps.ComponentTypes.EntityState])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.changedComponents[Comps.ComponentTypes.Rotation])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.changedComponents[Comps.ComponentTypes.BoxShape])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.changedComponents[Comps.ComponentTypes.ShapeColor])
+
+        // for added
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.EntityType])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Camera])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Light])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Position])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.EntityState])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Rotation])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.BoxShape])
+        graphicChanges.changedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.ShapeColor])
+
+        // check for removed entities
+        for (let rC of resources.componentChanges.removedComponents[Comps.ComponentTypes.EntityType]) {
+            graphicChanges.removedEntitiesUid.push(rC.entityUid)
+        }
+
+        // check for added entities
+        for (let rC of resources.componentChanges.addedComponents[Comps.ComponentTypes.EntityType]) {
+            graphicChanges.addedEntitiesUid.push(rC.entityUid)
+        }
+
+        if (graphicChanges.changedComponents.length == 0 &&
+            graphicChanges.removedEntitiesUid.length == 0
+        ) {
+            return
+        }
+
+        postMessage(new Ser.Message(Ser.Messages.GraphicChanges, graphicChanges))
+    }
+}
 //
 //// entity elements
 //export class SetEntityElementsPositionAndDisplayElement implements ECS.Command {
@@ -1179,95 +1223,119 @@ export class MovePlayer implements ECS.Command {
 //}
 //
 //// physics
-//export class ApplyForce implements ECS.Command {
-//    readonly type: Commands
-//    constructor() {
-//        this.type = Commands.ApplyForce
-//    }
-//
-//    run(system: ECS.System) {
-//        let delta = system.delta()
-//        if (delta == null) return
-//
-//        let foundForceComponents = system.find(
-//            [ECS.Get.All, [Comps.Components.Force], ECS.By.Any, null])
-//        if (foundForceComponents[0].length == 0) {
-//            console.log("no force components")
-//            return
-//        }
-//
-//        for (let fFC of foundForceComponents[0]) {
-//
-//            let foundPositionComponents = system.find(
-//                [ECS.Get.One, [Comps.Components.Position, Comps.Components.Mass], ECS.By.EntityId, fFC.component.entityUid])
-//            if (foundPositionComponents[0].length == 0 || foundPositionComponents[1].length == 0) {
-//                console.log("no position or mass component")
-//                return
-//            }
-//
-//            let forceComponent = fFC.component as Comps.Force
-//            let positionComponent = foundPositionComponents[0][0].component as Comps.Position
-//            let massComponent = foundPositionComponents[1][0].component as Comps.Mass
-//
-//            let velocity = new Utils.Vector2(0, 0)
-//            let airDrag = 0.005
-//            let resultForce = new Utils.Vector2(0, 0)
-//
-//            // apply air drag
-//            if (forceComponent.x < 0) {
-//                velocity.x = forceComponent.x / massComponent.mass
-//                resultForce.x = forceComponent.x + airDrag
-//            }
-//            if (forceComponent.x > 0) {
-//                velocity.x = forceComponent.x / massComponent.mass
-//                resultForce.x = forceComponent.x - airDrag
-//            }
-//            if (forceComponent.y < 0) {
-//                velocity.y = forceComponent.y / massComponent.mass
-//                resultForce.y = forceComponent.y + airDrag
-//            }
-//            if (forceComponent.y > 0) {
-//                velocity.y = forceComponent.y / massComponent.mass
-//                resultForce.y = forceComponent.y - airDrag
-//            }
-//
-//            // make mass not invert velocity, ex. force < mass
-//            if (forceComponent.x > 0 && velocity.x < 0 || forceComponent.x < 0 && velocity.x > 0) {
-//                velocity.x = 0
-//            }
-//            if (forceComponent.y > 0 && velocity.y < 0 || forceComponent.y < 0 && velocity.y > 0) {
-//                velocity.y = 0
-//            }
-//
-//            // make force dont invert because of drag
-//            if (forceComponent.x > 0 && resultForce.x < 0 || forceComponent.x < 0 && resultForce.x > 0) {
-//                resultForce.x = 0
-//            }
-//            if (forceComponent.y > 0 && resultForce.y < 0 || forceComponent.y < 0 && resultForce.y > 0) {
-//                resultForce.y = 0
-//            }
-//
-//            //let airDrag = 0.001
-//            // for x
-//            if (velocity.x != 0) {
-//                system.setProperty<Comps.Position, "x">(
-//                    foundPositionComponents[0][0], "x", positionComponent.x + velocity.x * delta)
-//
-//                // forces always should always go towards 0
-//                system.setProperty<Comps.Force, "x">(
-//                    fFC, "x", resultForce.x)
-//            }
-//            // for y
-//            if (velocity.y != 0) {
-//                system.setProperty<Comps.Position, "y">(
-//                    foundPositionComponents[0][0], "y", positionComponent.y + velocity.y * delta)
-//
-//                system.setProperty<Comps.Force, "y">(
-//                    fFC, "y", resultForce.y)
-//            }
-//        }
-//    }
-//}
+export class CreateGravity implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.CreateGravity
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        let foundForceComponents = system.find(
+            [ECS.Get.All, [Comps.ComponentTypes.Force], ECS.By.Any, null])
+        if (foundForceComponents[0].length == 0) {
+            console.log("no force components")
+            return
+        }
+
+        for (let fFC of foundForceComponents[0]) {
+            let forceComponent = fFC as Comps.Force
+            let gravityAcceleration = 0.003
+            forceComponent.y -= gravityAcceleration
+        }
+    }
+}
+export class ApplyForce implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.ApplyForce
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        let delta = resources.delta.get()
+        if (delta == null) return
+
+        let foundForceComponents = system.find(
+            [ECS.Get.All, [Comps.ComponentTypes.Force], ECS.By.Any, null])
+        if (foundForceComponents[0].length == 0) {
+            console.log("no force components")
+            return
+        }
+
+        for (let fFC of foundForceComponents[0]) {
+
+            let foundPositionComponents = system.find(
+                [ECS.Get.One, [Comps.ComponentTypes.Position, Comps.ComponentTypes.Mass], ECS.By.EntityId, fFC.entityUid])
+            if (foundPositionComponents[0].length == 0 || foundPositionComponents[1].length == 0) {
+                console.log("no position or mass component")
+                return
+            }
+
+            let forceComponent = fFC as Comps.Force
+            let positionComponent = foundPositionComponents[0][0] as Comps.Position
+            let massComponent = foundPositionComponents[1][0] as Comps.Mass
+
+            let velocity = new Utils.Vector3(0, 0, 0)
+            let airDrag = 0.0015
+            let resultForce = new Utils.Vector3(0, 0, 0)
+
+
+            if (forceComponent.x < 0) {
+                resultForce.x = forceComponent.x + airDrag
+                if (resultForce.x > 0) {
+                    resultForce.x = 0
+                }
+            }
+            if (forceComponent.x > 0) {
+                resultForce.x = forceComponent.x - airDrag
+                if (resultForce.x < 0) {
+                    resultForce.x = 0
+                }
+            }
+            if (forceComponent.y < 0) {
+                resultForce.y = forceComponent.y + airDrag
+                if (resultForce.y > 0) {
+                    resultForce.y = 0
+                }
+            }
+            if (forceComponent.y > 0) {
+                resultForce.y = forceComponent.y - airDrag
+                if (resultForce.y < 0) {
+                    resultForce.y = 0
+                }
+            }
+            if (forceComponent.z < 0) {
+                resultForce.z = forceComponent.z + airDrag
+                if (resultForce.z > 0) {
+                    resultForce.z = 0
+                }
+            }
+            if (forceComponent.z > 0) {
+                resultForce.z = forceComponent.z - airDrag
+                if (resultForce.z < 0) {
+                    resultForce.z = 0
+                }
+            }
+
+            velocity.x = forceComponent.x / massComponent.mass
+            velocity.y = forceComponent.y / massComponent.mass
+            velocity.z = forceComponent.z / massComponent.mass
+
+
+            if (velocity.x != 0) {
+                positionComponent.x = positionComponent.x + velocity.x * delta
+                forceComponent.x = resultForce.x
+            }
+            if (velocity.y != 0) {
+                positionComponent.y = positionComponent.y + velocity.y * delta
+                forceComponent.y = resultForce.y
+            }
+            if (velocity.z != 0) {
+                positionComponent.z = positionComponent.z + velocity.z * delta
+                forceComponent.z = resultForce.z
+            }
+        }
+    }
+}
 //export class Collide implements ECS.Command {
 //    readonly type: Commands
 //    constructor() {

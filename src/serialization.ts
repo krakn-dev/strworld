@@ -1,6 +1,17 @@
 import * as Utils from "./utils"
-import * as Comps from "./components"
+import * as ECS from "./ecs"
 
+export class DOMData {
+    windowWidth: number
+    windowHeight: number
+    constructor(
+        newWindowWidth: number,
+        newWindowHeight: number
+    ) {
+        this.windowWidth = newWindowWidth
+        this.windowHeight = newWindowHeight
+    }
+}
 export class Options {
     isShadowsEnabled: boolean
     isSetNight: boolean
@@ -28,13 +39,13 @@ export class Input {
 }
 
 export class GraphicChanges {
-    changedGraphicProperties: Comps.ChangedGraphicProperties[]
-    addedGraphicProperties: Comps.ChangedGraphicProperties[]
-    removedGraphicProperties: Comps.ChangedGraphicProperties[]
+    changedComponents: ECS.Component[]
+    addedEntitiesUid: number[]
+    removedEntitiesUid: number[]
     constructor() {
-        this.changedGraphicProperties = []
-        this.addedGraphicProperties = []
-        this.removedGraphicProperties = []
+        this.changedComponents = []
+        this.addedEntitiesUid = []
+        this.removedEntitiesUid = []
     }
 }
 
@@ -46,10 +57,10 @@ export enum Messages {
 }
 export class Message {
     message: Messages
-    data: Input | GraphicChanges | Options | null
+    data: Input | DOMData | GraphicChanges | Options | null
     constructor(
         newMessage: Messages,
-        newData: Input | GraphicChanges | Options | null = null
+        newData: Input | GraphicChanges | Options | DOMData | null = null
     ) {
         this.message = newMessage
         this.data = newData

@@ -12,8 +12,12 @@ onmessage = (data) => {
 
     switch (msg.message) {
         case Ser.Messages.Start: {
-            system.addCommand(Cmds.Commands.TheFirst)
-            setInterval(system.run.bind(system), 100)
+            let newData = msg.data as Ser.DOMData
+            resources.domState.windowHeight = newData.windowHeight
+            resources.domState.windowWidth = newData.windowWidth
+
+            system.addCommand(Cmds.CommandTypes.TheFirst)
+            setInterval(system.run.bind(system), 30)
         } break;
         case Ser.Messages.Input: {
             let newData = msg.data as Ser.Input

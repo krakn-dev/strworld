@@ -1,8 +1,8 @@
-import { Vector2 } from "three"
+import { Vector2, Vector3 } from "three"
 import * as ECS from "./ecs"
 import * as Utils from "./utils"
 
-export enum Components {
+export enum ComponentTypes {
     Health = 0,
     Camera,
     Light,
@@ -11,29 +11,33 @@ export enum Components {
     Name,
     EntityType,
     Position,
-    LookingDirection,
-    ComputedElement,
     TargetLocation,
     Timer,
-    Size,
+    BoxShape,
     Mass,
+    ShapeColor,
     Force,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
     let n: number = 0
-    for (let i = 0; i < Object.keys(Components).length / 2; i++) {
+    for (let i = 0; i < Object.keys(ComponentTypes).length / 2; i++) {
         n++
     }
     return n
 })()
 
+
+export enum TimerTypes {
+    Animation
+}
 export enum EntityTypes {
     Stickman,
     Grass,
     Dog,
     Camera,
     Light,
+    GeometricShape,
 }
 export enum EntityStates {
     Idle,
@@ -48,28 +52,59 @@ export enum LightTypes {
     DirectionalLight,
     SpotLight,
 }
+
+export class ShapeColor implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    color: number
+    constructor(
+        newColor: number,
+        newEntityUid: number,
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.ShapeColor
+        this.color = newColor
+    }
+}
+export class BoxShape implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    size: Utils.Vector3
+    constructor(
+        newSize: Utils.Vector3,
+        newEntityUid: number,
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.BoxShape
+        this.size = newSize
+    }
+}
 export class Light implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     lightType: LightTypes
-    power: number
-    color: string
+    intensity: number
+    color: number
     distance: number
     decay: number
     constructor(
         newLightType: LightTypes,
-        newPower: number,
-        newColor: string,
+        newIntensity: number,
+        newColor: number,
         newDistance: number,
         newDecay: number,
         newEntityUid: number,
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.Light
+        this.componentType = ComponentTypes.Light
         this.lightType = newLightType
-        this.power = newPower
+        this.intensity = newIntensity
         this.color = newColor
         this.distance = newDistance
         this.decay = newDecay
@@ -78,7 +113,7 @@ export class Light implements ECS.Component {
 export class Camera implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     fov: number
     near: number
     far: number
@@ -92,7 +127,7 @@ export class Camera implements ECS.Component {
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.Camera
+        this.componentType = ComponentTypes.Camera
         this.fov = newFov
         this.near = newNear
         this.far = newFar
@@ -103,48 +138,50 @@ export class Camera implements ECS.Component {
 export class TargetLocation implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     x: number
     y: number
+    z: number
 
-    constructor(newLocation: Utils.Vector2, newEntityUid: number) {
+    constructor(newLocation: Utils.Vector3, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.TargetLocation
+        this.componentType = ComponentTypes.TargetLocation
         this.x = newLocation.x
         this.y = newLocation.y
+        this.z = newLocation.z
     }
 }
 export class EntityType implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     entityType: EntityTypes
 
     constructor(newEntityType: EntityTypes, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.EntityType
+        this.componentType = ComponentTypes.EntityType
         this.entityType = newEntityType
     }
 }
 export class EntityState implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     states: EntityStates[]
 
     constructor(newState: EntityStates[], newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.EntityState
+        this.componentType = ComponentTypes.EntityState
         this.states = newState
     }
 }
 export class Position implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     x: number
     y: number
     z: number
@@ -152,7 +189,7 @@ export class Position implements ECS.Component {
     constructor(newPosition: Utils.Vector3, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.Position
+        this.componentType = ComponentTypes.Position
 
         this.x = newPosition.x
         this.y = newPosition.y
@@ -163,67 +200,52 @@ export class Position implements ECS.Component {
 export class Health implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     health: number
 
     constructor(newHealth: number, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.Health
+        this.componentType = ComponentTypes.Health
         this.health = newHealth
     }
 }
 
-//export class Animation implements ECS.Component {
-//    entityUid: number
-//    componentUid: number
-//    type: Components
-//    currentDisplayElement: string
-//    animations: Anims.Animation[]
-//
-//    constructor(newAnimations: Anims.Animation[], newEntityUid: number) {
-//        this.componentUid = Utils.newUid()
-//        this.entityUid = newEntityUid
-//        this.type = Components.Animation
-//        this.currentDisplayElement = "?"
-//        this.animations = newAnimations
-//    }
-//}
-
 export class Force implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     x: number
     y: number
     z: number
 
-    constructor(newMomentum: Utils.Vector3, newEntityUid: number) {
-        this.x = newMomentum.x
-        this.y = newMomentum.y
-        this.z = newMomentum.z
+    constructor(newForce: Utils.Vector3, newEntityUid: number) {
+        this.x = newForce.x
+        this.y = newForce.y
+        this.z = newForce.z
+
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.Force
+        this.componentType = ComponentTypes.Force
     }
 }
 export class Mass implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     mass: number
 
     constructor(newMass: number, newEntityUid: number) {
         this.mass = newMass
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.Mass
+        this.componentType = ComponentTypes.Mass
     }
 }
 export class Rotation implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     x: number
     y: number
     z: number
@@ -234,35 +256,14 @@ export class Rotation implements ECS.Component {
         this.z = newRotation.z
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.Size
+        this.componentType = ComponentTypes.Rotation
     }
-}
-export class Size implements ECS.Component {
-    entityUid: number
-    componentUid: number
-    type: Components
-    x: number
-    y: number
-    z: number
-
-    constructor(newSize: Utils.Vector3, newEntityUid: number) {
-        this.x = newSize.x
-        this.y = newSize.y
-        this.z = newSize.z
-        this.componentUid = Utils.newUid()
-        this.entityUid = newEntityUid
-        this.type = Components.Size
-    }
-}
-
-export enum TimerTypes {
-    Animation
 }
 
 export class Timer implements ECS.Component {
     entityUid: number
     componentUid: number
-    type: Components
+    componentType: ComponentTypes
     originalTime: number
 
     timeLeft: number
@@ -273,7 +274,7 @@ export class Timer implements ECS.Component {
     constructor(newTimeLeft: number, newTimerType: number, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.type = Components.Timer
+        this.componentType = ComponentTypes.Timer
 
         this.isFinished = false
         this.isRestart = false
@@ -281,19 +282,5 @@ export class Timer implements ECS.Component {
         this.timeLeft = newTimeLeft
         this.originalTime = newTimeLeft
         this.timerType = newTimerType
-    }
-}
-
-export class ChangedGraphicProperties implements ECS.Component {
-    properties: ECS.Component[]
-    componentUid: number
-    entityUid: number
-    type: Components
-
-    constructor(newEntityUid: number) {
-        this.properties = []
-        this.type = Components.ComputedElement
-        this.entityUid = newEntityUid
-        this.componentUid = Utils.newUid()
     }
 }

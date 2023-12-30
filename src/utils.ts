@@ -1,3 +1,5 @@
+import * as ECS from "./ecs"
+
 export const randomNumber = (max: number) => Math.floor(Math.random() * max) + 1;
 export const newUid = () => randomNumber(100000000)
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -14,6 +16,7 @@ export class AssetFetchCache {
         return asset
     }
 }
+
 
 export class Vector2 {
     x: number

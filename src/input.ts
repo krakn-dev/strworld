@@ -25,56 +25,56 @@ export class KeyboardInput {
             }
         );
         document.getElementById("left-button")!.addEventListener(
-            "mousedown",
+            "pointerdown",
             (event: any) => {
                 outer.left = true
                 this.setPlayerInput()
             }
         );
         document.getElementById("up-button")!.addEventListener(
-            "mousedown",
+            "pointerdown",
             (event: any) => {
                 outer.up = true
                 this.setPlayerInput()
             }
         );
         document.getElementById("down-button")!.addEventListener(
-            "mousedown",
+            "pointerdown",
             (event: any) => {
                 outer.down = true
                 this.setPlayerInput()
             }
         );
         document.getElementById("right-button")!.addEventListener(
-            "mousedown",
+            "pointerdown",
             (event: any) => {
                 outer.right = true
                 this.setPlayerInput()
             }
         );
         document.getElementById("left-button")!.addEventListener(
-            "mouseup",
+            "pointerup",
             (event: any) => {
                 outer.left = false
                 this.setPlayerInput()
             }
         );
         document.getElementById("up-button")!.addEventListener(
-            "mouseup",
+            "pointerup",
             (event: any) => {
                 outer.up = false
                 this.setPlayerInput()
             }
         );
         document.getElementById("down-button")!.addEventListener(
-            "mouseup",
+            "pointerup",
             (event: any) => {
                 outer.down = false
                 this.setPlayerInput()
             }
         );
         document.getElementById("right-button")!.addEventListener(
-            "mouseup",
+            "pointerup",
             (event: any) => {
                 outer.right = false
                 this.setPlayerInput()

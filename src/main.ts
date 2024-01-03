@@ -1,5 +1,6 @@
 import * as Ser from "./serialization"
 import * as Graph from "./graphics"
+import "./ui"
 import * as Input from "./input"
 
 let world = new Graph.World()

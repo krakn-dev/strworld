@@ -17,7 +17,7 @@ onmessage = (data) => {
             resources.domState.windowWidth = newData.windowWidth
 
             system.addCommand(Cmds.CommandTypes.TheFirst)
-            setInterval(system.run.bind(system), 16)
+            setInterval(system.run.bind(system), 15)
         } break;
         case Ser.Messages.Input: {
             let newData = msg.data as Ser.Input

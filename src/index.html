@@ -3,6 +3,7 @@
 
 <head>
     <title>strworld</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
 </head>
 
 <body>
@@ -13,8 +14,16 @@
         <button class="touch-button" id="down-button">B</button>
         <button class="touch-button" id="right-button">R</button>
     </div>
+    <div id="robot-code-editor">
+        <div id="number-line"> </div>
+        <pre id="visual-code"> </pre>
+        <textarea id="text-code" wrap="off" autocomplete="off" autocorrect="off" autocapitalize="off"
+            spellcheck="false">
+        </textarea>
+    </div>
 </body>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="code_editor.css">
 <script type="text/javascript" src="bundle.js"></script>
 
 </html>

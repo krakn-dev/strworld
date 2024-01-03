@@ -153,7 +153,7 @@ export class GraphicChangesHandler {
 
                 for (let c of eC.components) {
                     if (c.componentType == Comps.ComponentTypes.BoxShape) {
-                        boxShapeComponent = (c as Comps.BoxShape)
+                        boxShapeComponent = (c as Comps.Shape)
                     }
                     if (c.componentType == Comps.ComponentTypes.EntityType) {
                         entityType = (c as Comps.EntityType).entityType
@@ -193,9 +193,9 @@ export class GraphicChangesHandler {
                     case Comps.EntityTypes.GeometricShape: {
                         let material = new THREE.MeshPhongMaterial();
                         const geometry = new THREE.BoxGeometry(
-                            boxShapeComponent!.x,
-                            boxShapeComponent!.y,
-                            boxShapeComponent!.z);
+                            boxShapeComponent!.size.x,
+                            boxShapeComponent!.size.y,
+                            boxShapeComponent!.size.z);
                         const mesh = new THREE.Mesh(geometry, material);
                         newGraphicObject = new GraphicObject(mesh, eC.entityUid)
                         newGraphicObject.object.castShadow = true

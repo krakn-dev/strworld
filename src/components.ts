@@ -53,6 +53,9 @@ export enum LightTypes {
     DirectionalLight,
     SpotLight,
 }
+export enum ShapeTypes {
+    Box,
+}
 
 export class HardCodedId implements ECS.Component {
     entityUid: number
@@ -84,25 +87,22 @@ export class ShapeColor implements ECS.Component {
         this.color = newColor
     }
 }
-export class BoxShape implements ECS.Component {
+export class Shape implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    x: number
-    y: number
-    z: number
+    size: Utils.Vector3
+    shapeType: ShapeTypes
     constructor(
-        newX: number,
-        newY: number,
-        newZ: number,
+        newSize: Utils.Vector3,
+        newShapeType: ShapeTypes,
         newEntityUid: number,
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.BoxShape
-        this.x = newX
-        this.y = newY
-        this.z = newZ
+        this.size = newSize
+        this.shapeType = newShapeType
     }
 }
 export class Light implements ECS.Component {

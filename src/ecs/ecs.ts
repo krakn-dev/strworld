@@ -1,5 +1,5 @@
 import * as Comps from "./components"
-import * as Utils from "./utils"
+import * as Utils from "../utils"
 import * as Cmds from "./commands"
 import * as Res from "./resources"
 

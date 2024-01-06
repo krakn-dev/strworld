@@ -1,4 +1,3 @@
-import * as ECS from "./ecs"
 
 export const randomNumber = (max: number) => Math.floor(Math.random() * max) + 1;
 export const newUid = () => randomNumber(100000000)

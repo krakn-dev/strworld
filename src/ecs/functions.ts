@@ -1,6 +1,6 @@
 import * as ECS from "./ecs"
 import * as Comps from "./components"
-import * as Utils from "./utils"
+import * as Utils from "../utils"
 
 export function getVertices(shapeComponent: Comps.Shape, positionComponent: Comps.Position): Utils.Vector3[] {
     let vertices: Utils.Vector3[] = []

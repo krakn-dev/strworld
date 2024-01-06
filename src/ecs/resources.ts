@@ -1,7 +1,7 @@
 import * as ECS from "./ecs"
 import * as Cmds from "./commands"
 import * as Comps from "./components"
-import * as Utils from "./utils"
+import * as Utils from "../utils"
 
 
 export class Resources {
@@ -142,8 +142,10 @@ export class DOMStateResouce {
 }
 export class InputResource {
     movementDirection: Utils.Vector2
+    code: string | undefined
     constructor() {
         this.movementDirection = new Utils.Vector2(0, 0)
+        this.code = undefined
     }
 }
 

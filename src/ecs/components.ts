@@ -1,6 +1,6 @@
 import { Vector2, Vector3 } from "three"
 import * as ECS from "./ecs"
-import * as Utils from "./utils"
+import * as Utils from "../utils"
 
 export enum ComponentTypes {
     Health = 0,

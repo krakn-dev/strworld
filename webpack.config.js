@@ -1,5 +1,5 @@
 const path = require('path');
-const zlib = require("zlib");
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const TerserPlugin = require("terser-webpack-plugin");
 
@@ -8,12 +8,21 @@ var config = {
     module: {
         rules: [
             {
-                test: /\.tsx?$/,
+                test: /\.ts$/,
                 use: 'ts-loader',
                 exclude: /node_modules/,
             },
+            {
+                test: /\.html$/,
+                loader: 'html-loader',
+            },
+            {
+                test: /\.css$/,
+                loader: 'css-loader',
+            },
         ],
     },
+    plugins: [new HtmlWebpackPlugin({ template: "./src/ui/index.html" })],
     resolve: {
         extensions: ['.ts'],
     },

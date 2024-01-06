@@ -7,15 +7,15 @@
     flex-direction: column;
     background-color: #544466aa;
     text-align: center;
-    width: 5%;
-    font-size: 15px;
+    width: 4%;
+    font-size: 18px;
 }
 
 #robot-code-editor {
     position: absolute;
     background-color: transparent;
     height: 100%;
-    width: 60%;
+    width: 100%;
     display: flex;
     flex-direction: horizontal;
 }
@@ -28,21 +28,37 @@
     background-color: transparent;
     caret-color: white;
     font-family: hack;
-    font-size: 15px;
+    font-size: 18px;
     position: absolute;
     height: 100%;
-    width: 60%;
-    left: 7%;
+    width: 35%;
+    left: 6%;
+}
+#run-code-button {
+    position: absolute; 
+    left: 0; 
+    right: 0; 
+    margin-left: auto; 
+    margin-right: auto; 
+    width: 70px; 
+    height: 35px; 
+    background-color: #22aa88;
+    border: none;
+    font-family: hack;
+    font-size: 16px;
+}
+#run-code-button:hover {
+    background-color: #008866;
 }
 #visual-code {
     overflow: hidden; 
     font-family: hack;
     position: absolute;
     height: 100%;
-    width: 60%;
+    width: 35%;
     color: white;
-    left: 5%;
-    font-size: 15px;
+    left: 4%;
+    font-size: 18px;
     padding-left: 2%;
     background-color: #884d8055;
     white-space: pre;

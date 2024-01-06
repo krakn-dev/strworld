@@ -1,15 +1,15 @@
 import * as ECS from "./ecs"
 import * as Res from "./resources"
-import * as Utils from "./utils"
+import * as Utils from "../utils"
 import * as Comps from "./components"
-import * as Ser from "./serialization"
+import * as Ser from "../serialization"
 import * as Fn from "./functions"
-
-import { Vector3 } from "three"
+import * as esprima from "esprima"
 
 // order in which they get executed
 export enum CommandTypes {
     TheFirst = 0,
+    RunCode,
     CreateStickman,
     MovePlayer,
     MoveGeometry,
@@ -42,6 +42,8 @@ export function getInstanceFromEnum(commandEnum: CommandTypes): ECS.Command {
         //        case Commands.MoveCameraWithPlayer:
         //            return new MoveCameraWithPlayer()
         //
+        case CommandTypes.RunCode:
+            return new RunCode()
         case CommandTypes.Collide:
             return new Collide()
         //
@@ -126,11 +128,42 @@ export class TheFirst implements ECS.Command {
         //system.addCommand(Commands.UpdateAnimationTimerNumber)
         //system.addCommand(Commands.TickTimer)
         system.addCommand(CommandTypes.ApplyForce)
+        system.addCommand(CommandTypes.RunCode)
         //system.addCommand(CommandTypes.CreateGravity)
         system.addCommand(CommandTypes.Collide)
         //system.addCommand(Commands.WatchDevBox)
 
         system.removeCommand(CommandTypes.TheFirst)
+    }
+}
+export class RunCode implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.RunCode
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        if (resources.input.code == undefined) {
+            return
+        }
+        return
+        try {
+            let f = new Function()
+            //            f()
+        }
+        catch (e: any) {
+            //            let line = e.stack.split("\n").find((e:any) => e.includes("<anonymous>:") || e.includes("Function:"));
+            //            let lineIndex = (line.includes("<anonymous>:") && line.indexOf("<anonymous>:") + "<anonymous>:".length) ||  (line.includes("Function:") && line.indexOf("Function:") + "Function:".length);
+            //            console.log(+line.substring(lineIndex, lineIndex + 1) - 2);
+            //            if (e instanceof SyntaxError) {
+            //                console.log(":( syntax error")
+            //            }
+            //            else if (e instanceof ReferenceError) {
+            //                console.log(":( reference error")
+            //            }
+            console.log(e)
+            //            console.log((e as any).lineNumber)
+        }
     }
 }
 
@@ -190,7 +223,7 @@ export class CreateScene implements ECS.Command {
             let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, 0), movingCube)
             let shapeColorComponent = new Comps.ShapeColor(0xff55cc, movingCube)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, movingCube)
-            let forceComponent = new Comps.Force(new Vector3(0, 0, 0), movingCube)
+            let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), movingCube)
             let massComponent = new Comps.Mass(3.5, movingCube)
             let hardCodedIdComponent = new Comps.HardCodedId(0, movingCube)
             system.addComponent(shapeComponent)
@@ -211,7 +244,7 @@ export class CreateScene implements ECS.Command {
                         let positionComponent = new Comps.Position(new Utils.Vector3(-x, -0.5, -z), staticBox)
                         let shapeColorComponent = new Comps.ShapeColor(0x1122aa, staticBox)
                         let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, staticBox)
-                        let forceComponent = new Comps.Force(new Vector3(0, 0, 0), staticBox)
+                        let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), staticBox)
                         let massComponent = new Comps.Mass(3.5, staticBox)
                         system.addComponent(shapeComponent)
                         system.addComponent(massComponent)
@@ -226,7 +259,7 @@ export class CreateScene implements ECS.Command {
                         let positionComponent = new Comps.Position(new Utils.Vector3(x + 1, -0.5, z + 1), staticBox)
                         let shapeColorComponent = new Comps.ShapeColor(0x1122aa, staticBox)
                         let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, staticBox)
-                        let forceComponent = new Comps.Force(new Vector3(0, 0, 0), staticBox)
+                        let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), staticBox)
                         let massComponent = new Comps.Mass(3.5, staticBox)
                         system.addComponent(shapeComponent)
                         system.addComponent(massComponent)

@@ -1,13 +1,14 @@
-* {
+// Imports
+import ___CSS_LOADER_API_NO_SOURCEMAP_IMPORT___ from "../../node_modules/css-loader/dist/runtime/noSourceMaps.js";
+import ___CSS_LOADER_API_IMPORT___ from "../../node_modules/css-loader/dist/runtime/api.js";
+var ___CSS_LOADER_EXPORT___ = ___CSS_LOADER_API_IMPORT___(___CSS_LOADER_API_NO_SOURCEMAP_IMPORT___);
+// Module
+___CSS_LOADER_EXPORT___.push([module.id, `* {
     margin: 0;
     padding: 0;
     touch-action: manipulation;
 }
 
-@font-face {
-  font-family: hack;
-  src: url(HackNerdFont-Regular.ttf);
-}
 
 #message {
     display: none;
@@ -32,3 +33,6 @@
     -webkit-user-select: none; /* Safari */
     user-select: none;
 }
+`, ""]);
+// Exports
+export default ___CSS_LOADER_EXPORT___;

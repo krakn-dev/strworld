@@ -1,7 +1,7 @@
 import * as Ser from "./serialization"
-import * as Graph from "./graphics"
-import "./ui"
-import * as Input from "./input"
+import * as Graph from "./ui/graphics"
+import "./ui/ui"
+import * as Input from "./ui/input"
 
 let world = new Graph.World()
 let graphicChangesHandler = new Graph.GraphicChangesHandler()
@@ -28,7 +28,8 @@ function sendInputToWorker() {
         new Ser.Message(
             Ser.Messages.Input,
             new Ser.Input(
-                keyboardInput.movementDirection
+                keyboardInput.movementDirection,
+                "",
             )
         )
     )

@@ -4,9 +4,13 @@
 <head>
     <title>strworld</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-</head>
+<script defer src="bundle.js"></script></head>
 
 <body>
+    <code-editor>
+        <input-field></input-field>
+    </code-editor>
+
     <div id="message">Use WASD or Arrow Keys to Move</div>
     <div id="touch-controls">
         <button class="touch-button" id="left-button">L</button>
@@ -15,15 +19,19 @@
         <button class="touch-button" id="right-button">R</button>
     </div>
     <div id="robot-code-editor">
+        <p>helloooo</p>
         <div id="number-line"> </div>
-        <pre id="visual-code"> </pre>
-        <textarea id="text-code" wrap="off" autocomplete="off" autocorrect="off" autocapitalize="off"
-            spellcheck="false">
-        </textarea>
+        <button id="run-code-button">Run</button>
     </div>
+    <style>
+        @font-face {
+            font-family: "hack";
+            src: url("./HackNerdFont-Regular.ttf") format('truetype');
+            font-weight: 600;
+            font-style: normal;
+        }
+    </style>
 </body>
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="code_editor.css">
-<script type="text/javascript" src="bundle.js"></script>
+<link rel="stylesheet" href="58fbdcbafbada4fdd7ce.css">
 
 </html>

@@ -1,7 +1,7 @@
-import * as ECS from "./ecs"
+import * as ECS from "./ecs/ecs"
 import * as Ser from "./serialization"
-import * as Res from "./resources"
-import * as Cmds from "./commands"
+import * as Res from "./ecs/resources"
+import * as Cmds from "./ecs/commands"
 
 let currentExecutingCommand = new ECS.CurrentExecutingCommand()
 let resources = new Res.Resources(currentExecutingCommand)
@@ -17,11 +17,14 @@ onmessage = (data) => {
             resources.domState.windowWidth = newData.windowWidth
 
             system.addCommand(Cmds.CommandTypes.TheFirst)
-            setInterval(system.run.bind(system), 15)
+            //            setInterval(system.run.bind(system), 15)
+            setInterval(system.run.bind(system), 1000)
         } break;
         case Ser.Messages.Input: {
             let newData = msg.data as Ser.Input
             resources.input.movementDirection = newData.movementDirection
+            resources.input.code = newData.code
+
         } break;
         case Ser.Messages.Options: {
             let newData = msg.data as Ser.Options

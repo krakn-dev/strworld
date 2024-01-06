@@ -1,0 +1,45 @@
+* {
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+    height: 100%;
+    width: 100%;
+}
+
+#text-code {
+    position: absolute;
+    outline: none;
+    border: none;
+    resize: none;
+    overflow: auto; 
+    color: transparent;
+    background-color: transparent;
+    caret-color: white;
+    font-family: "hack";
+}
+#visual-code {
+    position: absolute;
+    overflow: hidden; 
+    color: white;
+    background-color: #392937bb;
+    white-space: pre;
+    font-family: "hack";
+}
+.class {
+    color: #666a2f;
+}
+.var {
+    color: #2f662a;
+}
+.let {
+    color: #926a2f;
+}
+.number {
+    color: #a0a60a;
+}
+.quotes {
+    color: #10af20;
+}
+.variable-name {
+    color: #0f6a2f;
+}

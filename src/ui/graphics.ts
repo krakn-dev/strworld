@@ -1,10 +1,10 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import * as THREE from 'three';
-import * as Utils from './utils';
-import * as Comps from './components';
-import * as Ser from "./serialization"
-import * as ECS from "./ecs"
+import * as Utils from '../utils';
+import * as Comps from '../ecs/components';
+import * as Ser from "../serialization"
+import * as ECS from "../ecs/ecs"
 
 function getModelNameByEntityType(entityType: Comps.EntityTypes): string {
     switch (entityType) {

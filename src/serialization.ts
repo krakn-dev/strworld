@@ -1,5 +1,5 @@
 import * as Utils from "./utils"
-import * as ECS from "./ecs"
+import * as ECS from "./ecs/ecs"
 
 export class DOMData {
     windowWidth: number
@@ -29,12 +29,22 @@ export class Options {
         this.isEnableFreeCamera = newIsEnableFreeCamera
     }
 }
+//export class CodeResult {
+//    
+//}
+//export class Code {
+//    submitedCode: string
+//    modifiedCode: string 
+//}
 export class Input {
     movementDirection: Utils.Vector2
+    code: string | undefined
     constructor(
         newMovementDirection: Utils.Vector2,
+        newCode: string | undefined
     ) {
         this.movementDirection = newMovementDirection
+        this.code = newCode
     }
 }
 

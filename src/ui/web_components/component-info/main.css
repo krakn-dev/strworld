@@ -1,0 +1,21 @@
+#component-info {
+    font-family: hack;
+    background-color: #00000099;
+    border: 1px solid #ff911c;
+    padding: 5px;
+    border-radius: 10px;
+    overflow: hidden;
+    width: 230px;
+}
+#title {
+    cursor: pointer;
+    font-size: 25px;
+    color: #cccccc;
+    padding: 5px;   
+}
+#description {
+    padding: 5px;
+    margin-top: 10px;
+    font-size: 18px;
+    color: #bbbbbb;
+}

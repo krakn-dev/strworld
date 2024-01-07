@@ -1,0 +1,32 @@
+* {
+    margin: 0px;
+    padding: 0px;
+}
+
+#robot-status {
+    font-size: 18px;
+    color: #ffffff;
+    background-color: black;
+    font-family: hack;
+    display: flex;
+    flex-direction: row;
+    max-height: 200px;
+    min-height: 200px;
+    margin: 2%;
+}
+#details {
+    overflow: auto;
+}
+#status {
+    padding: 10px;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+#working {
+    color: #00ff00;
+}
+#not-working {
+    color: #ff0000;
+}
+

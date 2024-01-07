@@ -49,3 +49,12 @@ export function crossProduct(a: Vector3, b: Vector3): Vector3 {
         (a.x * b.y) - (a.y * b.x)
     )
 }
+export function replaceRange(
+    str: string,
+    start: number,
+    end: number,
+    substituteCallback: (v: string) => string
+) {
+    let substitute = substituteCallback(str.substring(start, end))
+    return str.substring(0, start) + substitute + str.substring(end);
+}

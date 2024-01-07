@@ -1,0 +1,9 @@
+#number-line {
+    font-size: 18px;
+    height: 100%;
+    width: 100%;
+    overflow: hidden; 
+    color: #bbbbaa;
+
+    font-family: hack;
+}

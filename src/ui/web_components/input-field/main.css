@@ -2,12 +2,22 @@
     margin: 0;
     padding: 0;
     font-size: 18px;
+    font-family: "hack";
+}
+#input-field {
     height: 100%;
     width: 100%;
+    display: flex; /* required */
+    flex-flow: row; /* required */
+    overflow: auto;
 }
-
 #text-code {
-    position: absolute;
+    box-sizing: border-box; /* required */
+    width: 100%; /* required */
+    flex: none; /* required */
+    margin-left: -100%; /* required */
+
+    height: 100%;
     outline: none;
     border: none;
     resize: none;
@@ -15,31 +25,38 @@
     color: transparent;
     background-color: transparent;
     caret-color: white;
-    font-family: "hack";
 }
 #visual-code {
-    position: absolute;
+    box-sizing: border-box; /* required */
+    width: 100%; /* required */
+    flex: none; /* required */
+
+    height: 100%;
     overflow: hidden; 
-    color: white;
-    background-color: #392937bb;
+    color: #cccccc;
+    background-color: #2a2426cc;
     white-space: pre;
-    font-family: "hack";
 }
-.class {
-    color: #666a2f;
+
+.void {
+    font-size:0px;
 }
-.var {
-    color: #2f662a;
+
+.identifier {
+    color: #89BEBA;
 }
-.let {
-    color: #926a2f;
+.function {
+    color: #A9C180;
 }
-.number {
-    color: #a0a60a;
+.keyword {
+    color: #E68183;
 }
-.quotes {
-    color: #10af20;
+.numeric {
+    color: #DBBB81;
 }
-.variable-name {
-    color: #0f6a2f;
+.string {
+    color: #87C096;
+}
+.punctuator {
+    color: #eeeeee;
 }

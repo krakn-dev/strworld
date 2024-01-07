@@ -1,8 +1,24 @@
-import "./web_components/components"
+import html from "./main.html"
+import css from "./main.css"
 
-//let numberLineElement = document.getElementById("number-line")
-//let textCodeElement: HTMLTextAreaElement = document.getElementById("text-code") as HTMLTextAreaElement
-//let visualCodeElement: HTMLDivElement = document.getElementById("visual-code") as HTMLDivElement
+export class CustomElement extends HTMLElement {
+    private numberLineElement: HTMLDivElement
+    constructor() {
+        super()
+        this.attachShadow({ mode: "open" })
+        this.shadowRoot!.innerHTML = html + `<style>${css[0][1]}</style>`
+        this.numberLineElement = this.shadowRoot!.getElementById("number-line") as HTMLDivElement
+    }
+    scrollNumberLine(scrollTop: number) {
+        this.numberLineElement.scrollTop = scrollTop
+    }
+    updateNumbers(code: string) {
+        this.numberLineElement!.innerHTML = ""
+        for (let n = 1; n <= code.split(/\r\n|\r|\n/).length; n++) {
+            this.numberLineElement!.insertAdjacentHTML("beforeend", `<div>${n}</div>`)
+        }
+    }
+}
 //let runCodeButtonElement: HTMLButtonElement = document.getElementById("run-code-button") as HTMLButtonElement
 //
 //export let code: string | undefined = undefined;
@@ -32,10 +48,10 @@ import "./web_components/components"
 //    }
 //});
 //function updateVisualCode() {
-//    let codeText = textCodeElement.value
-//    codeText = highlightCode(codeText)
-//    codeText = insertBr(codeText)
-//    visualCodeElement.innerHTML = codeText
+//
+//
+//
+//
 //}
 //let characterToInsert: string | undefined = undefined
 //textCodeElement?.addEventListener("keydown", (e) => {
@@ -80,6 +96,3 @@ import "./web_components/components"
 //    visualCodeElement!.scrollLeft = textCodeElement.scrollLeft
 //    visualCodeElement!.scrollTop = textCodeElement.scrollTop
 //})
-//textCodeElement.value = ""
-//updateNumberLine()
-//updateVisualCode()

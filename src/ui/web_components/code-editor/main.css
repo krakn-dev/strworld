@@ -1,9 +1,22 @@
-* {
+#code-editor {
     margin: 0;
     padding: 0;
+    position: absolute;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
 }
-
-p {
-    color: red;
-    font-size: 20px;
+#number-line {
+    background-color: #2a2426cc;
+    padding-right: 15px;
+    padding-left: 10px;
+    min-width: 0;
+}
+#error-line {
+    min-width: 0;
+}
+#input-field {
+    max-width: 50%;
 }

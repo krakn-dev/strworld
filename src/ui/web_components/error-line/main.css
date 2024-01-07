@@ -1,0 +1,13 @@
+#error-line {
+    font-size: 18px;
+    height: 100%;
+    width: 100%;
+    color: red;
+    font-family: hack;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.void {
+    color:transparent;
+}

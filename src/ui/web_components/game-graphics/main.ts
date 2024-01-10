@@ -1,10 +1,33 @@
+import html from "./main.html"
+import css from "./main.css"
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import * as THREE from 'three';
-import * as Utils from '../utils';
-import * as Comps from '../ecs/components';
-import * as Ser from "../serialization"
-import * as ECS from "../ecs/ecs"
+import * as Utils from '../../../utils';
+import * as Comps from '../../../ecs/components';
+import * as Ser from "../../../serialization"
+import * as ECS from "../../../ecs/ecs"
+
+export class CustomElement extends HTMLElement {
+    gameGraphicsElement: HTMLDivElement
+    graphicChangesHandler: GraphicChangesHandler
+    world: World
+    constructor() {
+        super()
+        this.attachShadow({ mode: "open" })
+        this.shadowRoot!.innerHTML = html + `<style>${css[0][1]}</style>`
+        this.gameGraphicsElement = this.shadowRoot!.getElementById("game-graphics") as HTMLDivElement
+
+        this.graphicChangesHandler = new GraphicChangesHandler()
+        this.world = new World(this.gameGraphicsElement)
+    }
+    updateGraphics(newData: Ser.GraphicChanges) {
+        this.graphicChangesHandler.run(this.world, newData)
+    }
+    connectedCallback() {
+        this.world.renderLoop()
+    }
+}
 
 function getModelNameByEntityType(entityType: Comps.EntityTypes): string {
     switch (entityType) {
@@ -311,17 +334,17 @@ export class World {
     renderer: THREE.Renderer
     camera: THREE.Camera | undefined
     clock: THREE.Clock
-    constructor() {
+    constructor(parentElement: HTMLElement) {
         this.graphicObjects = []
         this.scene = new THREE.Scene()
         this.renderer = new THREE.WebGLRenderer({ antialias: true })
         this.camera = undefined
         this.clock = new THREE.Clock()
-    }
-    setup() {
+
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        (this.renderer as any).shadowMap.enabled = true
-        document.body.appendChild(this.renderer.domElement);
+        console.log(window.innerWidth, window.innerHeight);
+        (this.renderer as any).shadowMap.enabled = true;
+        document.body.append(this.renderer.domElement);
     }
     renderLoop() {
         requestAnimationFrame(this.renderLoop.bind(this));

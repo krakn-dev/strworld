@@ -1,6 +1,31 @@
 import * as Utils from "./utils"
 import * as ECS from "./ecs/ecs"
 
+export class Scroll {
+    scrollLeft: number
+    scrollTop: number
+    constructor(
+        newScrollLeft: number,
+        newScrollTop: number
+    ) {
+        this.scrollTop = newScrollTop
+        this.scrollLeft = newScrollLeft
+    }
+}
+export class CodeError {
+    isRuntimeError: boolean
+    description: string
+    lineNumber: number | undefined
+    constructor(
+        newIsRuntimeError: boolean,
+        newDescription: string,
+        newLineNumber: number | undefined = undefined
+    ) {
+        this.isRuntimeError = newIsRuntimeError
+        this.description = newDescription
+        this.lineNumber = newLineNumber
+    }
+}
 export class DOMData {
     windowWidth: number
     windowHeight: number
@@ -38,13 +63,10 @@ export class Options {
 //}
 export class Input {
     movementDirection: Utils.Vector2
-    code: string | undefined
     constructor(
         newMovementDirection: Utils.Vector2,
-        newCode: string | undefined
     ) {
         this.movementDirection = newMovementDirection
-        this.code = newCode
     }
 }
 

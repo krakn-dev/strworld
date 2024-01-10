@@ -4,18 +4,22 @@
     border: 1px solid #ff911c;
     padding: 5px;
     border-radius: 10px;
-    overflow: hidden;
-    width: 230px;
+    width: 270px;
+    word-wrap: break-word;
 }
 #title {
     cursor: pointer;
     font-size: 25px;
-    color: #cccccc;
+    color: #dddddd;
     padding: 5px;   
 }
 #description {
+    white-space: pre-wrap;
+    word-wrap: break-word;
     padding: 5px;
     margin-top: 10px;
     font-size: 18px;
-    color: #bbbbbb;
+    color: #dddddd;
+    max-height: 400px;
+    overflow: auto;
 }

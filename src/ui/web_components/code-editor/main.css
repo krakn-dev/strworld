@@ -8,6 +8,10 @@
     height: 100%;
     overflow: hidden;
 }
+#robot-components {
+    flex: 1;
+    min-width: 0;
+}
 #number-line {
     background-color: #2a2426cc;
     padding-right: 15px;
@@ -26,8 +30,8 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    background-color: #2f252acc;
-}
-#robot-status {
-    padding-right: 100px;
+    background-color: #211d1ecc;
+    overflow-y: auto;
+    overflow-x: hidden;
+    justify-content: space-between;
 }

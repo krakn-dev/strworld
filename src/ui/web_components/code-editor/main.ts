@@ -4,12 +4,14 @@ import * as InputField from "../input-field/main"
 import * as NumberLine from "../number-line/main"
 import * as ErrorLine from "../error-line/main"
 import * as RobotComponets from "../robot-components/main"
+import * as RobotTerminal from "../robot-terminal/main"
 
 export class CustomElement extends HTMLElement {
     inputFieldElement: InputField.CustomElement
     numberLineElement: NumberLine.CustomElement
     errorLineElement: ErrorLine.CustomElement
     robotComponentsElement: RobotComponets.CustomElement
+    robotTerminalElement: RobotTerminal.CustomElement
     constructor() {
         super()
         this.attachShadow({ mode: "open" })
@@ -18,6 +20,7 @@ export class CustomElement extends HTMLElement {
         this.numberLineElement = this.shadowRoot!.getElementById("number-line") as NumberLine.CustomElement
         this.errorLineElement = this.shadowRoot!.getElementById("error-line") as ErrorLine.CustomElement
         this.robotComponentsElement = this.shadowRoot!.getElementById("robot-components") as RobotComponets.CustomElement
+        this.robotTerminalElement = this.shadowRoot!.getElementById("robot-terminal") as RobotTerminal.CustomElement
     }
     connectedCallback() {
         this.inputFieldElement.addEventListener("scroll", this._onInputFieldScroll.bind(this))
@@ -29,7 +32,7 @@ export class CustomElement extends HTMLElement {
     }
     private _onInputFieldChange() {
         this.numberLineElement.updateNumbers(this.inputFieldElement.code)
-        this.errorLineElement.errorLine = this.inputFieldElement?.syntaxError?.line
+        this.errorLineElement.errorLine = this.inputFieldElement?.syntaxError?.lineNumber
         this.errorLineElement.updateLine(this.inputFieldElement.code)
     }
 }

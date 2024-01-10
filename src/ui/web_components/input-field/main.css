@@ -17,7 +17,6 @@
     box-sizing: border-box; /* required */
     flex: none; /* required */
     margin-left: -100%; /* required */
-
     outline: none;
     border: none;
     resize: none;
@@ -26,35 +25,7 @@
     background-color: transparent;
     caret-color: white;
 }
-#visual-code {
+#syntax-highlighting {
     box-sizing: border-box; /* required */
     flex: none; /* required */
-
-    overflow: hidden; 
-    color: #cccccc;
-    background-color: #2a2426cc;
-    white-space: pre;
-}
-
-.void {
-    font-size:0px;
-}
-
-.identifier {
-    color: #89BEBA;
-}
-.function {
-    color: #A9C180;
-}
-.keyword {
-    color: #E68183;
-}
-.numeric {
-    color: #DBBB81;
-}
-.string {
-    color: #87C096;
-}
-.punctuator {
-    color: #eeeeee;
 }

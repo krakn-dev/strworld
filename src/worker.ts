@@ -17,14 +17,12 @@ onmessage = (data) => {
             resources.domState.windowWidth = newData.windowWidth
 
             system.addCommand(Cmds.CommandTypes.TheFirst)
-            //            setInterval(system.run.bind(system), 15)
-            setInterval(system.run.bind(system), 1000)
+            setInterval(system.run.bind(system), 15)
+            //setInterval(system.run.bind(system), 100)
         } break;
         case Ser.Messages.Input: {
             let newData = msg.data as Ser.Input
             resources.input.movementDirection = newData.movementDirection
-            resources.input.code = newData.code
-
         } break;
         case Ser.Messages.Options: {
             let newData = msg.data as Ser.Options

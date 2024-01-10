@@ -1,30 +1,21 @@
 * {
-    margin: 0;
-    padding: 0;
-    touch-action: manipulation;
+    margin: 0 !important; 
+    padding: 0 !important; 
 }
 
+@font-face {
+    font-family: "hack";
+    src: url("./HackNerdFont-Regular.ttf") format('truetype');
+    font-weight: 600;
+    font-style: normal;
+}
 
-#message {
-    display: none;
-    position: absolute;
-    left: 50%;
-    top: 50px;
-    transform: translate(-50%, 0);
-    color: white;
-    font-size: 1.5vw;
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow:hidden;
 }
-#touch-controls {
-    display: none;
-    position: absolute;
-    left: 50%;
-    bottom: 50px;
-    transform: translate(-50%, 0);
-}
-.touch-button {
-    padding: 5vw;
-    font-size: 3vw;
-    -webkit-touch-callout: none; /* iOS Safari */
-    -webkit-user-select: none; /* Safari */
-    user-select: none;
+#main-component {
+    width: 100%;
+    height: 100%;
 }

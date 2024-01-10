@@ -1,0 +1,37 @@
+#syntax-highlight {
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+    font-family: "hack";
+    height: 100%;
+    width: 100%;
+    color: #cccccc;
+    background-color: #2a2426cc;
+    white-space: pre;
+    overflow: auto; 
+}
+#no-scroll {
+    overflow: hidden; 
+}
+.void {
+    font-size:0px;
+}
+
+.identifier {
+    color: #89BEBA;
+}
+.function {
+    color: #A9C180;
+}
+.keyword {
+    color: #E68183;
+}
+.numeric {
+    color: #DBBB81;
+}
+.string {
+    color: #87C096;
+}
+.punctuator {
+    color: #eeeeee;
+}

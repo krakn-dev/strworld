@@ -344,7 +344,7 @@ export class World {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         console.log(window.innerWidth, window.innerHeight);
         (this.renderer as any).shadowMap.enabled = true;
-        document.body.append(this.renderer.domElement);
+        parentElement.append(this.renderer.domElement);
     }
     renderLoop() {
         requestAnimationFrame(this.renderLoop.bind(this));

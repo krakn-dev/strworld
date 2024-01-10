@@ -1,0 +1,12 @@
+#cool-button {
+    border: none;
+    margin: 0;
+    color: white;
+    font-family: hack;
+    font-size: 25px;
+    background-color: black;
+}
+#cool-button:hover {
+    background-color: #e68183;
+    cursor: pointer;
+}

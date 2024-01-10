@@ -8,6 +8,11 @@
     height: 100%;
     overflow: hidden;
 }
+#done-button {
+    position: absolute;
+    right: 1%;
+    top: 1%;
+}
 #robot-components {
     flex: 1;
     min-width: 0;

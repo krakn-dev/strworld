@@ -97,6 +97,17 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 
 /***/ }),
 
+/***/ "./src/ui/web_components/main-component/main.css":
+/*!*******************************************************!*\
+  !*** ./src/ui/web_components/main-component/main.css ***!
+  \*******************************************************/
+/***/ ((module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\n/* harmony import */ var _node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../../node_modules/css-loader/dist/runtime/noSourceMaps.js */ \"./node_modules/css-loader/dist/runtime/noSourceMaps.js\");\n/* harmony import */ var _node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../../node_modules/css-loader/dist/runtime/api.js */ \"./node_modules/css-loader/dist/runtime/api.js\");\n/* harmony import */ var _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1__);\n// Imports\n\n\nvar ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default()((_node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default()));\n// Module\n___CSS_LOADER_EXPORT___.push([module.id, `#main-component {\n    width: 100%;\n    height: 100%;\n}\n#game-graphics {\n    width: 100%;\n    height: 100%;\n}\n#robot-menu {\n    position: absolute;\n    left: 1%;\n    top: 1%;\n}\n#code-editor {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n}\n`, \"\"]);\n// Exports\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);\n\n\n//# sourceURL=webpack://strworld/./src/ui/web_components/main-component/main.css?");
+
+/***/ }),
+
 /***/ "./src/ui/web_components/number-line/main.css":
 /*!****************************************************!*\
   !*** ./src/ui/web_components/number-line/main.css ***!
@@ -269,6 +280,17 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 
 "use strict";
 eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\n// Module\nvar code = \"<div id=\\\"input-field\\\">\\n    <syntax-highlight scrollable=\\\"true\\\" id=\\\"syntax-highlight\\\"></syntax-highlight>\\n    <textarea \\n        id=\\\"text-code\\\"\\n        wrap=\\\"off\\\" \\n        autocomplete=\\\"off\\\"\\n        autocorrect=\\\"off\\\"\\n        autocapitalize=\\\"off\\\"\\n        spellcheck=\\\"false\\\"></textarea>\\n</div>\\n\";\n// Exports\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (code);\n\n//# sourceURL=webpack://strworld/./src/ui/web_components/input-field/main.html?");
+
+/***/ }),
+
+/***/ "./src/ui/web_components/main-component/main.html":
+/*!********************************************************!*\
+  !*** ./src/ui/web_components/main-component/main.html ***!
+  \********************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\n// Module\nvar code = \"<div id=\\\"main-component\\\"></div>\\n\";\n// Exports\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (code);\n\n//# sourceURL=webpack://strworld/./src/ui/web_components/main-component/main.html?");
 
 /***/ }),
 
@@ -485,9 +507,10 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
 /*!******************************************************!*\
   !*** ./src/ui/web_components/main-component/main.ts ***!
   \******************************************************/
-/***/ (() => {
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("throw new Error(\"Module parse failed: Duplicate constructor in the same class (57:4)\\nFile was processed with these loaders:\\n * ./node_modules/ts-loader/index.js\\nYou may need an additional loader to handle the result of these loaders.\\n|         }\\n|     }\\n>     constructor() {\\n|         super();\\n|         this.attachShadow({ mode: \\\"open\\\" });\");\n\n//# sourceURL=webpack://strworld/./src/ui/web_components/main-component/main.ts?");
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   CustomElement: () => (/* binding */ CustomElement)\n/* harmony export */ });\n/* harmony import */ var _main_html__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./main.html */ \"./src/ui/web_components/main-component/main.html\");\n/* harmony import */ var _main_css__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./main.css */ \"./src/ui/web_components/main-component/main.css\");\n/* harmony import */ var _serialization__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../serialization */ \"./src/serialization.ts\");\n\n\n\nclass CustomElement extends HTMLElement {\n    constructor() {\n        super();\n        this.attachShadow({ mode: \"open\" });\n        this.shadowRoot.innerHTML = _main_html__WEBPACK_IMPORTED_MODULE_0__[\"default\"] + `<style>${_main_css__WEBPACK_IMPORTED_MODULE_1__[\"default\"][0][1]}</style>`;\n        this.mainComponentElement = this.shadowRoot.getElementById(\"main-component\");\n    }\n    setupInitialElements() {\n        this._addGameGraphicsElement();\n        this._addGameInputElement();\n        this._addRobotMenuElement();\n    }\n    _onOpenCodeEditor() {\n        var _a, _b;\n        this._addCodeEditorElement();\n        (_a = this.gameInputElement) === null || _a === void 0 ? void 0 : _a.remove();\n        (_b = this.robotMenuElement) === null || _b === void 0 ? void 0 : _b.remove();\n    }\n    _onCloseCodeEditor() {\n        var _a;\n        this._addGameInputElement();\n        this._addRobotMenuElement();\n        (_a = this.codeEditorElement) === null || _a === void 0 ? void 0 : _a.remove();\n    }\n    addWorker(newWorker) {\n        this.worker = newWorker;\n        this.worker.onmessage = this._onWorkerMessage.bind(this);\n        this.worker.postMessage(new _serialization__WEBPACK_IMPORTED_MODULE_2__.Message(_serialization__WEBPACK_IMPORTED_MODULE_2__.Messages.Start, new _serialization__WEBPACK_IMPORTED_MODULE_2__.DOMData(window.innerWidth, window.innerHeight)));\n        this.setupInitialElements();\n    }\n    _onWorkerMessage(data) {\n        var _a;\n        let msg = data.data;\n        switch (msg.message) {\n            case _serialization__WEBPACK_IMPORTED_MODULE_2__.Messages.GraphicChanges:\n                {\n                    (_a = this.gameGraphicsElement) === null || _a === void 0 ? void 0 : _a.updateGraphics(msg.data);\n                }\n                break;\n        }\n    }\n    _addCodeEditorElement() {\n        let element = document.createElement(\"code-editor\");\n        element.setAttribute(\"id\", \"code-editor\");\n        this.mainComponentElement.appendChild(element);\n        this.codeEditorElement = element;\n        this.codeEditorElement.addEventListener(\"closecodeeditor\", this._onCloseCodeEditor.bind(this));\n    }\n    _addRobotMenuElement() {\n        let element = document.createElement(\"robot-menu\");\n        element.setAttribute(\"id\", \"robot-menu\");\n        this.mainComponentElement.appendChild(element);\n        this.robotMenuElement = element;\n        this.robotMenuElement.addEventListener(\"opencodeeditor\", this._onOpenCodeEditor.bind(this));\n    }\n    _addGameInputElement() {\n        let element = document.createElement(\"game-input\");\n        element.setAttribute(\"id\", \"game-input\");\n        this.mainComponentElement.appendChild(element);\n        this.gameInputElement = element;\n        this.gameInputElement.addWorker(this.worker);\n    }\n    _addGameGraphicsElement() {\n        let element = document.createElement(\"game-graphics\");\n        element.setAttribute(\"id\", \"game-graphics\");\n        this.mainComponentElement.appendChild(element);\n        this.gameGraphicsElement = element;\n    }\n}\n\n\n//# sourceURL=webpack://strworld/./src/ui/web_components/main-component/main.ts?");
 
 /***/ }),
 

@@ -10,56 +10,31 @@ export class CustomElement extends HTMLElement {
     private mainComponentElement: HTMLDivElement
     private worker: Worker | undefined
 
-    private _gameGraphicsStringElement: string
-    private _codeEditorStringElement: string
-    private _gameInputStringElement: string
-    private _robotMenuStringElement: string
-
     private gameGraphicsElement: GameGraphics.CustomElement | undefined
     private codeEditorElement: CodeEditor.CustomElement | undefined
     private gameInputElement: GameInput.CustomElement | undefined
     private robotMenuElement: RobotMenu.CustomElement | undefined
-        
+
     constructor() {
         super()
         this.attachShadow({ mode: "open" })
         this.shadowRoot!.innerHTML = html + `<style>${css[0][1]}</style>`
         this.mainComponentElement = this.shadowRoot!.getElementById("main-component") as HTMLDivElement
-
-        this._gameGraphicsStringElement =  '<game-graphics id="game-graphics"></game-graphics>'
-        this._codeEditorStringElement =  '<code-editor id="code-editor"></code-editor>'
-         this._gameInputStringElement= '<game-input id="game-input"></game-input>'
-        this._robotMenuStringElement = '<robot-menu id="robot-menu"></robot-menu>'
     }
     private setupInitialElements() {
-        this.mainComponentElement.insertAdjacentHTML(
-        "beforeend", 
-        this._gameInputStringElement +
-        this._gameGraphicsStringElement +
-        this._robotMenuStringElement) 
-
-        this.gameGraphicsElement = this.shadowRoot!.getElementById("game-graphics") as GameGraphics.CustomElement
-        this.gameInputElement = this.shadowRoot!.getElementById("game-input") as GameInput.CustomElement
-        this.robotMenuElement = this.shadowRoot!.getElementById("robot-menu") as RobotMenu.CustomElement
-
-        this.robotMenuElement.addEventListener("opencodeeditor", this._onOpenCodeEditor.bind(this))
-        this.gameInputElement.addWorker(this.worker!)
+        this._addGameGraphicsElement()
+        this._addGameInputElement()
+        this._addRobotMenuElement()
     }
+
     private _onOpenCodeEditor() {
-        this.mainComponentElement.insertAdjacentHTML(
-        "beforeend", 
-        this._codeEditorStringElement) 
+        this._addCodeEditorElement()
         this.gameInputElement?.remove()
         this.robotMenuElement?.remove()
-        this.codeEditorElement = this.shadowRoot!.getElementById("code-editor") as CodeEditor.CustomElement
-        this.codeEditorElement.addEventListener("closecodeeditor", this._onCloseCodeEditor.bind(this))
     }
     private _onCloseCodeEditor() {
-        this.mainComponentElement.insertAdjacentHTML(
-        "beforeend", 
-        this._gameInputStringElement +
-        this._robotMenuStringElement
-        ) 
+        this._addGameInputElement()
+        this._addRobotMenuElement()
         this.codeEditorElement?.remove()
     }
     addWorker(newWorker: Worker) {
@@ -70,42 +45,43 @@ export class CustomElement extends HTMLElement {
                 Ser.Messages.Start,
                 new Ser.DOMData(window.innerWidth, window.innerHeight)
             ));
-        this.setupInitialElements()
+            this.setupInitialElements()
     }
 
     private _onWorkerMessage(data: any) {
         let msg = (data.data as Ser.Message)
         switch (msg.message) {
             case Ser.Messages.GraphicChanges: {
-                if(this.gameGraphicsElement != undefined) {
-                    this.gameGraphicsElement.updateGraphics(msg.data as Ser.GraphicChanges)
-                }
+                this.gameGraphicsElement?.updateGraphics(msg.data as Ser.GraphicChanges)
             } break;
         }
     }
-    private _gameGraphicsStringElement: string
-    private _codeEditorStringElement: string
-    private _gameInputStringElement: string
-    private _robotMenuStringElement: string
-
-    private gameGraphicsElement: GameGraphics.CustomElement | undefined
-    private codeEditorElement: CodeEditor.CustomElement | undefined
-    private gameInputElement: GameInput.CustomElement | undefined
-    private robotMenuElement: RobotMenu.CustomElement | undefined
-        
-    constructor() {
-        super()
-        this.attachShadow({ mode: "open" })
-        this.shadowRoot!.innerHTML = html + `<style>${css[0][1]}</style>`
-        this.mainComponentElement = this.shadowRoot!.getElementById("main-component") as HTMLDivElement
-
-        this._codeEditorStringElement =  '<code-editor id="code-editor"></code-editor>'
-         this._gameInputStringElement= '<game-input id="game-input"></game-input>'
-        this._robotMenuStringElement = '<robot-menu id="robot-menu"></robot-menu>'
+    private _addCodeEditorElement() {
+        let element = document.createElement("code-editor")
+        element.setAttribute("id", "code-editor")
+        this.mainComponentElement.appendChild(element)
+        this.codeEditorElement = element as CodeEditor.CustomElement
+        this.codeEditorElement.addEventListener("closecodeeditor", this._onCloseCodeEditor.bind(this))
     }
-    addGameGraphicsElement() {
-        let elementString =  '<game-graphics id="game-graphics"></game-graphics>'
-        this.mainComponentElement.insertAdjacentHTML("beforeend", elementString)
+    private _addRobotMenuElement() {
+        let element = document.createElement("robot-menu")
+        element.setAttribute("id", "robot-menu")
+        this.mainComponentElement.appendChild(element)
+        this.robotMenuElement = element as RobotMenu.CustomElement
+        this.robotMenuElement.addEventListener("opencodeeditor", this._onOpenCodeEditor.bind(this))
+    }
+    private _addGameInputElement() {
+        let element = document.createElement("game-input")
+        element.setAttribute("id", "game-input")
+        this.mainComponentElement.appendChild(element)
+        this.gameInputElement = element as GameInput.CustomElement
+        this.gameInputElement.addWorker(this.worker!)
+    }
+    private _addGameGraphicsElement() {
+        let element = document.createElement("game-graphics")
+        element.setAttribute("id", "game-graphics")
+        this.mainComponentElement.appendChild(element)
+        this.gameGraphicsElement = element as GameGraphics.CustomElement
     }
 }
 

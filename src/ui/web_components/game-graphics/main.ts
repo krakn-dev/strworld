@@ -342,9 +342,19 @@ export class World {
         this.clock = new THREE.Clock()
 
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        console.log(window.innerWidth, window.innerHeight);
         (this.renderer as any).shadowMap.enabled = true;
         parentElement.append(this.renderer.domElement);
+        window.addEventListener("resize", this.onWindowResize.bind(this))
+    }
+    private onWindowResize(){
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        this.renderer.setSize( width, height );
+        if(this.camera != undefined) {
+            let perspectiveCamera = this.camera as THREE.PerspectiveCamera
+            perspectiveCamera.aspect = width / height;
+            perspectiveCamera.updateProjectionMatrix();
+        }
     }
     renderLoop() {
         requestAnimationFrame(this.renderLoop.bind(this));

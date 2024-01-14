@@ -137,8 +137,14 @@ export class System {
                 return true;
             },
             get(obj: { [key: string]: any }, prop: string) {
+                let component = obj as Component
                 if ("componentUid" in obj) {
-                    outer.accessedComponent = obj as Component
+                    if (
+                        component.componentType == Comps.ComponentTypes.RigidBody
+                    ) {
+                        return obj[prop];
+                    }
+                    outer.accessedComponent = component
                 }
 
                 if (typeof obj[prop] == "object") {

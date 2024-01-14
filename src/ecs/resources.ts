@@ -2,6 +2,7 @@ import * as ECS from "./ecs"
 import * as Cmds from "./commands"
 import * as Comps from "./components"
 import * as Utils from "../utils"
+import * as CANNON from 'cannon-es'
 
 
 export class Resources {
@@ -13,6 +14,7 @@ export class Resources {
     options: OptionsResource
     domState: DOMStateResouce
     positionGrid: PositionGridResource
+    physics: PhysicsResource
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
         this.domState = new DOMStateResouce()
         this.delta = new DeltaResource(newCurrentExecutingCommand)
@@ -22,9 +24,19 @@ export class Resources {
         this.input = new InputResource()
         this.options = new OptionsResource()
         this.positionGrid = new PositionGridResource()
+        this.physics = new PhysicsResource()
     }
 }
 
+export class PhysicsResource {
+    world: CANNON.World
+
+    constructor() {
+        this.world = new CANNON.World({
+            gravity: new CANNON.Vec3(0, -9.82, 0),
+        })
+    }
+}
 class LastTimeCommandWasRun {
     command: Cmds.CommandTypes
     time: number

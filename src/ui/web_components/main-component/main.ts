@@ -45,7 +45,7 @@ export class CustomElement extends HTMLElement {
                 Ser.Messages.Start,
                 new Ser.DOMData(window.innerWidth, window.innerHeight)
             ));
-            this.setupInitialElements()
+        this.setupInitialElements()
     }
 
     private _onWorkerMessage(data: any) {

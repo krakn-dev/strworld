@@ -1,11 +1,13 @@
 import { Vector2, Vector3 } from "three"
 import * as ECS from "./ecs"
 import * as Utils from "../utils"
+import * as CANNON from 'cannon-es'
 
 export enum ComponentTypes {
     Health = 0,
     Camera,
     Light,
+    Velocity,
     Rotation,
     EntityState,
     Name,
@@ -13,11 +15,14 @@ export enum ComponentTypes {
     Position,
     TargetLocation,
     Timer,
-    BoxShape,
+    Shape,
     Mass,
     ShapeColor,
     Force,
     HardCodedId,
+    Code,
+    RobotComponent,
+    RigidBody,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -39,6 +44,7 @@ export enum EntityTypes {
     Camera,
     Light,
     GeometricShape,
+    Robot,
 }
 export enum EntityStates {
     Idle,
@@ -56,7 +62,53 @@ export enum LightTypes {
 export enum ShapeTypes {
     Box,
 }
-
+export enum RobotComponentTypes {
+    Motor,
+}
+//export class RobotComponent implements ECS.Component {
+//    entityUid: number
+//    componentUid: number
+//    componentType: ComponentTypes
+//    childrenComponent: []
+//    constructor(
+//        newCode: string,
+//        newEntityUid: number
+//    ) {
+//        this.componentUid = Utils.newUid()
+//        this.entityUid = newEntityUid
+//        this.componentType = ComponentTypes.Code
+//        this.code = newCode
+//    }
+//}
+export class Code implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    code: string
+    constructor(
+        newCode: string,
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Code
+        this.code = newCode
+    }
+}
+export class RigidBody implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    body: CANNON.Body
+    constructor(
+        newEntityUid: number,
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.RigidBody
+        this.body = new CANNON.Body({ type: CANNON.BODY_TYPES.DYNAMIC })
+    }
+}
 export class HardCodedId implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -100,7 +152,7 @@ export class Shape implements ECS.Component {
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.componentType = ComponentTypes.BoxShape
+        this.componentType = ComponentTypes.Shape
         this.size = newSize
         this.shapeType = newShapeType
     }
@@ -232,7 +284,24 @@ export class Health implements ECS.Component {
         this.health = newHealth
     }
 }
+export class Velocity implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    x: number
+    y: number
+    z: number
 
+    constructor(newVelocity: Utils.Vector3, newEntityUid: number) {
+        this.x = newVelocity.x
+        this.y = newVelocity.y
+        this.z = newVelocity.z
+
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Velocity
+    }
+}
 export class Force implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -271,11 +340,18 @@ export class Rotation implements ECS.Component {
     x: number
     y: number
     z: number
+    w: number
 
     constructor(newRotation: Utils.Vector3, newEntityUid: number) {
-        this.x = newRotation.x
-        this.y = newRotation.y
-        this.z = newRotation.z
+        let quaternion = new CANNON.Quaternion()
+            .setFromEuler(
+                Utils.degreesToRadians(newRotation.x),
+                Utils.degreesToRadians(newRotation.y),
+                Utils.degreesToRadians(newRotation.z))
+        this.x = quaternion.x
+        this.y = quaternion.y
+        this.z = quaternion.z
+        this.w = quaternion.w
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Rotation

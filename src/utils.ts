@@ -1,4 +1,4 @@
-
+import * as CANNON from "cannon-es"
 export const randomNumber = (max: number) => Math.floor(Math.random() * max) + 1;
 export const newUid = () => randomNumber(100000000)
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -42,6 +42,23 @@ export class Vector3 {
         this.z = newZ
     }
 }
+export class Quaternion {
+    x: number
+    y: number
+    z: number
+    w: number
+    constructor(
+        newX: number,
+        newY: number,
+        newZ: number,
+        newW: number
+    ) {
+        this.x = newX
+        this.y = newY
+        this.z = newZ
+        this.w = newW
+    }
+}
 export function crossProduct(a: Vector3, b: Vector3): Vector3 {
     return new Vector3(
         (a.y * b.z) - (a.z * b.y),
@@ -57,4 +74,7 @@ export function replaceRange(
 ) {
     let substitute = substituteCallback(str.substring(start, end))
     return str.substring(0, start) + substitute + str.substring(end);
+}
+export function degreesToRadians(degrees: number): number {
+    return degrees * (3.1416 / 180)
 }

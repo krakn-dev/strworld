@@ -27,7 +27,7 @@ export class CustomElement extends HTMLElement {
         this.robotTerminalElement = this.shadowRoot!.getElementById("robot-terminal") as RobotTerminal.CustomElement
         this.doneButtonElement = this.shadowRoot!.getElementById("done-button") as CoolButton.CustomElement
 
-        this.onCodeEditorClose = new CustomEvent("closecodeeditor", {bubbles: false,composed: true, cancelable: true})
+        this.onCodeEditorClose = new CustomEvent("closecodeeditor", { bubbles: false, composed: true, cancelable: true })
     }
     connectedCallback() {
         this.doneButtonElement.addEventListener("clicked", this._onDoneClicked.bind(this))
@@ -35,7 +35,7 @@ export class CustomElement extends HTMLElement {
         this.inputFieldElement.addEventListener("codechange", this._onInputFieldChange.bind(this))
     }
     private _onDoneClicked() {
-       this.dispatchEvent(this.onCodeEditorClose) 
+        this.dispatchEvent(this.onCodeEditorClose)
     }
     private _onInputFieldScroll(e: any) {
         this.numberLineElement.scrollNumberLine(e.detail.scrollTop)

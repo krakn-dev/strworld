@@ -4,7 +4,7 @@
     color: white;
     font-family: hack;
     font-size: 25px;
-    background-color: black;
+    background-color: transparent;
 }
 #cool-button:hover {
     background-color: #e68183;

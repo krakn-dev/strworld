@@ -28,6 +28,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "cannon-es": "^0.20.0",
     "esprima": "^4.0.1",
     "file-loader": "^6.2.0",
     "three": "^0.159.0"

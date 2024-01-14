@@ -6,6 +6,19 @@
     height: 100%;
     width: 100%;
 }
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: #444444aa;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: #bbbbbb;
+}
+
 #input-field {
     display: flex; /* required */
     flex-flow: row; /* required */

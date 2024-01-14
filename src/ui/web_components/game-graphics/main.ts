@@ -42,7 +42,9 @@ function getModelNameByEntityType(entityType: Comps.EntityTypes): string {
         case Comps.EntityTypes.Light:
             throw "light is not an asset"
         case Comps.EntityTypes.GeometricShape:
-            throw "light is not an asset"
+            throw "geometric shape is not an asset"
+        case Comps.EntityTypes.Robot:
+            throw "robot shape is not an asset"
     }
 }
 function getAnimationToPlayByEntityStates(entityStates: Comps.EntityStates[]): string {
@@ -124,12 +126,14 @@ export class GraphicChangesHandler {
                             break;
                         case Comps.ComponentTypes.Rotation:
                             let rotationComponent = c as Comps.Rotation
-                            gO.object.setRotationFromEuler(
-                                new THREE.Euler(
-                                    THREE.MathUtils.degToRad(rotationComponent.x),
-                                    THREE.MathUtils.degToRad(rotationComponent.y),
-                                    THREE.MathUtils.degToRad(rotationComponent.z)
-                                ))
+                            gO.object.setRotationFromQuaternion(
+                                new THREE.Quaternion(
+                                    rotationComponent.x,
+                                    rotationComponent.y,
+                                    rotationComponent.z,
+                                    rotationComponent.w,
+                                )
+                            )
                             break;
                         case Comps.ComponentTypes.EntityState:
                             let entityStateComponent = c as Comps.EntityState
@@ -175,7 +179,7 @@ export class GraphicChangesHandler {
                 let entityType = undefined
 
                 for (let c of eC.components) {
-                    if (c.componentType == Comps.ComponentTypes.BoxShape) {
+                    if (c.componentType == Comps.ComponentTypes.Shape) {
                         boxShapeComponent = (c as Comps.Shape)
                     }
                     if (c.componentType == Comps.ComponentTypes.EntityType) {
@@ -344,13 +348,13 @@ export class World {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         (this.renderer as any).shadowMap.enabled = true;
         parentElement.append(this.renderer.domElement);
-        window.addEventListener("resize", this.onWindowResize.bind(this))
+        //        window.addEventListener("resize", this.onWindowResize.bind(this))
     }
-    private onWindowResize(){
+    private onWindowResize() {
         let width = window.innerWidth;
         let height = window.innerHeight;
-        this.renderer.setSize( width, height );
-        if(this.camera != undefined) {
+        this.renderer.setSize(width, height);
+        if (this.camera != undefined) {
             let perspectiveCamera = this.camera as THREE.PerspectiveCamera
             perspectiveCamera.aspect = width / height;
             perspectiveCamera.updateProjectionMatrix();

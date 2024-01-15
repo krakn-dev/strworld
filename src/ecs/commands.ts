@@ -31,6 +31,7 @@ export enum CommandTypes {
     CreateScene,
     SendGraphicComponentsToRender,
     SyncRigidbody,
+    CameraFollowGeometry,
 }
 
 export function getInstanceFromEnum(commandEnum: CommandTypes): ECS.Command {
@@ -47,6 +48,8 @@ export function getInstanceFromEnum(commandEnum: CommandTypes): ECS.Command {
             return new MoveGeometry()
         case CommandTypes.SyncRigidbody:
             return new SyncRigidBody()
+        case CommandTypes.CameraFollowGeometry:
+            return new CameraFollowGeometry()
         //
         //        case Commands.MoveDog:
         //            return new MoveDog()
@@ -114,6 +117,36 @@ export class RunCode implements ECS.Command {
         //            console.log((e as any).lineNumber)
     }
 }
+export class CameraFollowGeometry implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.CameraFollowGeometry
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+
+        let foundHardCodedIdComponent = system.find([ECS.Get.All, [Comps.ComponentTypes.HardCodedId], ECS.By.Any, null])
+        if (foundHardCodedIdComponent[0].length == 0) {
+            console.log("no hardcodedid found")
+            return
+        }
+        let geometryUid = (foundHardCodedIdComponent[0][0] as Comps.HardCodedId).entityUid
+
+        for (let cPC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Position]) {
+            if (cPC.entityUid != geometryUid) continue
+
+            let foundCameraComponent = system.find([ECS.Get.All, [Comps.ComponentTypes.Position], ECS.By.EntityType, Comps.EntityTypes.Camera])
+            if (foundCameraComponent[0].length == 0) return
+            let cameraPositionComponent = foundCameraComponent[0][0] as Comps.Position
+            let geometryPositionComponent = cPC as Comps.Position
+
+            let offset = new Utils.Vector3(0, 13, 13)
+            cameraPositionComponent.x = geometryPositionComponent.x + offset.x
+            cameraPositionComponent.y = geometryPositionComponent.y + offset.y
+            cameraPositionComponent.z = geometryPositionComponent.z + offset.z
+        }
+    }
+}
 
 export class CreateScene implements ECS.Command {
     readonly commandType: CommandTypes
@@ -130,13 +163,14 @@ export class CreateScene implements ECS.Command {
                 500,
                 resources.domState.windowWidth! / resources.domState.windowHeight!,
                 camera)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, 13, 13), camera)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, 0), camera)
             let rotationComponent = new Comps.Rotation(new Utils.Vector3(-45, 0, 0), camera)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Camera, camera)
             system.addComponent(cameraComponent)
             system.addComponent(rotationComponent)
             system.addComponent(positionComponent)
             system.addComponent(entityTypeComponent)
+            system.addCommand(CommandTypes.CameraFollowGeometry)
         }
         {
             let pointLight = Utils.newUid()
@@ -172,6 +206,30 @@ export class CreateScene implements ECS.Command {
             system.addComponent(shapeColorComponent)
             system.addComponent(entityTypeComponent)
         }
+        let staticCube;
+        {
+            staticCube = Utils.newUid()
+            let rigidBodyComponent = new Comps.RigidBody(staticCube)
+            let shapeComponent = new Comps.Shape(new Utils.Vector3(1, 1, 1), Comps.ShapeTypes.Box, staticCube)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 3, 2), staticCube)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 45, 0), staticCube)
+            let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), staticCube)
+            let velocityComponent = new Comps.Velocity(new Utils.Vector3(0, 0, 0), staticCube)
+            let massComponent = new Comps.Mass(1, staticCube)
+            let shapeColorComponent = new Comps.ShapeColor(0xffaadd, staticCube)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, staticCube)
+
+            system.addComponent(rigidBodyComponent)
+            system.addComponent(velocityComponent)
+            system.addComponent(forceComponent)
+            system.addComponent(positionComponent)
+            system.addComponent(rotationComponent)
+            system.addComponent(massComponent)
+            system.addComponent(shapeComponent)
+            system.addComponent(shapeColorComponent)
+            system.addComponent(entityTypeComponent)
+
+        }
         {
             let movingCube = Utils.newUid()
             let rigidBodyComponent = new Comps.RigidBody(movingCube)
@@ -184,7 +242,9 @@ export class CreateScene implements ECS.Command {
             let shapeColorComponent = new Comps.ShapeColor(0xffaadd, movingCube)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, movingCube)
             let hardCodedIdComponent = new Comps.HardCodedId(0, movingCube)
+            let constraintComponent = new Comps.Constraint(staticCube, Comps.ConstraintTypes.Distance, 3, movingCube)
 
+            system.addComponent(constraintComponent)
             system.addComponent(rigidBodyComponent)
             system.addComponent(velocityComponent)
             system.addComponent(forceComponent)
@@ -198,43 +258,6 @@ export class CreateScene implements ECS.Command {
 
             system.addCommand(CommandTypes.MoveGeometry)
         }
-        //{
-        //    for (let x = 0; x < 5; x++) {
-        //        for (let z = 0; z < 5; z++) {
-        //            if (Utils.randomNumber(20) == 2) {
-        //                let staticBox = Utils.newUid()
-        //                let shapeComponent = new Comps.Shape(new Utils.Vector3(1, 1, 1), Comps.ShapeTypes.Box, staticBox)
-        //                let positionComponent = new Comps.Position(new Utils.Vector3(-x, -0.5, -z), staticBox)
-        //                let shapeColorComponent = new Comps.ShapeColor(0x1122aa, staticBox)
-        //                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, staticBox)
-        //                let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), staticBox)
-        //                let massComponent = new Comps.Mass(3.5, staticBox)
-        //                system.addComponent(shapeComponent)
-        //                system.addComponent(massComponent)
-        //                system.addComponent(positionComponent)
-        //                system.addComponent(forceComponent)
-        //                system.addComponent(shapeColorComponent)
-        //                system.addComponent(entityTypeComponent)
-        //            }
-        //            if (Utils.randomNumber(20) == 2) {
-        //                let staticBox = Utils.newUid()
-        //                let shapeComponent = new Comps.Shape(new Utils.Vector3(1, 1, 1), Comps.ShapeTypes.Box, staticBox)
-        //                let positionComponent = new Comps.Position(new Utils.Vector3(x + 1, -0.5, z + 1), staticBox)
-        //                let shapeColorComponent = new Comps.ShapeColor(0x1122aa, staticBox)
-        //                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, staticBox)
-        //                let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), staticBox)
-        //                let massComponent = new Comps.Mass(3.5, staticBox)
-        //                system.addComponent(shapeComponent)
-        //                system.addComponent(massComponent)
-        //                system.addComponent(positionComponent)
-        //                system.addComponent(forceComponent)
-        //                system.addComponent(shapeColorComponent)
-        //                system.addComponent(entityTypeComponent)
-        //            }
-        //        }
-
-        //    }
-        //}
         system.removeCommand(CommandTypes.CreateScene)
     }
 }
@@ -245,8 +268,8 @@ export class MoveGeometry implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        let acceleration = 2
-        let forceLimit = 20
+        let acceleration = 0.1
+        let velocityLimit = 3
         // get playerUid
         let foundHardCodedIdComponent = system.find([ECS.Get.All, [Comps.ComponentTypes.HardCodedId], ECS.By.Any, null])
         if (foundHardCodedIdComponent[0].length == 0) {
@@ -259,25 +282,27 @@ export class MoveGeometry implements ECS.Command {
             [
                 ECS.Get.One,
                 [
-                    Comps.ComponentTypes.Force
+                    Comps.ComponentTypes.Force,
+                    Comps.ComponentTypes.Velocity
                 ],
-                ECS.By.EntityId,
+                ECS.By.EntityUid,
                 geometryUid
             ])
-        if (foundForceAndVelocityComponent[0].length == 0) {
-            console.log("no geometry force found")
+        if (foundForceAndVelocityComponent[0].length == 0 || foundForceAndVelocityComponent[1].length == 0) {
+            console.log("no geometry components found")
             return
         }
         let forceComponent = foundForceAndVelocityComponent[0][0] as Comps.Force
+        let velocityComponent = foundForceAndVelocityComponent[1][0] as Comps.Velocity
+
         let newForce = new Utils.Vector3(0, 0, 0)
         newForce.x = forceComponent.x + resources.input.movementDirection.x * acceleration
         newForce.z = forceComponent.z + (-resources.input.movementDirection.y) * acceleration
-        console.log(forceComponent.x)
-        if (Math.abs(newForce.x) > forceLimit) {
-            newForce.x = forceLimit * (newForce.x < 0 ? -1 : 1)
+        if (Math.abs(velocityComponent.x) > velocityLimit) {
+            newForce.x = 0
         }
-        if (Math.abs(newForce.z) > forceLimit) {
-            newForce.z = forceLimit * (newForce.z < 0 ? -1 : 1)
+        if (Math.abs(velocityComponent.z) > velocityLimit) {
+            newForce.z = 0
         }
 
         if (resources.input.movementDirection.x != 0) {
@@ -396,7 +421,7 @@ export class MovePlayer implements ECS.Command {
                     [
                         Comps.ComponentTypes.EntityState,
                     ],
-                    ECS.By.EntityId,
+                    ECS.By.EntityUid,
                     foundEntityTypeComponents[0][0].entityUid
                 ]
             )
@@ -422,7 +447,7 @@ export class MovePlayer implements ECS.Command {
             }
         }
 
-        let foundForceComponent = system.find([ECS.Get.One, [Comps.ComponentTypes.Force], ECS.By.EntityId, playerUid])
+        let foundForceComponent = system.find([ECS.Get.One, [Comps.ComponentTypes.Force], ECS.By.EntityUid, playerUid])
         if (foundForceComponent[0].length == 0) {
             console.log("no player force found found")
             return
@@ -440,7 +465,7 @@ export class MovePlayer implements ECS.Command {
         }
 
         let foundEntityState = system.find(
-            [ECS.Get.One, [Comps.ComponentTypes.EntityState], ECS.By.EntityId, playerUid])
+            [ECS.Get.One, [Comps.ComponentTypes.EntityState], ECS.By.EntityUid, playerUid])
 
         if (foundEntityState[0].length == 0) {
             console.log("player entityState not found")
@@ -526,7 +551,6 @@ export class SendGraphicComponentsToRender implements ECS.Command {
         postMessage(new Ser.Message(Ser.Messages.GraphicChanges, graphicChanges))
     }
 }
-
 export class SyncRigidBody implements ECS.Command {
     readonly commandType: CommandTypes
     constructor() {
@@ -550,6 +574,42 @@ export class SyncRigidBody implements ECS.Command {
                 addedRigidBody.body.updateMassProperties()
                 isMassSet = true
             }
+            //            for (let aCC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Constraint]) {
+            //                if (aCC.entityUid != addedRigidBody.entityUid) continue
+            //                let addedConstraintComponent = aCC as Comps.Constraint
+            //                switch (addedConstraintComponent.constraintType) {
+            //                    case Comps.ConstraintTypes.PointToPoint: {
+            //                        console.log("point to point constraint not implemented")
+            //                    } break;
+            //                    case Comps.ConstraintTypes.Lock: {
+            //                        console.log("lock constraint not implemented")
+            //                    } break;
+            //                    case Comps.ConstraintTypes.Distance: {
+            //                        let foundRigidBody = system.find([
+            //                            ECS.Get.One,
+            //                            [Comps.ComponentTypes.RigidBody],
+            //                            ECS.By.EntityUid,
+            //                            addedConstraintComponent.entityUidConstrainedTo
+            //                        ])
+            //                        let constrainedBody: CANNON.Body | undefined = undefined
+            //                        if (foundRigidBody[0].length == 0) {
+            //                            for (let aCC2 of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.RigidBody]) {
+            //                                if (aCC2.entityUid != addedConstraintComponent.entityUidConstrainedTo) continue
+            //                                let constrainedRigidBodyComponent = aCC2 as Comps.RigidBody
+            //                                constrainedBody = constrainedRigidBodyComponent.body
+            //                            }
+            //                        } else {
+            //                            constrainedBody = (foundRigidBody[0][0] as Comps.RigidBody).body
+            //                        }
+            //                        if (constrainedBody == undefined) {
+            //                            console.log("constrained body wasn't found")
+            //                        } else {
+            //                            let constraint = new CANNON.DistanceConstraint(addedRigidBody.body, constrainedBody, addedConstraintComponent.distance)
+            //                            resources.physics.world.addConstraint(constraint)
+            //                        }
+            //                    } break;
+            //                }
+            //}
             for (let aVC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Velocity]) {
                 if (aVC.entityUid != addedRigidBody.entityUid) continue
                 let addedVelocityComponent = aVC as Comps.Velocity
@@ -601,8 +661,56 @@ export class SyncRigidBody implements ECS.Command {
                 console.log("not enough components for rigidbody")
             }
         }
+        // added constraints
+        for (let aCC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Constraint]) {
+            let foundRigidBodyA = system.find([
+                ECS.Get.One,
+                [Comps.ComponentTypes.RigidBody],
+                ECS.By.EntityUid,
+                aCC.entityUid
+            ])
+            if (foundRigidBodyA[0].length == 0) {
+                console.log("entity does not have rigidbody")
+                continue
+            }
+            let addedConstraintComponent = aCC as Comps.Constraint
+            let rigidBodyComponentA = foundRigidBodyA[0][0] as Comps.RigidBody
 
-        // for changed
+            switch (addedConstraintComponent.constraintType) {
+                case Comps.ConstraintTypes.PointToPoint: {
+                    console.log("point to point constraint not implemented")
+                } break;
+                case Comps.ConstraintTypes.Lock: {
+                    console.log("lock constraint not implemented")
+                } break;
+                case Comps.ConstraintTypes.Distance: {
+                    let foundRigidBodyB = system.find([
+                        ECS.Get.One,
+                        [Comps.ComponentTypes.RigidBody],
+                        ECS.By.EntityUid,
+                        addedConstraintComponent.entityUidConstrainedTo
+                    ])
+                    let bodyB: CANNON.Body | undefined = undefined
+                    if (foundRigidBodyB[0].length == 0) {
+                        for (let aRBB of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.RigidBody]) {
+                            if (aRBB.entityUid != addedConstraintComponent.entityUidConstrainedTo) continue
+                            let rigidBodyComponentB = aRBB as Comps.RigidBody
+                            bodyB = rigidBodyComponentB.body
+                        }
+                    } else {
+                        bodyB = (foundRigidBodyB[0][0] as Comps.RigidBody).body
+                    }
+                    if (bodyB == undefined) {
+                        console.log("constrained body wasn't found")
+                    } else {
+                        let constraint = new CANNON.DistanceConstraint(rigidBodyComponentA.body, bodyB, addedConstraintComponent.distance)
+                        resources.physics.world.addConstraint(constraint)
+                    }
+                } break;
+            }
+        }
+
+        //for changed
         let foundRigidBodyComponents = system.find([ECS.Get.All, [Comps.ComponentTypes.RigidBody], ECS.By.Any, null])
         for (let cMC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Mass]) {
             let changedMassComponent = cMC as Comps.Mass

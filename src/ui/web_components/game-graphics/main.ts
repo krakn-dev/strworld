@@ -348,7 +348,7 @@ export class World {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         (this.renderer as any).shadowMap.enabled = true;
         parentElement.append(this.renderer.domElement);
-        //        window.addEventListener("resize", this.onWindowResize.bind(this))
+        window.addEventListener("resize", this.onWindowResize.bind(this))
     }
     private onWindowResize() {
         let width = window.innerWidth;

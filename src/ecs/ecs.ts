@@ -15,7 +15,7 @@ export enum Get {
 }
 
 export enum By {
-    EntityId,
+    EntityUid,
     EntityType,
     ComponentId,
     Any,
@@ -165,7 +165,7 @@ export class System {
         }
         if (query[2] == By.EntityType && (query[3] as Comps.EntityTypes) == undefined ||
             query[2] == By.ComponentId && typeof query[3] != "number" ||
-            query[2] == By.EntityId && typeof query[3] != "number") {
+            query[2] == By.EntityUid && typeof query[3] != "number") {
             console.log('argument does not match "By" enum')
             return []
         }
@@ -203,7 +203,7 @@ export class System {
                     }
                     continue;
                 }
-                else if (query[2] == By.EntityId) {
+                else if (query[2] == By.EntityUid) {
                     for (let c of this.components[qc]) {
                         if (query[3] == c.entityUid) {
                             collected[qci].push(c)
@@ -214,7 +214,7 @@ export class System {
                 }
             }
             else if (query[0] == Get.All) {
-                if (query[2] == By.EntityId) {
+                if (query[2] == By.EntityUid) {
                     for (let c of this.components[qc]) {
                         if (query[3] == c.entityUid) {
                             collected[qci].push(c)
@@ -229,19 +229,20 @@ export class System {
                     continue;
                 }
 
-                //                else if (query[2] == By.EntityType) {
-                //                    for (let e of this.components[Comps.Components.EntityType]) {
-                //                        if (query[3] == e.entityType) {
-                //                            for (let c of this.components[qc]) {
-                //                                if (e.entityUid == c.ownerUid) {
-                //                                    collected[qci].push(c)
-                //                                }
-                //                            }
-                //                            break;
-                //                        }
-                //                    }
-                //                    continue;
-                //                }
+                else if (query[2] == By.EntityType) {
+                    for (let e of this.components[Comps.ComponentTypes.EntityType]) {
+                        let entityTypeComponent = e as Comps.EntityType
+                        if (query[3] == entityTypeComponent.entityType) {
+                            for (let c of this.components[qc]) {
+                                if (e.entityUid == c.entityUid) {
+                                    collected[qci].push(c)
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    continue;
+                }
 
             }
         }

@@ -23,6 +23,7 @@ export enum ComponentTypes {
     Code,
     RobotComponent,
     RigidBody,
+    Constraint,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -65,6 +66,11 @@ export enum ShapeTypes {
 export enum RobotComponentTypes {
     Motor,
 }
+export enum ConstraintTypes {
+    PointToPoint,
+    Lock,
+    Distance,
+}
 //export class RobotComponent implements ECS.Component {
 //    entityUid: number
 //    componentUid: number
@@ -80,6 +86,7 @@ export enum RobotComponentTypes {
 //        this.code = newCode
 //    }
 //}
+
 export class Code implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -95,11 +102,49 @@ export class Code implements ECS.Component {
         this.code = newCode
     }
 }
+export class Constraint implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+
+    entityUidConstrainedTo: number
+    constraintType: ConstraintTypes
+    distance: number
+    constructor(
+        newEntityUidConstrainedTo: number,
+        newConstraintType: ConstraintTypes,
+        newDistance: number,
+        newEntityUid: number,
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Constraint
+        this.constraintType = newConstraintType
+        this.entityUidConstrainedTo = newEntityUidConstrainedTo
+        this.distance = newDistance
+    }
+}
+export class AngularLock implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    body: CANNON.Body
+
+    constructor(
+        newEntityUid: number,
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.RigidBody
+        this.body = new CANNON.Body({ type: CANNON.BODY_TYPES.DYNAMIC })
+    }
+}
 export class RigidBody implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
     body: CANNON.Body
+
     constructor(
         newEntityUid: number,
     ) {

@@ -21,9 +21,11 @@ export enum ComponentTypes {
     Force,
     HardCodedId,
     Code,
-    RobotComponent,
     RigidBody,
     Constraint,
+    Vehicle,
+    Wheel,
+    //    Robot,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -46,6 +48,7 @@ export enum EntityTypes {
     Light,
     GeometricShape,
     Robot,
+    Wheel,
 }
 export enum EntityStates {
     Idle,
@@ -62,16 +65,14 @@ export enum LightTypes {
 }
 export enum ShapeTypes {
     Box,
-}
-export enum RobotComponentTypes {
-    Motor,
+    Cylinder,
 }
 export enum ConstraintTypes {
     PointToPoint,
     Lock,
     Distance,
 }
-//export class RobotComponent implements ECS.Component {
+//export class Robot implements ECS.Component {
 //    entityUid: number
 //    componentUid: number
 //    componentType: ComponentTypes
@@ -86,6 +87,37 @@ export enum ConstraintTypes {
 //        this.code = newCode
 //    }
 //}
+
+export class Vehicle implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    controller: CANNON.RaycastVehicle
+    constructor(
+        body: CANNON.Body,
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Vehicle
+        this.controller = new CANNON.RaycastVehicle({ chassisBody: body })
+    }
+}
+export class Wheel implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    wheelIndex: number
+    constructor(
+        newWheelIndex: number,
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Wheel
+        this.wheelIndex = newWheelIndex
+    }
+}
 
 export class Code implements ECS.Component {
     entityUid: number
@@ -102,6 +134,7 @@ export class Code implements ECS.Component {
         this.code = newCode
     }
 }
+
 export class Constraint implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -188,17 +221,19 @@ export class Shape implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    size: Utils.Vector3
+    size: Utils.Vector3 | undefined
+    radiusTop: number | undefined
+    radiusBottom: number | undefined
+    height: number | undefined
+    numberOfSegments: number | undefined
     shapeType: ShapeTypes
     constructor(
-        newSize: Utils.Vector3,
         newShapeType: ShapeTypes,
         newEntityUid: number,
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Shape
-        this.size = newSize
         this.shapeType = newShapeType
     }
 }

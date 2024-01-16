@@ -45,6 +45,8 @@ function getModelNameByEntityType(entityType: Comps.EntityTypes): string {
             throw "geometric shape is not an asset"
         case Comps.EntityTypes.Robot:
             throw "robot shape is not an asset"
+        case Comps.EntityTypes.Wheel:
+            throw "wheel is not an asset"
     }
 }
 function getAnimationToPlayByEntityStates(entityStates: Comps.EntityStates[]): string {
@@ -219,10 +221,23 @@ export class GraphicChangesHandler {
 
                     case Comps.EntityTypes.GeometricShape: {
                         let material = new THREE.MeshPhongMaterial();
-                        const geometry = new THREE.BoxGeometry(
-                            boxShapeComponent!.size.x,
-                            boxShapeComponent!.size.y,
-                            boxShapeComponent!.size.z);
+                        let geometry: THREE.BufferGeometry;
+                        switch (boxShapeComponent!.shapeType) {
+                            case Comps.ShapeTypes.Box: {
+                                geometry = new THREE.BoxGeometry(
+                                    boxShapeComponent!.size!.x,
+                                    boxShapeComponent!.size!.y,
+                                    boxShapeComponent!.size!.z);
+                            } break;
+                            case Comps.ShapeTypes.Cylinder: {
+                                geometry = new THREE.CylinderGeometry(
+                                    boxShapeComponent!.radiusTop,
+                                    boxShapeComponent!.radiusBottom,
+                                    boxShapeComponent!.height,
+                                    boxShapeComponent!.numberOfSegments,
+                                );
+                            } break;
+                        }
                         const mesh = new THREE.Mesh(geometry, material);
                         newGraphicObject = new GraphicObject(mesh, eC.entityUid)
                         newGraphicObject.object.castShadow = true

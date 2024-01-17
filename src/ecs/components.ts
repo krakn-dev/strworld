@@ -112,20 +112,22 @@ export class Wheel implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    wheelIndex: number | undefined
-    entityUidVehicle: number
-    positionRelativeToVehicle: Utils.Vector3
+    velocity: number
+    isOn: boolean
+    isLeft: boolean
+    entityUidAttachedTo: number
     constructor(
-        newEntityUidVehicle: number,
-        newPositionRelativeToVehicle: Utils.Vector3,
+        newIsLeft: boolean,
+        newEntityUidAttachedTo: number,
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Wheel
-        this.wheelIndex = undefined
-        this.entityUidVehicle = newEntityUidVehicle
-        this.positionRelativeToVehicle = newPositionRelativeToVehicle
+        this.velocity = 0
+        this.isOn = false
+        this.isLeft = newIsLeft
+        this.entityUidAttachedTo = newEntityUidAttachedTo
     }
 }
 
@@ -157,6 +159,7 @@ export class Constraint implements ECS.Component {
     pivotB: Utils.Vector3 | undefined
     axisA: Utils.Vector3 | undefined
     axisB: Utils.Vector3 | undefined
+    constraint: CANNON.Constraint | undefined
     constructor(
         newEntityUidConstrainedTo: number,
         newConstraintType: ConstraintTypes,
@@ -168,6 +171,7 @@ export class Constraint implements ECS.Component {
 
         this.constraintType = newConstraintType
         this.entityUidConstrainedTo = newEntityUidConstrainedTo
+        this.constraint = undefined
         this.distance = undefined
         this.pivotA = undefined
         this.pivotB = undefined
@@ -435,8 +439,6 @@ export class Rotation implements ECS.Component {
     y: number
     z: number
     w: number
-
-
     constructor(newRotation: Utils.Vector3, newEntityUid: number) {
         let quaternion = new CANNON.Quaternion()
             .setFromEuler(

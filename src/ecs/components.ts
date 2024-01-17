@@ -70,6 +70,7 @@ export enum ConstraintTypes {
     PointToPoint,
     Lock,
     Distance,
+    Hinge,
 }
 export enum BodyTypes {
     Dynamic,
@@ -151,34 +152,27 @@ export class Constraint implements ECS.Component {
 
     entityUidConstrainedTo: number
     constraintType: ConstraintTypes
-    distance: number
+    distance: number | undefined
+    pivotA: Utils.Vector3 | undefined
+    pivotB: Utils.Vector3 | undefined
+    axisA: Utils.Vector3 | undefined
+    axisB: Utils.Vector3 | undefined
     constructor(
         newEntityUidConstrainedTo: number,
         newConstraintType: ConstraintTypes,
-        newDistance: number,
         newEntityUid: number,
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Constraint
+
         this.constraintType = newConstraintType
         this.entityUidConstrainedTo = newEntityUidConstrainedTo
-        this.distance = newDistance
-    }
-}
-export class AngularLock implements ECS.Component {
-    entityUid: number
-    componentUid: number
-    componentType: ComponentTypes
-    body: CANNON.Body
-
-    constructor(
-        newEntityUid: number,
-    ) {
-        this.componentUid = Utils.newUid()
-        this.entityUid = newEntityUid
-        this.componentType = ComponentTypes.RigidBody
-        this.body = new CANNON.Body({ type: CANNON.BODY_TYPES.DYNAMIC })
+        this.distance = undefined
+        this.pivotA = undefined
+        this.pivotB = undefined
+        this.axisA = undefined
+        this.axisB = undefined
     }
 }
 export class RigidBody implements ECS.Component {

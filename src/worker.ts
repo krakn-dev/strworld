@@ -18,7 +18,7 @@ onmessage = (data) => {
 
             system.addCommand(Cmds.CommandTypes.TheFirst)
             setInterval(system.run.bind(system), 15)
-            //            setInterval(system.run.bind(system), 500)
+            //setInterval(system.run.bind(system), 500)
         } break;
         case Ser.Messages.Input: {
             let newData = msg.data as Ser.Input

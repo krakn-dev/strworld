@@ -1,4 +1,3 @@
-import { Vector2, Vector3 } from "three"
 import * as ECS from "./ecs"
 import * as Utils from "../utils"
 import * as CANNON from 'cannon-es'
@@ -72,6 +71,11 @@ export enum ConstraintTypes {
     Lock,
     Distance,
 }
+export enum BodyTypes {
+    Dynamic,
+    Static,
+    Kinematic,
+}
 //export class Robot implements ECS.Component {
 //    entityUid: number
 //    componentUid: number
@@ -107,15 +111,20 @@ export class Wheel implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    wheelIndex: number
+    wheelIndex: number | undefined
+    entityUidVehicle: number
+    positionRelativeToVehicle: Utils.Vector3
     constructor(
-        newWheelIndex: number,
+        newEntityUidVehicle: number,
+        newPositionRelativeToVehicle: Utils.Vector3,
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Wheel
-        this.wheelIndex = newWheelIndex
+        this.wheelIndex = undefined
+        this.entityUidVehicle = newEntityUidVehicle
+        this.positionRelativeToVehicle = newPositionRelativeToVehicle
     }
 }
 
@@ -177,14 +186,18 @@ export class RigidBody implements ECS.Component {
     componentUid: number
     componentType: ComponentTypes
     body: CANNON.Body
-
+    bodyType: BodyTypes
+    disableCollisions: boolean
     constructor(
+        newBodyType: BodyTypes,
         newEntityUid: number,
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.RigidBody
-        this.body = new CANNON.Body({ type: CANNON.BODY_TYPES.DYNAMIC })
+        this.body = new CANNON.Body()
+        this.disableCollisions = false
+        this.bodyType = newBodyType
     }
 }
 export class HardCodedId implements ECS.Component {
@@ -390,10 +403,17 @@ export class Force implements ECS.Component {
     y: number
     z: number
 
+    xToApply: number
+    yToApply: number
+    zToApply: number
     constructor(newForce: Utils.Vector3, newEntityUid: number) {
         this.x = newForce.x
         this.y = newForce.y
         this.z = newForce.z
+
+        this.xToApply = 0
+        this.yToApply = 0
+        this.zToApply = 0
 
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
@@ -421,6 +441,7 @@ export class Rotation implements ECS.Component {
     y: number
     z: number
     w: number
+
 
     constructor(newRotation: Utils.Vector3, newEntityUid: number) {
         let quaternion = new CANNON.Quaternion()

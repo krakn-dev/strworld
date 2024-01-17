@@ -17,7 +17,7 @@ export enum Get {
 export enum By {
     EntityUid,
     EntityType,
-    ComponentId,
+    componentUid,
     Any,
 }
 
@@ -106,50 +106,29 @@ export class System {
         }
     }
 
-    private accessedComponent: Component | null = null
+    // checks for changes in component properties
+    // not nested ones
     private createProxy<T extends Component>(obj: T): T {
         let outer = this
         let handler = {
             set(obj: { [key: string]: any }, prop: string, value: any) {
-                if ("componentUid" in obj) {
-                    outer.accessedComponent = obj as Component
-                }
+                let component = obj as Component
 
                 let isAlreadyChanged = false
                 for (
-                    let cC of outer
-                        .resources
-                        .componentChanges
-                        .changedComponentsBuffer[outer.accessedComponent!.componentType]
+                    let cC of outer.resources.componentChanges.changedComponentsBuffer[component.componentType]
                 ) {
-                    if (cC.componentUid == outer.accessedComponent!.componentUid) {
+                    if (cC.componentUid == component.componentUid) {
                         isAlreadyChanged = true
                     }
                 }
                 if (!isAlreadyChanged) {
-                    outer
-                        .resources
-                        .componentChanges
-                        .changedComponentsBuffer[outer.accessedComponent!.componentType]
-                        .push(outer.accessedComponent!)
+                    outer.resources.componentChanges.changedComponentsBuffer[component.componentType].push(component)
                 }
                 obj[prop] = value;
                 return true;
             },
             get(obj: { [key: string]: any }, prop: string) {
-                let component = obj as Component
-                if ("componentUid" in obj) {
-                    if (
-                        component.componentType == Comps.ComponentTypes.RigidBody
-                    ) {
-                        return obj[prop];
-                    }
-                    outer.accessedComponent = component
-                }
-
-                if (typeof obj[prop] == "object") {
-                    return outer.createProxy(obj[prop])
-                }
                 return obj[prop];
             },
         };
@@ -164,13 +143,13 @@ export class System {
             return []
         }
         if (query[2] == By.EntityType && (query[3] as Comps.EntityTypes) == undefined ||
-            query[2] == By.ComponentId && typeof query[3] != "number" ||
+            query[2] == By.componentUid && typeof query[3] != "number" ||
             query[2] == By.EntityUid && typeof query[3] != "number") {
             console.log('argument does not match "By" enum')
             return []
         }
 
-        if (query[0] == Get.All && query[2] == By.ComponentId) {
+        if (query[0] == Get.All && query[2] == By.componentUid) {
             console.log('cannot get all by component id')
             return []
         }
@@ -194,7 +173,7 @@ export class System {
 
         for (let [qci, qc] of query[1].entries()) {
             if (query[0] == Get.One) {
-                if (query[2] == By.ComponentId) {
+                if (query[2] == By.componentUid) {
                     for (let c of this.components[qc]) {
                         if (query[3] == c.componentUid) {
                             collected[qci].push(c)

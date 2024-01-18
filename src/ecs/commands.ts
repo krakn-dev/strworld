@@ -5,7 +5,6 @@ import * as Comps from "./components"
 import * as Ser from "../serialization"
 import * as CANNON from 'cannon-es'
 import * as Fn from "./functions"
-import { Vector3 } from "three"
 
 // order in which they get executed
 export enum CommandTypes {

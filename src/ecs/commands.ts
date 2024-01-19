@@ -4,7 +4,7 @@ import * as Utils from "../utils"
 import * as Comps from "./components"
 import * as Ser from "../serialization"
 import * as CANNON from 'cannon-es'
-import * as Fn from "./functions"
+import * as CMDUtils from "./cmd_utils"
 
 // order in which they get executed
 export enum CommandTypes {
@@ -213,7 +213,7 @@ export class CreateScene implements ECS.Command {
             let obstacle = Utils.newUid()
             let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, obstacle)
             let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, obstacle)
-            shapeComponent.size = new Utils.Vector3(1, 2, 1)
+            shapeComponent.size = new Utils.Vector3(1, 10, 1)
             //shapeComponent.height = 1
             //shapeComponent.numberOfSegments = 10
             //shapeComponent.radiusBottom = 1
@@ -332,9 +332,9 @@ export class CreateScene implements ECS.Command {
                 let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), robot)
                 let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), robot)
                 let velocityComponent = new Comps.Velocity(new Utils.Vector3(0, 0, 0), robot)
-                let massComponent = new Comps.Mass(10, robot)
+                let massComponent = new Comps.Mass(100, robot)
                 let shapeColorComponent = new Comps.ShapeColor(0xd2294d, robot)
-                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, robot)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Robot, robot)
                 let hardCodedIdComponent = new Comps.HardCodedId(0, robot)
                 let vehicleComponent = new Comps.Vehicle(rigidBodyComponent.body, robot)
 
@@ -354,19 +354,21 @@ export class CreateScene implements ECS.Command {
                 let wheel = Utils.newUid()
 
                 let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, wheel)
+                rigidBodyComponent.materialType = Comps.MaterialTypes.Wheel
                 let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Cylinder, wheel)
                 shapeComponent.height = 0.5
-                shapeComponent.numberOfSegments = 9
+                shapeComponent.numberOfSegments = 12
                 shapeComponent.radiusBottom = 0.5
                 shapeComponent.radiusTop = 0.5
                 let positionComponent = new Comps.Position(new Utils.Vector3(1, 0, -1), wheel)
                 let massComponent = new Comps.Mass(1, wheel)
                 let rotationComponent = new Comps.Rotation(new Utils.Vector3(90, 0, 0), wheel)
                 let shapeColorComponent = new Comps.ShapeColor(0x555599, wheel)
-                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, wheel)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.RobotComponent, wheel)
                 let contraintComponent = new Comps.Constraint(robot, Comps.ConstraintTypes.Hinge, wheel)
                 contraintComponent.pivotA = new Utils.Vector3(1, 0, -1)
                 contraintComponent.pivotB = new Utils.Vector3(0, 0, 0)
+
                 contraintComponent.axisA = new Utils.Vector3(0, 0, 1)
                 contraintComponent.axisB = new Utils.Vector3(0, 1, 0)
                 let wheelComponent = new Comps.Wheel(false, robot, wheel)
@@ -385,16 +387,17 @@ export class CreateScene implements ECS.Command {
                 let wheel = Utils.newUid()
 
                 let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, wheel)
+                rigidBodyComponent.materialType = Comps.MaterialTypes.Wheel
                 let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Cylinder, wheel)
                 shapeComponent.height = 0.5
-                shapeComponent.numberOfSegments = 9
+                shapeComponent.numberOfSegments = 12
                 shapeComponent.radiusBottom = 0.5
                 shapeComponent.radiusTop = 0.5
                 let positionComponent = new Comps.Position(new Utils.Vector3(-1, 0, 1), wheel)
                 let massComponent = new Comps.Mass(1, wheel)
                 let rotationComponent = new Comps.Rotation(new Utils.Vector3(90, 0, 0), wheel)
                 let shapeColorComponent = new Comps.ShapeColor(0x555599, wheel)
-                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, wheel)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.RobotComponent, wheel)
                 let contraintComponent = new Comps.Constraint(robot, Comps.ConstraintTypes.Hinge, wheel)
                 contraintComponent.pivotA = new Utils.Vector3(-1, 0, 1)
                 contraintComponent.pivotB = new Utils.Vector3(0, 0, 0)
@@ -416,16 +419,17 @@ export class CreateScene implements ECS.Command {
                 let wheel = Utils.newUid()
 
                 let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, wheel)
+                rigidBodyComponent.materialType = Comps.MaterialTypes.Wheel
                 let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Cylinder, wheel)
                 shapeComponent.height = 0.5
-                shapeComponent.numberOfSegments = 9
+                shapeComponent.numberOfSegments = 12
                 shapeComponent.radiusBottom = 0.5
                 shapeComponent.radiusTop = 0.5
                 let positionComponent = new Comps.Position(new Utils.Vector3(-1, 0, -1), wheel)
                 let massComponent = new Comps.Mass(1, wheel)
                 let rotationComponent = new Comps.Rotation(new Utils.Vector3(90, 0, 0), wheel)
                 let shapeColorComponent = new Comps.ShapeColor(0x555599, wheel)
-                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, wheel)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.RobotComponent, wheel)
                 let contraintComponent = new Comps.Constraint(robot, Comps.ConstraintTypes.Hinge, wheel)
                 contraintComponent.pivotA = new Utils.Vector3(-1, 0, -1)
                 contraintComponent.pivotB = new Utils.Vector3(0, 0, 0)
@@ -447,16 +451,17 @@ export class CreateScene implements ECS.Command {
                 let wheel = Utils.newUid()
 
                 let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, wheel)
+                rigidBodyComponent.materialType = Comps.MaterialTypes.Wheel
                 let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Cylinder, wheel)
                 shapeComponent.height = 0.5
-                shapeComponent.numberOfSegments = 9
+                shapeComponent.numberOfSegments = 12
                 shapeComponent.radiusBottom = 0.5
                 shapeComponent.radiusTop = 0.5
                 let positionComponent = new Comps.Position(new Utils.Vector3(1, 0, 1), wheel)
                 let massComponent = new Comps.Mass(1, wheel)
                 let rotationComponent = new Comps.Rotation(new Utils.Vector3(90, 0, 0), wheel)
                 let shapeColorComponent = new Comps.ShapeColor(0x555599, wheel)
-                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, wheel)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.RobotComponent, wheel)
                 let contraintComponent = new Comps.Constraint(robot, Comps.ConstraintTypes.Hinge, wheel)
                 contraintComponent.pivotA = new Utils.Vector3(1, 0, 1)
                 contraintComponent.pivotB = new Utils.Vector3(0, 0, 0)
@@ -522,7 +527,7 @@ export class MoveVehicle implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        let maxVelocity = 15
+        let maxVelocity = 20
 
         let foundHardCodedIdComponent = system.find(
             [
@@ -1012,6 +1017,14 @@ export class SyncPhysics implements ECS.Command {
                 } break;
                 case Comps.BodyTypes.Kinematic: {
                     rigidBodyComponent.body.type = CANNON.BODY_TYPES.KINEMATIC
+                } break;
+            }
+            switch (rigidBodyComponent.materialType) {
+                case Comps.MaterialTypes.Wheel: {
+                    rigidBodyComponent.body.material = resources.physics.materials.wheel
+                } break;
+                case Comps.MaterialTypes.Default: {
+                    rigidBodyComponent.body.material = resources.physics.materials.default
                 } break;
             }
             if (rigidBodyComponent.disableCollisions) {

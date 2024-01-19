@@ -24,7 +24,7 @@ export enum ComponentTypes {
     Constraint,
     Vehicle,
     Wheel,
-    //    Robot,
+    RobotComponent,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -47,7 +47,7 @@ export enum EntityTypes {
     Light,
     GeometricShape,
     Robot,
-    Wheel,
+    RobotComponent,
 }
 export enum EntityStates {
     Idle,
@@ -76,6 +76,16 @@ export enum BodyTypes {
     Dynamic,
     Static,
     Kinematic,
+}
+export enum MaterialTypes {
+    Default,
+    Wheel,
+}
+export enum RobotComponentTypes {
+    Wheel,
+    Processor,
+    SteelPlate,
+    WoodenStick,
 }
 //export class Robot implements ECS.Component {
 //    entityUid: number
@@ -186,6 +196,7 @@ export class RigidBody implements ECS.Component {
     body: CANNON.Body
     bodyType: BodyTypes
     disableCollisions: boolean
+    materialType: MaterialTypes
     constructor(
         newBodyType: BodyTypes,
         newEntityUid: number,
@@ -196,6 +207,7 @@ export class RigidBody implements ECS.Component {
         this.body = new CANNON.Body()
         this.disableCollisions = false
         this.bodyType = newBodyType
+        this.materialType = MaterialTypes.Default
     }
 }
 export class HardCodedId implements ECS.Component {

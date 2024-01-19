@@ -12,6 +12,9 @@ import * as CoolButton from "./cool-button/main"
 import * as CoolMenu from "./cool-menu/main"
 import * as GameGraphics from "./game-graphics/main"
 import * as GameInput from "./game-input/main"
+import * as ComponentEditor from "./component-editor/main"
+import * as GraphicContext from "./graphic-context/main"
+import * as RobotVisualizer from "./robot-visualizer/main"
 
 customElements.define("input-field", InputField.CustomElement)
 customElements.define("cool-menu", CoolMenu.CustomElement)
@@ -26,6 +29,9 @@ customElements.define("syntax-highlight", SyntaxHighlight.CustomElement)
 customElements.define("cool-button", CoolButton.CustomElement)
 customElements.define("game-graphics", GameGraphics.CustomElement)
 customElements.define("game-input", GameInput.CustomElement)
+customElements.define("component-editor", ComponentEditor.CustomElement)
+customElements.define("graphic-context", GraphicContext.CustomElement)
+customElements.define("robot-visualizer", RobotVisualizer.CustomElement)
 
 // entry point for all
 customElements.define("main-component", MainComponent.CustomElement)

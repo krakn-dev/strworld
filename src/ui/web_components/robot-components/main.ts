@@ -13,7 +13,7 @@ export class CustomElement extends HTMLElement {
     connectedCallback() {
         let componentTemplate = `<div class="item">
             <component-info>
-                <span slot="title">Motor</span>
+                <span slot="title">front-left-wheel</span>
                 <span slot="description">
                     <syntax-highlight scrollable="true">
                     sajdksaal
@@ -31,7 +31,7 @@ ad
                     </syntax-highlight>
                     hello~
                     dsa
-                    dsa
+                    dsaaaaaaaaaaaaaaaaaaaaaaaaaaa
                     ds
                     a
                     ds

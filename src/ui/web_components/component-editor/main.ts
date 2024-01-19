@@ -1,6 +1,5 @@
 import html from "./main.html"
 import css from "./main.css"
-import * as Ser from "../../../serialization"
 import * as InputField from "../input-field/main"
 import * as NumberLine from "../number-line/main"
 import * as ErrorLine from "../error-line/main"
@@ -28,7 +27,7 @@ export class CustomElement extends HTMLElement {
         this.robotTerminalElement = this.shadowRoot!.getElementById("robot-terminal") as RobotTerminal.CustomElement
         this.doneButtonElement = this.shadowRoot!.getElementById("done-button") as CoolButton.CustomElement
 
-        this.onCodeEditorClose = new CustomEvent("closecodeeditor", { bubbles: false, composed: true, cancelable: true })
+        this.onCodeEditorClose = new CustomEvent("closecomponenteditor", { bubbles: false, composed: true, cancelable: true })
     }
     connectedCallback() {
         this.doneButtonElement.addEventListener("clicked", this._onDoneClicked.bind(this))
@@ -39,9 +38,8 @@ export class CustomElement extends HTMLElement {
         this.dispatchEvent(this.onCodeEditorClose)
     }
     private _onInputFieldScroll(e: any) {
-        let scroll = e.detail as Ser.Scroll
-        this.numberLineElement.scrollNumberLine(scroll.scrollTop)
-        this.errorLineElement.scrollErrorLine(scroll.scrollTop)
+        this.numberLineElement.scrollNumberLine(e.detail.scrollTop)
+        this.errorLineElement.scrollErrorLine(e.detail.scrollTop)
     }
     private _onInputFieldChange() {
         this.numberLineElement.updateNumbers(this.inputFieldElement.code)

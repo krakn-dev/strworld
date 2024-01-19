@@ -1,7 +1,10 @@
-import * as ECS from "./ecs"
+import * as CANNON from "cannon-es"
 import * as Comps from "./components"
 import * as Utils from "../utils"
 
+//class Materials {
+//    static wheelMaterial = new CANNON.Material({ friction: 0 })
+//}
 //export function getVertices(shapeComponent: Comps.Shape, positionComponent: Comps.Position): Utils.Vector3[] {
 //    let vertices: Utils.Vector3[] = []
 //    switch (shapeComponent.shapeType) {

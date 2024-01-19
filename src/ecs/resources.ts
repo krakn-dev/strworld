@@ -28,13 +28,33 @@ export class Resources {
     }
 }
 
+export class Materials {
+    wheel: CANNON.Material
+    default: CANNON.Material
+    constructor() {
+        this.wheel = new CANNON.Material()
+        this.default = new CANNON.Material()
+    }
+}
 export class PhysicsResource {
     world: CANNON.World
-
+    materials: Materials
     constructor() {
         this.world = new CANNON.World({
             gravity: new CANNON.Vec3(0, -9.82, 0),
         })
+        this.materials = new Materials()
+        let defaultDefaultContact = new CANNON.ContactMaterial(
+            this.materials.default,
+            this.materials.default,
+            {})
+        let wheelDefaultContact = new CANNON.ContactMaterial(
+            this.materials.wheel,
+            this.materials.default,
+            { friction: 1 })
+
+        this.world.addContactMaterial(defaultDefaultContact)
+        this.world.addContactMaterial(wheelDefaultContact)
     }
 }
 class LastTimeCommandWasRun {

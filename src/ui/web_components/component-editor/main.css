@@ -1,0 +1,54 @@
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: #444444aa;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: #bbbbbb;
+}
+
+#code-editor {
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+#done-button {
+    position: absolute;
+    right: 1%;
+    top: 1%;
+}
+#robot-components {
+    flex: 1;
+    min-width: 0;
+}
+#number-line {
+    background-color: #2a2426cc;
+    padding-right: 15px;
+    padding-left: 10px;
+}
+#error-line {
+    background-color: #2a2426cc;
+    padding-right: 15px;
+    padding-left: 10px;
+}
+#input-field {
+    max-width: 40%;
+    min-width: 40%;
+}
+#info {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #211d1ecc;
+    overflow-y: auto;
+    overflow-x: hidden;
+    justify-content: space-between;
+}

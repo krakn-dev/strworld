@@ -1,15 +1,17 @@
 import html from "./main.html"
 import css from "./main.css"
 import * as Ser from "../../../serialization"
+import * as ComponentEditor from "../component-editor/main"
 import * as GameGraphics from "../game-graphics/main"
+import * as CodeEditor from "../code-editor/main"
 import * as GameInput from "../game-input/main"
 import * as RobotMenu from "../robot-menu/main"
-import * as CodeEditor from "../code-editor/main"
 
 export class CustomElement extends HTMLElement {
     private mainComponentElement: HTMLDivElement
     private worker: Worker | undefined
 
+    private componentEditorElement: ComponentEditor.CustomElement | undefined
     private gameGraphicsElement: GameGraphics.CustomElement | undefined
     private codeEditorElement: CodeEditor.CustomElement | undefined
     private gameInputElement: GameInput.CustomElement | undefined
@@ -27,15 +29,25 @@ export class CustomElement extends HTMLElement {
         this._addRobotMenuElement()
     }
 
-    private _onOpenCodeEditor() {
-        this._addCodeEditorElement()
-        this.gameInputElement?.remove()
-        this.robotMenuElement?.remove()
+    private _onCloseComponentEditor() {
+        this._addGameInputElement()
+        this._addRobotMenuElement()
+        this.componentEditorElement?.remove()
     }
     private _onCloseCodeEditor() {
         this._addGameInputElement()
         this._addRobotMenuElement()
         this.codeEditorElement?.remove()
+    }
+    private _onOpenComponentEditor() {
+        this._addComponentEditorElement()
+        this.gameInputElement?.remove()
+        this.robotMenuElement?.remove()
+    }
+    private _onOpenCodeEditor() {
+        this._addCodeEditorElement()
+        this.gameInputElement?.remove()
+        this.robotMenuElement?.remove()
     }
     addWorker(newWorker: Worker) {
         this.worker = newWorker
@@ -56,6 +68,13 @@ export class CustomElement extends HTMLElement {
             } break;
         }
     }
+    private _addComponentEditorElement() {
+        let element = document.createElement("component-editor")
+        element.setAttribute("id", "component-editor")
+        this.mainComponentElement.appendChild(element)
+        this.componentEditorElement = element as ComponentEditor.CustomElement
+        this.componentEditorElement.addEventListener("closecomponenteditor", this._onCloseComponentEditor.bind(this))
+    }
     private _addCodeEditorElement() {
         let element = document.createElement("code-editor")
         element.setAttribute("id", "code-editor")
@@ -69,6 +88,7 @@ export class CustomElement extends HTMLElement {
         this.mainComponentElement.appendChild(element)
         this.robotMenuElement = element as RobotMenu.CustomElement
         this.robotMenuElement.addEventListener("opencodeeditor", this._onOpenCodeEditor.bind(this))
+        this.robotMenuElement.addEventListener("opencomponenteditor", this._onOpenComponentEditor.bind(this))
     }
     private _addGameInputElement() {
         let element = document.createElement("game-input")

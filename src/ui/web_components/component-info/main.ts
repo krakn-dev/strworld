@@ -14,7 +14,7 @@ export class CustomElement extends HTMLElement {
     }
 
     connectedCallback() {
-        this.titleElement.addEventListener("pointerdown", this._onClick.bind(this))
+        this.titleElement.addEventListener("click", this._onClick.bind(this))
     }
     private _onClick() {
         this.descriptionElement.hidden = !this.descriptionElement.hidden

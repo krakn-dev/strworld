@@ -1,6 +1,12 @@
 <div id="component-info">
-    <div id="title">
-        <slot name="title"></slot>
+    <div id="header">
+        <div id="title">
+            <slot name="title"></slot>
+        </div>
+        <button id="edit-component-name-button">󰘎</button>
+        <button id="view-component">󰛐</button>
     </div>
-    <pre id="description"><slot name="description"></slot></pre>
+    <pre id="description">
+        <slot name="description"></slot>
+    </pre>
 </div>

@@ -7,85 +7,59 @@ import * as Utils from '../../../utils';
 import * as Comps from '../../../ecs/components';
 import * as Ser from "../../../serialization"
 import * as ECS from "../../../ecs/ecs"
+import * as GraphicContext from '../graphic-context/main';
 
 export class CustomElement extends HTMLElement {
     gameGraphicsElement: HTMLDivElement
-    graphicChangesHandler: GraphicChangesHandler
-    world: World
+    private graphicContextElement: GraphicContext.CustomElement
+    private graphicObjects: GraphicObject[]
+    private loader: GLTFLoader
     constructor() {
         super()
         this.attachShadow({ mode: "open" })
         this.shadowRoot!.innerHTML = html + `<style>${css[0][1]}</style>`
         this.gameGraphicsElement = this.shadowRoot!.getElementById("game-graphics") as HTMLDivElement
-
-        this.graphicChangesHandler = new GraphicChangesHandler()
-        this.world = new World(this.gameGraphicsElement)
-    }
-    updateGraphics(newData: Ser.GraphicChanges) {
-        this.graphicChangesHandler.run(this.world, newData)
+        this.graphicContextElement = this.shadowRoot!.getElementById("graphic-context") as GraphicContext.CustomElement
+        this.loader = new GLTFLoader();
+        this.graphicObjects = []
     }
     connectedCallback() {
-        this.world.renderLoop()
-    }
-}
-
-function getModelNameByEntityType(entityType: Comps.EntityTypes): string {
-    switch (entityType) {
-        case Comps.EntityTypes.Stickman:
-            return "stickman.glb"
-        case Comps.EntityTypes.Grass:
-            return "grass.glb"
-        case Comps.EntityTypes.Dog:
-            return "dog.glb"
-        case Comps.EntityTypes.Camera:
-            throw "camera is not an asset"
-        case Comps.EntityTypes.Light:
-            throw "light is not an asset"
-        case Comps.EntityTypes.GeometricShape:
-            throw "geometric shape is not an asset"
-        case Comps.EntityTypes.Robot:
-            throw "robot shape is not an asset"
-        case Comps.EntityTypes.Wheel:
-            throw "wheel is not an asset"
-    }
-}
-function getAnimationToPlayByEntityStates(entityStates: Comps.EntityStates[]): string {
-    let animationToPlay: string | undefined = undefined
-    for (let eS of entityStates) {
-        if (eS == Comps.EntityStates.Run) {
-            animationToPlay = "run"
-        }
-        if (eS == Comps.EntityStates.Idle) {
-            animationToPlay = "relax"
-        }
-    }
-    if (animationToPlay == undefined) {
-        console.log("defaulting animation")
-        animationToPlay = "relax"
-    }
-    return animationToPlay
-}
-
-export class GraphicChangesHandler {
-    private loader: GLTFLoader
-    constructor() {
-        this.loader = new GLTFLoader();
         let dracoLoader = new DRACOLoader();
         dracoLoader.setDecoderPath("draco/");
         this.loader.setDRACOLoader(dracoLoader);
     }
-    private changeGraphicObjectFromComponents(
-        graphicObjects: GraphicObject[],
-        entityComponents: ECS.EntityComponents[]
+    async updateGraphics(
+        graphicChanges: Ser.GraphicChanges
     ) {
-        for (let eC of entityComponents) {
-            for (let gO of graphicObjects) {
-                if (eC.entityUid != gO.entityUid) continue
+        let componentsByEntity = this.sortComponentsByEntity(graphicChanges.changedComponents)
 
-                for (let c of eC.components) {
-                    switch (c.componentType) {
+        await this.createObjects(componentsByEntity, graphicChanges.addedEntitiesUid)
+        this.changeObjects(componentsByEntity)
+        this.removeObjects(graphicChanges.removedEntitiesUid)
+    }
+    private removeObjects(
+        removedEntitiesUid: number[]
+    ) {
+        for (let rEU of removedEntitiesUid) {
+            for (let [gOI, gO] of this.graphicObjects.entries()) {
+                if (rEU == gO.entityUid) {
+                    this.graphicObjects.splice(gOI, 1)
+                    break;
+                }
+            }
+        }
+    }
+    private changeObjects(
+        componentsByEntity: [number, ECS.Component[]][]
+    ) {
+        for (let cBE of componentsByEntity) {
+            for (let gO of this.graphicObjects) {
+                if (cBE[0] != gO.entityUid) continue
+
+                for (let cC of cBE[1]) {
+                    switch (cC.componentType) {
                         case Comps.ComponentTypes.Camera:
-                            let cameraComponent = c as Comps.Camera
+                            let cameraComponent = cC as Comps.Camera
                             let cameraObject = gO.object as THREE.PerspectiveCamera
                             cameraObject.far = cameraComponent.far
                             cameraObject.fov = cameraComponent.fov
@@ -94,7 +68,7 @@ export class GraphicChangesHandler {
                             cameraObject.updateProjectionMatrix()
                             break;
                         case Comps.ComponentTypes.Light:
-                            let lightComponent = c as Comps.Light
+                            let lightComponent = cC as Comps.Light
                             switch (lightComponent.lightType) {
                                 case Comps.LightTypes.AmbientLight: {
                                     let lightObject = gO.object as THREE.AmbientLight
@@ -121,13 +95,13 @@ export class GraphicChangesHandler {
                             }
                             break;
                         case Comps.ComponentTypes.ShapeColor:
-                            let colorComponent = c as Comps.ShapeColor
+                            let colorComponent = cC as Comps.ShapeColor
                             let newMaterial = new THREE.MeshPhongMaterial(
                                 { color: new THREE.Color(colorComponent.color) });
                             (gO.object as THREE.Mesh).material = newMaterial
                             break;
                         case Comps.ComponentTypes.Rotation:
-                            let rotationComponent = c as Comps.Rotation
+                            let rotationComponent = cC as Comps.Rotation
                             gO.object.setRotationFromQuaternion(
                                 new THREE.Quaternion(
                                     rotationComponent.x,
@@ -138,8 +112,8 @@ export class GraphicChangesHandler {
                             )
                             break;
                         case Comps.ComponentTypes.EntityState:
-                            let entityStateComponent = c as Comps.EntityState
-                            let animationToPlay = getAnimationToPlayByEntityStates(
+                            let entityStateComponent = cC as Comps.EntityState
+                            let animationToPlay = this.getAnimationToPlayByEntityStates(
                                 entityStateComponent.states)
 
                             if (
@@ -157,7 +131,7 @@ export class GraphicChangesHandler {
                             }
                             break;
                         case Comps.ComponentTypes.Position:
-                            let positionComponent = c as Comps.Position
+                            let positionComponent = cC as Comps.Position
                             gO.object.position.x = positionComponent.x
                             gO.object.position.y = positionComponent.y
                             gO.object.position.z = positionComponent.z
@@ -167,22 +141,21 @@ export class GraphicChangesHandler {
             }
         }
     }
-    private async createGraphicObjectFromComponents(
-        world: World,
-        entitiesComponents: ECS.EntityComponents[],
+    private async createObjects(
+        componentsByEntity: [number, ECS.Component[]][],
         newEntitiesUids: number[]
     ) {
-        for (let eC of entitiesComponents) {
+        for (let cBE of componentsByEntity) {
             for (let nEU of newEntitiesUids) {
-                if (nEU != eC.entityUid) continue
+                if (nEU != cBE[0]) continue
 
-                let boxShapeComponent = undefined
+                let shapeComponent = undefined
                 let lightType = undefined
                 let entityType = undefined
 
-                for (let c of eC.components) {
+                for (let c of cBE[1]) {
                     if (c.componentType == Comps.ComponentTypes.Shape) {
-                        boxShapeComponent = (c as Comps.Shape)
+                        shapeComponent = (c as Comps.Shape)
                     }
                     if (c.componentType == Comps.ComponentTypes.EntityType) {
                         entityType = (c as Comps.EntityType).entityType
@@ -199,14 +172,14 @@ export class GraphicChangesHandler {
                     case Comps.EntityTypes.Dog:
                         {
                             let modelBlob: Blob = await Utils.AssetFetchCache.fetch(
-                                getModelNameByEntityType(entityType))
+                                this.getModelNameByEntityType(entityType))
 
                             let obj = await this.loader
                                 .parseAsync(await modelBlob.arrayBuffer(), "")
 
                             newGraphicObject = new GraphicObject(
                                 obj.scene,
-                                eC.entityUid,
+                                cBE[0],
                                 obj.animations,
                                 new THREE.AnimationMixer(obj.scene),
                             )
@@ -215,61 +188,62 @@ export class GraphicChangesHandler {
                     case Comps.EntityTypes.Camera: {
                         newGraphicObject = new GraphicObject(
                             new THREE.PerspectiveCamera(),
-                            eC.entityUid)
-                        world.camera = newGraphicObject.object as THREE.PerspectiveCamera
+                            cBE[0])
+                        this.graphicContextElement.camera = newGraphicObject.object as THREE.PerspectiveCamera
                     } break;
-
-                    case Comps.EntityTypes.GeometricShape: {
+                    case Comps.EntityTypes.GeometricShape:
+                    case Comps.EntityTypes.Robot:
+                    case Comps.EntityTypes.RobotComponent: {
                         let material = new THREE.MeshPhongMaterial();
                         let geometry: THREE.BufferGeometry;
-                        switch (boxShapeComponent!.shapeType) {
+                        switch (shapeComponent!.shapeType) {
                             case Comps.ShapeTypes.Box: {
                                 geometry = new THREE.BoxGeometry(
-                                    boxShapeComponent!.size!.x,
-                                    boxShapeComponent!.size!.y,
-                                    boxShapeComponent!.size!.z);
+                                    shapeComponent!.size!.x,
+                                    shapeComponent!.size!.y,
+                                    shapeComponent!.size!.z);
                             } break;
                             case Comps.ShapeTypes.Cylinder: {
                                 geometry = new THREE.CylinderGeometry(
-                                    boxShapeComponent!.radiusTop,
-                                    boxShapeComponent!.radiusBottom,
-                                    boxShapeComponent!.height,
-                                    boxShapeComponent!.numberOfSegments,
+                                    shapeComponent!.radiusTop,
+                                    shapeComponent!.radiusBottom,
+                                    shapeComponent!.height,
+                                    shapeComponent!.numberOfSegments,
                                 );
                             } break;
                         }
                         const mesh = new THREE.Mesh(geometry, material);
-                        newGraphicObject = new GraphicObject(mesh, eC.entityUid)
+                        newGraphicObject = new GraphicObject(mesh, cBE[0])
                         newGraphicObject.object.castShadow = true
                         newGraphicObject.object.receiveShadow = true
                     } break;
 
                     case Comps.EntityTypes.Light: {
-                        for (let c2 of eC.components) {
+                        for (let c2 of cBE[1]) {
                             if (c2.componentType == Comps.ComponentTypes.Light) {
                                 let lightType = (c2 as Comps.Light).lightType
                                 switch (lightType) {
                                     case Comps.LightTypes.AmbientLight:
                                         newGraphicObject = new GraphicObject(
                                             new THREE.AmbientLight(),
-                                            eC.entityUid)
+                                            cBE[0])
                                         break;
                                     case Comps.LightTypes.PointLight:
                                         newGraphicObject = new GraphicObject(
                                             new THREE.PointLight(),
-                                            eC.entityUid)
+                                            cBE[0])
                                         newGraphicObject.object.castShadow = true
                                         break;
                                     case Comps.LightTypes.DirectionalLight:
                                         newGraphicObject = new GraphicObject(
                                             new THREE.DirectionalLight(),
-                                            eC.entityUid)
+                                            cBE[0])
                                         newGraphicObject.object.castShadow = true
                                         break;
                                     case Comps.LightTypes.SpotLight:
                                         newGraphicObject = new GraphicObject(
                                             new THREE.SpotLight(),
-                                            eC.entityUid)
+                                            cBE[0])
                                         newGraphicObject.object.castShadow = true
                                         break;
                                 }
@@ -279,52 +253,63 @@ export class GraphicChangesHandler {
                 }
                 if (newGraphicObject == undefined) continue
                 newGraphicObject.entityType = entityType
-                world.graphicObjects.push(newGraphicObject)
-                world.scene.add(newGraphicObject.object)
+                this.graphicObjects.push(newGraphicObject)
+                this.graphicContextElement.addObject(newGraphicObject.object, newGraphicObject.animationMixer)
             }
         }
     }
 
-    private createEntityComponents(changedComponents: ECS.Component[]): ECS.EntityComponents[] {
-        let result: ECS.EntityComponents[] = []
+    private sortComponentsByEntity(changedComponents: ECS.Component[]): [number, ECS.Component[]][] {
+        let result: [number, ECS.Component[]][] = []
         for (let cC of changedComponents) {
             let isInserted = false
-            for (let r of result) {
-                if (r.entityUid == cC.entityUid) {
+            for (let cBE of result) {
+                if (cBE[0] == cC.entityUid) {
                     isInserted = true
-                    r.components.push(cC)
+                    cBE[1].push(cC)
                 }
             }
             if (!isInserted) {
-                let newEntityComponents = new ECS.EntityComponents(cC.entityUid)
-                newEntityComponents.components.push(cC)
-                result.push(newEntityComponents)
+                result.push([cC.entityUid, [cC]])
             }
         }
         return result
     }
-    async run(
-        world: World,
-        graphicChanges: Ser.GraphicChanges
-    ) {
-        let entitiesComponents = this.createEntityComponents(graphicChanges.changedComponents)
-
-        await this.createGraphicObjectFromComponents(
-            world,
-            entitiesComponents,
-            graphicChanges.addedEntitiesUid)
-
-        this.changeGraphicObjectFromComponents(world.graphicObjects, entitiesComponents)
-
-        for (let rEU of graphicChanges.removedEntitiesUid) {
-            for (let [gOI, gO] of world.graphicObjects.entries()) {
-                if (rEU == gO.entityUid) {
-                    world.scene.remove(world.graphicObjects[gOI].object)
-                    world.graphicObjects.splice(gOI, 1)
-                    break;
-                }
+    private getModelNameByEntityType(entityType: Comps.EntityTypes): string {
+        switch (entityType) {
+            case Comps.EntityTypes.Stickman:
+                return "stickman.glb"
+            case Comps.EntityTypes.Grass:
+                return "grass.glb"
+            case Comps.EntityTypes.Dog:
+                return "dog.glb"
+            case Comps.EntityTypes.Camera:
+                throw "camera is not an asset"
+            case Comps.EntityTypes.Light:
+                throw "light is not an asset"
+            case Comps.EntityTypes.GeometricShape:
+                throw "geometric shape is not an asset"
+            case Comps.EntityTypes.Robot:
+                throw "robot shape is not an asset"
+            case Comps.EntityTypes.RobotComponent:
+                throw "robot component is not an asset"
+        }
+    }
+    private getAnimationToPlayByEntityStates(entityStates: Comps.EntityStates[]): string {
+        let animationToPlay: string | undefined = undefined
+        for (let eS of entityStates) {
+            if (eS == Comps.EntityStates.Run) {
+                animationToPlay = "run"
+            }
+            if (eS == Comps.EntityStates.Idle) {
+                animationToPlay = "relax"
             }
         }
+        if (animationToPlay == undefined) {
+            console.log("defaulting animation")
+            animationToPlay = "relax"
+        }
+        return animationToPlay
     }
 }
 
@@ -347,50 +332,30 @@ class GraphicObject {
     }
 }
 
-export class World {
-    graphicObjects: GraphicObject[]
-    scene: THREE.Scene
-    renderer: THREE.Renderer
-    camera: THREE.Camera | undefined
-    clock: THREE.Clock
-    constructor(parentElement: HTMLElement) {
-        this.graphicObjects = []
-        this.scene = new THREE.Scene()
-        this.renderer = new THREE.WebGLRenderer({ antialias: true })
-        this.camera = undefined
-        this.clock = new THREE.Clock()
-
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        (this.renderer as any).shadowMap.enabled = true;
-        parentElement.append(this.renderer.domElement);
-        window.addEventListener("resize", this.onWindowResize.bind(this))
-    }
-    private onWindowResize() {
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-        this.renderer.setSize(width, height);
-        if (this.camera != undefined) {
-            let perspectiveCamera = this.camera as THREE.PerspectiveCamera
-            perspectiveCamera.aspect = width / height;
-            perspectiveCamera.updateProjectionMatrix();
-        }
-    }
-    renderLoop() {
-        requestAnimationFrame(this.renderLoop.bind(this));
-
-        let delta = this.clock.getDelta()
-        if (this.camera == undefined) {
-            return
-        }
-        for (let gO of this.graphicObjects) {
-            if (
-                gO.animationClips != undefined &&
-                gO.animationMixer != undefined
-            ) {
-                gO.animationMixer.update(delta)
-            }
-        }
-        this.renderer.render(this.scene, this.camera);
-    }
-}
+//    raycaster = new THREE.Raycaster();
+//    pointer: THREE.Vector2 | undefined = undefined;
+//    onPointerMove(event: any) {
+//        // calculate pointer position in normalized device coordinates
+//        // (-1 to +1) for both components
+//        this.pointer = new THREE.Vector2()
+//        this.pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+//        this.pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+//    }
+//    constructor(parentElement: HTMLElement) {
+//        window.addEventListener("pointermove", this.onPointerMove.bind(this))
+//    }
+//    gameGraphicsLoop() {
+//        if (this.pointer == undefined) return
+//        this.raycaster.setFromCamera(this.pointer, this.camera);
+//        const intersects = this.raycaster.intersectObjects(this.scene.children);
+//        if (intersects.length == 0) return
+//        let point = intersects[0].point
+//        let mouseCoordinates = new THREE.Vector3(
+//            Math.round(point.x * 100) / 100,
+//            Math.round(point.y * 100) / 100,
+//            Math.round(point.z * 100) / 100,
+//        )
+//        console.log(mouseCoordinates)
+//    }
+//}
 

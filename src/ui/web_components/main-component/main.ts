@@ -24,14 +24,16 @@ export class CustomElement extends HTMLElement {
         this.mainComponentElement = this.shadowRoot!.getElementById("main-component") as HTMLDivElement
     }
     private setupInitialElements() {
-        this._addGameGraphicsElement()
-        this._addGameInputElement()
-        this._addRobotMenuElement()
+        //        this._addGameGraphicsElement()
+        //        this._addGameInputElement()
+        //        this._addRobotMenuElement()
+        this._addComponentEditorElement()
     }
 
     private _onCloseComponentEditor() {
         this._addGameInputElement()
         this._addRobotMenuElement()
+        this._addGameGraphicsElement()
         this.componentEditorElement?.remove()
     }
     private _onCloseCodeEditor() {
@@ -41,6 +43,7 @@ export class CustomElement extends HTMLElement {
     }
     private _onOpenComponentEditor() {
         this._addComponentEditorElement()
+        this.gameGraphicsElement?.remove()
         this.gameInputElement?.remove()
         this.robotMenuElement?.remove()
     }
@@ -73,6 +76,7 @@ export class CustomElement extends HTMLElement {
         element.setAttribute("id", "component-editor")
         this.mainComponentElement.appendChild(element)
         this.componentEditorElement = element as ComponentEditor.CustomElement
+        this.componentEditorElement.addWorker(this.worker!)
         this.componentEditorElement.addEventListener("closecomponenteditor", this._onCloseComponentEditor.bind(this))
     }
     private _addCodeEditorElement() {

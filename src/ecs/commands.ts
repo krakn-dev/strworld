@@ -513,9 +513,11 @@ export class TorqueWheels implements ECS.Command {
             }
             let hinge = constraintComponent.constraint as CANNON.HingeConstraint
             if (wheelComponent.isOn) {
+                hinge.enableMotor()
                 hinge.setMotorSpeed(wheelComponent.velocity)
             } else {
-                hinge.setMotorSpeed(0)
+                //hinge.setMotorSpeed(0)
+                hinge.disableMotor()
             }
         }
     }
@@ -528,6 +530,7 @@ export class MoveVehicle implements ECS.Command {
 
     run(system: ECS.System, resources: Res.Resources) {
         let maxVelocity = 20
+        let turningVelocity = 10
 
         let foundHardCodedIdComponent = system.find(
             [
@@ -562,24 +565,24 @@ export class MoveVehicle implements ECS.Command {
             }
             if (resources.input.movementDirection.y == -1) {
                 wheelComponent.isOn = true
-                wheelComponent.velocity = -maxVelocity
+                wheelComponent.velocity = 0
             }
             if (resources.input.movementDirection.x == 1) {
                 if (!wheelComponent.isLeft) {
                     wheelComponent.isOn = true
-                    wheelComponent.velocity = maxVelocity
+                    wheelComponent.velocity = turningVelocity
                 } else {
                     wheelComponent.isOn = true
-                    wheelComponent.velocity = -maxVelocity
+                    wheelComponent.velocity = -turningVelocity
                 }
             }
             if (resources.input.movementDirection.x == -1) {
                 if (wheelComponent.isLeft) {
                     wheelComponent.isOn = true
-                    wheelComponent.velocity = maxVelocity
+                    wheelComponent.velocity = turningVelocity
                 } else {
                     wheelComponent.isOn = true
-                    wheelComponent.velocity = -maxVelocity
+                    wheelComponent.velocity = -turningVelocity
                 }
             }
             if (
@@ -1080,7 +1083,7 @@ export class SyncPhysics implements ECS.Command {
                             axisA: Utils.toCannonVec3(addedConstraintComponent.axisA!),
                             axisB: Utils.toCannonVec3(addedConstraintComponent.axisB!),
                         })
-                    hinge.enableMotor()
+                    //hinge.enableMotor()
                     constraint = hinge
                 } break;
                 case Comps.ConstraintTypes.PointToPoint: {

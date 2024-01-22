@@ -1,0 +1,30 @@
+* {
+    font-family: hack;
+}
+#component-item {
+    background-color: #2a2426;
+    color: white;
+    text-shadow: black 2px 2px;
+    width: 70px;
+    height: 70px;
+    font-size: 16px;
+    word-break: break-all;
+}
+#image {
+    padding: 5px;
+}
+#quantity {
+    position: absolute;
+    bottom: -3px;
+    font-size: 23px;
+    text-align: right;
+    margin-left: 56px;
+}
+#component-item:hover {
+    background-color: #3b3537;
+}
+.unselect {
+}
+.select {
+    box-shadow: 0px 0px 0px 5px #e68183 inset;
+}

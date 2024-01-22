@@ -15,6 +15,8 @@ import * as GameInput from "./game-input/main"
 import * as ComponentEditor from "./component-editor/main"
 import * as GraphicContext from "./graphic-context/main"
 import * as RobotVisualizer from "./robot-visualizer/main"
+import * as RobotComponentSelector from "./robot-component-selector/main"
+import * as RobotComponentItem from "./robot-component-item/main"
 
 customElements.define("input-field", InputField.CustomElement)
 customElements.define("cool-menu", CoolMenu.CustomElement)
@@ -32,6 +34,8 @@ customElements.define("game-input", GameInput.CustomElement)
 customElements.define("component-editor", ComponentEditor.CustomElement)
 customElements.define("graphic-context", GraphicContext.CustomElement)
 customElements.define("robot-visualizer", RobotVisualizer.CustomElement)
+customElements.define("robot-component-selector", RobotComponentSelector.CustomElement)
+customElements.define("robot-component-item", RobotComponentItem.CustomElement)
 
 // entry point for all
 customElements.define("main-component", MainComponent.CustomElement)

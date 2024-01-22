@@ -1,5 +1,6 @@
 import * as Utils from "./utils"
 import * as ECS from "./ecs/ecs"
+import * as Comps from "./ecs/components"
 
 export class Scroll {
     scrollLeft: number
@@ -80,19 +81,32 @@ export class GraphicChanges {
         this.removedEntitiesUid = []
     }
 }
-
+export class AvailableRobotComponents {
+    components: Comps.RobotComponentTypes[]
+    quantity: number[]
+    constructor(
+        newComponents: Comps.RobotComponentTypes[],
+        newQuantity: number[],
+    ) {
+        this.components = newComponents
+        this.quantity = newQuantity
+    }
+}
 export enum Messages {
     Start,
     Input,
     Options,
     GraphicChanges,
+    GetAvailableRobotComponents,
+    AvailableRobotComponents,
 }
+
 export class Message {
     message: Messages
-    data: Input | DOMData | GraphicChanges | Options | null
+    data: Input | AvailableRobotComponents | DOMData | GraphicChanges | Options | null
     constructor(
         newMessage: Messages,
-        newData: Input | GraphicChanges | Options | DOMData | null = null
+        newData: Input | AvailableRobotComponents | GraphicChanges | Options | DOMData | null = null
     ) {
         this.message = newMessage
         this.data = newData

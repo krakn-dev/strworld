@@ -1,0 +1,9 @@
+#robot-component-selector {
+    display: flex; 
+    flex-direction: row;
+}
+robot-component-item {
+    margin-right: 5px;
+    height: 70px;
+    width: 70px;
+}

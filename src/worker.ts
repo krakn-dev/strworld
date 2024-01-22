@@ -24,6 +24,9 @@ onmessage = (data) => {
             let newData = msg.data as Ser.Input
             resources.input.movementDirection = newData.movementDirection
         } break;
+        case Ser.Messages.GetAvailableRobotComponents: {
+            postMessage(new Ser.Message(Ser.Messages.AvailableRobotComponents))
+        } break;
         case Ser.Messages.Options: {
             let newData = msg.data as Ser.Options
         } break;

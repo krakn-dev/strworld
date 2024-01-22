@@ -36,6 +36,17 @@ export class Materials {
         this.default = new CANNON.Material()
     }
 }
+export class AvailableRobotComponents {
+    robotComponentTypes: Comps.RobotComponentTypes[]
+    quantities: number[]
+    constructor(
+        newRobotComponentTypes: Comps.RobotComponentTypes[],
+        newQuantities: number[]
+    ) {
+        this.robotComponentTypes = newRobotComponentTypes
+        this.quantities = newQuantities
+    }
+}
 export class PhysicsResource {
     world: CANNON.World
     materials: Materials

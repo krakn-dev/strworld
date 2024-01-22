@@ -5,10 +5,10 @@ import * as THREE from 'three';
 export class CustomElement extends HTMLElement {
     camera: THREE.Camera | undefined
     graphicContextElement: HTMLDivElement
-    private scene: THREE.Scene
-    private clock: THREE.Clock
-    private renderer: THREE.Renderer
+    scene: THREE.Scene
+    renderer: THREE.Renderer
     private animationMixers: [number, THREE.AnimationMixer][]
+    private clock: THREE.Clock
 
     constructor() {
         super()

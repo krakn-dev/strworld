@@ -1,0 +1,24 @@
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: #444444aa;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: #bbbbbb;
+}
+
+#component-help-menu {
+    width: 500px;
+
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    line-break: anywhere;
+    width: 300px;
+}
+pre {
+white-space: pre-wrap; word-break: keep-all;
+
+}

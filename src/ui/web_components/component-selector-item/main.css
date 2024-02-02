@@ -1,29 +1,29 @@
 * {
     font-family: hack;
 }
-#component-item {
+#component-selector-item {
     background-color: #2a2426;
     color: white;
     text-shadow: black 2px 2px;
     width: 70px;
     height: 70px;
     font-size: 16px;
-    word-break: break-all;
+    position: relative;
+    border-radius: 3px;
 }
 #image {
     padding: 5px;
+    word-break: break-all;
 }
 #quantity {
     position: absolute;
-    bottom: -3px;
     font-size: 23px;
-    text-align: right;
-    margin-left: 56px;
+    right: 0px;
+    bottom: -3px;
+    text-align: left;
 }
-#component-item:hover {
+#component-selector-item:hover {
     background-color: #3b3537;
-}
-.unselect {
 }
 .select {
     box-shadow: 0px 0px 0px 5px #e68183 inset;

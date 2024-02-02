@@ -82,13 +82,13 @@ export class GraphicChanges {
     }
 }
 export class AvailableRobotComponents {
-    components: Comps.RobotComponentTypes[]
+    robotComponentTypes: Comps.RobotComponentTypes[]
     quantity: number[]
     constructor(
         newComponents: Comps.RobotComponentTypes[],
         newQuantity: number[],
     ) {
-        this.components = newComponents
+        this.robotComponentTypes = newComponents
         this.quantity = newQuantity
     }
 }
@@ -99,6 +99,10 @@ export enum Messages {
     GraphicChanges,
     GetAvailableRobotComponents,
     AvailableRobotComponents,
+    RefreshGraphics,
+    Stop,
+    Continue,
+    UpdateAvailableComponents,
 }
 
 export class Message {

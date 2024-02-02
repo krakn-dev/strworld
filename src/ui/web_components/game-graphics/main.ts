@@ -11,6 +11,7 @@ import * as GraphicContext from '../graphic-context/main';
 
 export class CustomElement extends HTMLElement {
     gameGraphicsElement: HTMLDivElement
+    private worker: Worker | undefined
     private graphicContextElement: GraphicContext.CustomElement
     private graphicObjects: GraphicObject[]
     private loader: GLTFLoader
@@ -32,10 +33,13 @@ export class CustomElement extends HTMLElement {
         graphicChanges: Ser.GraphicChanges
     ) {
         let componentsByEntity = this.sortComponentsByEntity(graphicChanges.changedComponents)
-
         await this.createObjects(componentsByEntity, graphicChanges.addedEntitiesUid)
         this.changeObjects(componentsByEntity)
         this.removeObjects(graphicChanges.removedEntitiesUid)
+    }
+    addWorker(newWorker: Worker) {
+        this.worker = newWorker
+        this.worker.postMessage(new Ser.Message(Ser.Messages.RefreshGraphics))
     }
     private removeObjects(
         removedEntitiesUid: number[]

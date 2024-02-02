@@ -24,9 +24,9 @@ export class CustomElement extends HTMLElement {
         this.mainComponentElement = this.shadowRoot!.getElementById("main-component") as HTMLDivElement
     }
     private setupInitialElements() {
-        //        this._addGameGraphicsElement()
-        //        this._addGameInputElement()
-        //        this._addRobotMenuElement()
+        //this._addGameGraphicsElement()
+        //this._addGameInputElement()
+        //this._addRobotMenuElement()
         this._addComponentEditorElement()
     }
 
@@ -69,6 +69,9 @@ export class CustomElement extends HTMLElement {
             case Ser.Messages.GraphicChanges: {
                 this.gameGraphicsElement?.updateGraphics(msg.data as Ser.GraphicChanges)
             } break;
+            case Ser.Messages.AvailableRobotComponents: {
+                this.componentEditorElement?.addAvailableRobotComponents(msg.data as Ser.AvailableRobotComponents)
+            } break;
         }
     }
     private _addComponentEditorElement() {
@@ -106,6 +109,7 @@ export class CustomElement extends HTMLElement {
         element.setAttribute("id", "game-graphics")
         this.mainComponentElement.appendChild(element)
         this.gameGraphicsElement = element as GameGraphics.CustomElement
+        this.gameGraphicsElement.addWorker(this.worker!)
     }
 }
 

@@ -8,11 +8,21 @@
     padding: 15px;
     padding-bottom: 30px;
 }
-#title {
+#title, #description {
     font-family: hack;
     color: white;
+}
+#title {
     font-size: 22px;
-    margin-bottom: 15px;
+    margin-bottom: 5px;
+}
+#description {
+    font-size: 22px;
+    margin-bottom: 5px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    line-break: anywhere;
+    width: 300px;
 }
 #buttons {
     gap: 10px;

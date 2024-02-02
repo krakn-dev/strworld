@@ -16,7 +16,10 @@ import * as ComponentEditor from "./component-editor/main"
 import * as GraphicContext from "./graphic-context/main"
 import * as RobotVisualizer from "./robot-visualizer/main"
 import * as RobotComponentSelector from "./robot-component-selector/main"
-import * as RobotComponentItem from "./robot-component-item/main"
+import * as ComponentSelectorItem from "./component-selector-item/main"
+import * as ComponentToolbar from "./component-toolbar/main"
+import * as ComponentHelpMenu from "./component-help-menu/main"
+import * as ToolbarItem from "./toolbar-item/main"
 
 customElements.define("input-field", InputField.CustomElement)
 customElements.define("cool-menu", CoolMenu.CustomElement)
@@ -35,7 +38,10 @@ customElements.define("component-editor", ComponentEditor.CustomElement)
 customElements.define("graphic-context", GraphicContext.CustomElement)
 customElements.define("robot-visualizer", RobotVisualizer.CustomElement)
 customElements.define("robot-component-selector", RobotComponentSelector.CustomElement)
-customElements.define("robot-component-item", RobotComponentItem.CustomElement)
+customElements.define("component-selector-item", ComponentSelectorItem.CustomElement)
+customElements.define("component-toolbar", ComponentToolbar.CustomElement)
+customElements.define("toolbar-item", ToolbarItem.CustomElement)
+customElements.define("component-help-menu", ComponentHelpMenu.CustomElement)
 
-// entry point for all
+// entry point
 customElements.define("main-component", MainComponent.CustomElement)

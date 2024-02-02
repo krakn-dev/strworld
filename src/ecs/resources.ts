@@ -15,6 +15,7 @@ export class Resources {
     domState: DOMStateResouce
     positionGrid: PositionGridResource
     physics: PhysicsResource
+    availableRobotComponents: AvailableRobotComponents
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
         this.domState = new DOMStateResouce()
         this.delta = new DeltaResource(newCurrentExecutingCommand)
@@ -25,6 +26,7 @@ export class Resources {
         this.options = new OptionsResource()
         this.positionGrid = new PositionGridResource()
         this.physics = new PhysicsResource()
+        this.availableRobotComponents = new AvailableRobotComponents()
     }
 }
 
@@ -38,13 +40,10 @@ export class Materials {
 }
 export class AvailableRobotComponents {
     robotComponentTypes: Comps.RobotComponentTypes[]
-    quantities: number[]
-    constructor(
-        newRobotComponentTypes: Comps.RobotComponentTypes[],
-        newQuantities: number[]
-    ) {
-        this.robotComponentTypes = newRobotComponentTypes
-        this.quantities = newQuantities
+    quantity: number[]
+    constructor() {
+        this.robotComponentTypes = [2, 1, 0]
+        this.quantity = [8, 4, 1]
     }
 }
 export class PhysicsResource {

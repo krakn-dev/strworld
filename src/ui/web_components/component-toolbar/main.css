@@ -1,6 +1,7 @@
-#robot-component-selector {
+#component-toolbar {
     display: flex; 
-    flex-direction: row;
+    flex-direction: column;
+    gap: 20px;
 }
 component-selector-item {
     margin-right: 5px;

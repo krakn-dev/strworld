@@ -1,5 +1,5 @@
 import "./ui/web_components/components"
-import * as MainComponent from "./ui/web_components/main-component/main"
+import * as MainComponent from "./ui/web_components/main"
 import * as Ser from "./serialization"
 
 

@@ -7,9 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack --mode=development",
     "build": "webpack --mode=production",
-    "copy-assets": "./scripts/copy_assets.sh",
-    "copy-html": "./scripts/copy_html.sh",
-    "copy-css": "./scripts/copy_css.sh"
+    "copy-assets": "./scripts/copy_assets.sh"
   },
   "keywords": [],
   "author": "",

@@ -1,6 +1,6 @@
 import html from "./main.html"
 import css from "./main.css"
-import * as CoolButton from "../cool-button/main"
+import * as CoolButton from "../shared/cool-button/main"
 
 export class CustomElement extends HTMLElement {
     onOpenCodeEditor: CustomEvent

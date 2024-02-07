@@ -1,17 +1,19 @@
 import html from "./main.html"
 import css from "./main.css"
-import * as RobotVisualizer from "../robot-visualizer/main"
-import * as CoolButton from "../cool-button/main"
-import * as RobotComponentSelector from "../robot-component-selector/main"
+import * as RobotVisualizer from "./robot-visualizer/main"
+import * as CoolButton from "../shared/cool-button/main"
+import * as ComponentSelector from "./component-selector/main"
 import * as Ser from "../../../serialization"
-import * as ComponentHelpMenu from "../component-help-menu/main"
+import * as HelpMenu from "./help-menu/main"
+import * as Toolbar from "./toolbar/main"
 
 export class CustomElement extends HTMLElement {
     onComponentEditorClose: CustomEvent
     private componentEditorElement: HTMLDivElement
     private robotVisualizerElement: RobotVisualizer.CustomElement
-    private robotComponentSelectorElement: RobotComponentSelector.CustomElement
-    private componentHelpMenuElement: ComponentHelpMenu.CustomElement | undefined
+    private componentSelectorElement: ComponentSelector.CustomElement
+    private toolbarElement: Toolbar.CustomElement
+    private helpMenuElement: HelpMenu.CustomElement | undefined
     helpButtonElement: CoolButton.CustomElement
     doneButtonElement: CoolButton.CustomElement
 
@@ -23,7 +25,8 @@ export class CustomElement extends HTMLElement {
         this.doneButtonElement = this.shadowRoot!.getElementById("done-button") as CoolButton.CustomElement
         this.componentEditorElement = this.shadowRoot!.getElementById("component-editor") as HTMLDivElement
         this.robotVisualizerElement = this.shadowRoot!.getElementById("robot-visualizer") as RobotVisualizer.CustomElement
-        this.robotComponentSelectorElement = this.shadowRoot!.getElementById("robot-component-selector") as RobotComponentSelector.CustomElement
+        this.componentSelectorElement = this.shadowRoot!.getElementById("component-selector") as ComponentSelector.CustomElement
+        this.toolbarElement = this.shadowRoot!.getElementById("toolbar") as Toolbar.CustomElement
         this.onComponentEditorClose = new CustomEvent("closecomponenteditor", { bubbles: false, composed: true, cancelable: true })
     }
     connectedCallback() {
@@ -31,23 +34,27 @@ export class CustomElement extends HTMLElement {
         this.doneButtonElement.addEventListener("clicked", this._onDoneClicked.bind(this))
         this.robotVisualizerElement.addEventListener("componentplaced", this._onComponentPlaced.bind(this))
         this.robotVisualizerElement.addEventListener("componentremoved", this._onComponentRemoved.bind(this))
-        this.robotComponentSelectorElement.addEventListener("itemselected", this._onComponentSelectorItemSelected.bind(this))
+        this.componentSelectorElement.addEventListener("itemselected", this._onComponentSelectorItemSelected.bind(this))
+        this.toolbarElement.addEventListener("itemselected", this._onToolbarItemSelected.bind(this))
     }
     addWorker(newWorker: Worker) {
-        this.robotComponentSelectorElement.addWorker(newWorker)
+        this.componentSelectorElement.addWorker(newWorker)
     }
     addAvailableRobotComponents(robotComponents: Ser.AvailableRobotComponents) {
-        this.robotComponentSelectorElement.addAvailableRobotComponents(robotComponents)
+        this.componentSelectorElement.addAvailableRobotComponents(robotComponents)
     }
     private _onHelpClicked() {
-        let element = document.createElement("component-help-menu")
-        element.setAttribute("id", "component-help-menu")
+        let element = document.createElement("help-menu")
+        element.setAttribute("id", "help-menu")
         this.componentEditorElement.appendChild(element)
-        this.componentHelpMenuElement = element as ComponentHelpMenu.CustomElement
-        this.componentHelpMenuElement.addEventListener("closehelpmenu", this._onCloseHelpMenu.bind(this))
+        this.helpMenuElement = element as HelpMenu.CustomElement
+        this.helpMenuElement.addEventListener("closehelpmenu", this._onCloseHelpMenu.bind(this))
     }
     private _onCloseHelpMenu() {
-        this.componentHelpMenuElement?.remove()
+        this.helpMenuElement?.remove()
+    }
+    private _onToolbarItemSelected(event: any) {
+        this.robotVisualizerElement.updateMode(event.detail.mode)
     }
     private _onComponentSelectorItemSelected(event: any) {
         this.robotVisualizerElement.updateSelectedRobotComponentType(event.detail.robotComponentType)
@@ -56,10 +63,9 @@ export class CustomElement extends HTMLElement {
         this.dispatchEvent(this.onComponentEditorClose)
     }
     private _onComponentRemoved() {
-        this.robotComponentSelectorElement.onComponentPlaced()
     }
     private _onComponentPlaced() {
-        this.robotComponentSelectorElement.onComponentPlaced()
+        this.componentSelectorElement.onComponentPlaced()
     }
 }
 

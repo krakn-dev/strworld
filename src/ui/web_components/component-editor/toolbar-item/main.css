@@ -1,0 +1,45 @@
+#toolbar-item {
+    font-family: hack;
+    display: flex;
+    flex-direction: row;
+    position: relative;
+}
+#icon {
+    width: 45px;
+    height: 45px;
+    padding-left: 3px;
+    padding-right: 5px;
+    padding-top: 8px;
+    text-shadow: black 2px 2px;
+    background-color: #ffffff22;
+    color: white;
+    font-size: 30px;
+    text-align: center;
+    border-radius: 3px;
+}
+#key {
+   position: absolute;
+   left: -20px;
+   bottom: -5px;
+   width: 18px;
+   height: 18px;
+   background-color: white;
+   color: black;
+   letter-spacing: 2px;
+   box-shadow: -5px -5px 0px 5px #89beba inset;
+   border: 1px solid gray;
+   font-size: 1.1em;
+   box-shadow: 1px 0 1px 0 #eee, 0 2px 0 2px #ccc, 0 2px 0 3px #444;
+   border-radius: 3px;
+   padding-top: 0px;
+   padding-left: 2px;
+   padding-right: 4px;
+   padding-bottom: 6px;
+}
+
+#icon:hover {
+    background-color: #00000022;
+}
+.select {
+    box-shadow: 0px 0px 0px 5px #ffa100 inset;
+}

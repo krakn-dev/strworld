@@ -10,7 +10,7 @@
   background-color: #bbbbbb;
 }
 
-#component-toolbar {
+#toolbar {
     position: absolute;
     right: 20px;
     top: 0;
@@ -29,13 +29,13 @@
     right: 110px;
     top: 10px;
 }
-#component-help-menu {
+#help-menu {
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
 }
-#robot-component-selector {
+#component-selector {
     position: absolute;
     bottom: 10px;
     margin-left: auto;

@@ -1,0 +1,10 @@
+#toolbar {
+    display: flex; 
+    flex-direction: column;
+    gap: 20px;
+}
+toolbar-item {
+    margin-right: 5px;
+    height: 70px;
+    width: 70px;
+}

@@ -1,0 +1,9 @@
+#component-selector {
+    display: flex; 
+    flex-direction: row;
+}
+component-selector-item {
+    margin-right: 5px;
+    height: 70px;
+    width: 70px;
+}

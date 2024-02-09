@@ -5,28 +5,27 @@
     width: 100%;
     height: 100%;
     align-items: center;
-    padding: 15px;
-    padding-bottom: 30px;
-}
-#title, #description {
+    border-radius: 5px;
     font-family: hack;
     color: white;
+    padding: 20px 10px ;
 }
 #title {
     font-size: 22px;
-    margin-bottom: 5px;
+    margin-bottom: 15px;
 }
 #description {
+    font-family: hack;
+    margin: 0;
+    padding: 0;
     font-size: 22px;
-    margin-bottom: 5px;
     word-wrap: break-word;
     white-space: pre-wrap;
     line-break: anywhere;
-    width: 300px;
 }
 #buttons {
-    gap: 10px;
     align-items: center;
+    gap: 5px;
 }
 .column {
     display: flex;

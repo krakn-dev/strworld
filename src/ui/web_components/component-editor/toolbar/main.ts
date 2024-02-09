@@ -53,13 +53,13 @@ export class CustomElement extends HTMLElement {
             case "x": {
                 this.updateSelection(this.removeItem)
             } break;
-            case "g": {
+            case "t": {
                 this.updateSelection(this.translateItem)
             } break;
             case "r": {
                 this.updateSelection(this.rotateItem)
             } break;
-            case "s": {
+            case "e": {
                 this.updateSelection(this.renameItem)
             } break;
         }

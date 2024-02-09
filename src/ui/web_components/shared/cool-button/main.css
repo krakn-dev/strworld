@@ -5,8 +5,10 @@
     font-family: hack;
     font-size: 25px;
     background-color: transparent;
+    border-radius: 3px;
 }
 #cool-button:hover {
-    background-color: #e68183;
+    color: #222222;
+    background-color: #ffffdd;
     cursor: pointer;
 }

@@ -31,7 +31,6 @@ export class CustomElement extends HTMLElement {
     private robotVisualizerElement: HTMLDivElement
     private graphicContextElement: GraphicContext.CustomElement
     private robotComponents: RobotComponent[]
-
     private isMouseDown: boolean
     private isOrbiting: boolean
     private onComponentPlace: CustomEvent
@@ -44,6 +43,8 @@ export class CustomElement extends HTMLElement {
     private orbitControls: OrbitControls
     private selectedRobotComponentType: Comps.RobotComponentTypes | undefined
     private updateInterval: any | undefined
+    private isTransforming: boolean
+
 
     constructor() {
         super()
@@ -64,10 +65,15 @@ export class CustomElement extends HTMLElement {
         this.graphicContextElement.camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 20000)
         this.transformControls = new TransformControl(this.graphicContextElement.camera, this.graphicContextElement.renderer)
         this.orbitControls = new OrbitControls(this.graphicContextElement.camera!, this.graphicContextElement.renderer.domElement)
+        this.orbitControls.maxDistance = 100
+        this.orbitControls.minDistance = 1
+        this.isTransforming = false
+
         let skybox = this.createSkybox()
-        this.mouseRaycast = new MouseRaycast(this.graphicContextElement.scene, skybox)
+        this.mouseRaycast = new MouseRaycast(this.graphicContextElement.scene)
         this.graphicContextElement.addObject(skybox)
         this.updateInterval = setInterval(this._update.bind(this), 25)
+        this.transformControls.controls.addEventListener("objectChange", this._onObjectTransformed.bind(this))
     }
     connectedCallback() {
         this.setupScene()
@@ -80,21 +86,85 @@ export class CustomElement extends HTMLElement {
     disconnectedCallback() {
         clearInterval(this.updateInterval)
     }
+    private _onObjectTransformed() {
+        if (this.graphicEffects.selectedObject != undefined) {
+            this.updateObjectPosition(
+                this.graphicEffects.selectedObject,
+                this.graphicEffects.selectedObject.position)
+            this.updateObjectRotation(
+                this.graphicEffects.selectedObject,
+                new THREE.Quaternion().setFromEuler(this.graphicEffects.selectedObject.rotation))
+
+        }
+    }
     private _onStartedTransforming() {
         this.orbitControls.enabled = false
+        this.isTransforming = true
     }
     private _onStoppedTransforming() {
         this.orbitControls.enabled = true
+        this.isTransforming = false
     }
     private _update() {
-        this.graphicEffects.intersection = this.mouseRaycast.intersection
-        if (this.graphicEffects.isPlacePreview) {
-            this.graphicEffects.updatePreviewObject()
-            this.mouseRaycast.updatePreviewObjectId(this.graphicEffects.selectedObject?.id)
+        this.physics.step()
+        if (this.isTransforming) {
+            this.mouseRaycast.intersection = undefined
         } else {
-            this.mouseRaycast.updatePreviewObjectId(undefined)
+            this.mouseRaycast.updateIntersection(this.robotComponents)
+        }
+        this.graphicEffects.intersection = this.mouseRaycast.intersection
+        if (this.graphicEffects.isPlacePreviewEnabled) {
+            this.graphicEffects.updatePreviewObject()
+            this.physics.updatePlaceTest(this.graphicEffects.selectedObject)
+            if (this.physics.isPlaceTestBodyColliding) {
+                this.graphicEffects.isSelectedMaterialRed = true
+            } else {
+                this.graphicEffects.isSelectedMaterialRed = false
+            }
+        } else {
+            if (!this.graphicEffects.keepHighlight) {
+                this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
+            }
         }
         this.graphicEffects.updateMaterialColor()
+        this.graphicEffects.updateCollidingObjects(this.getCollidingObjects())
+    }
+    private getRobotComponentIndexByBodyId(bodyId: number): number | undefined {
+        for (let [i, rGC] of this.robotComponents.entries()) {
+            if (rGC.body.id == bodyId) {
+                return i
+            }
+        }
+        return undefined
+    }
+    private getCollidingObjects(): THREE.Object3D[] {
+        let collidingBodiesId = []
+        for (let ids of this.physics.collidingBodiesId) {
+            let isAFound = false
+            let isBFound = false
+            for (let cId of collidingBodiesId) {
+                if (cId == ids[0]) {
+                    isAFound = true
+                }
+                if (cId == ids[1]) {
+                    isBFound = true
+                }
+            }
+
+            if (!isAFound) {
+                collidingBodiesId.push(ids[0])
+            }
+            if (!isBFound) {
+                collidingBodiesId.push(ids[1])
+            }
+        }
+        let result = []
+        for (let cBI of collidingBodiesId) {
+            let index = this.getRobotComponentIndexByBodyId(cBI)
+            if (index == undefined) continue
+            result.push(this.robotComponents[index].object)
+        }
+        return result
     }
     private _onMouseMove(event: any) {
         if (this.isMouseDown) {
@@ -105,7 +175,6 @@ export class CustomElement extends HTMLElement {
             }
         }
         this.mouseRaycast.updateCursorPosition(event)
-        this.mouseRaycast.updateIntersection(this.robotComponents)
     }
     private _onMouseDown() {
         this.isMouseDown = true
@@ -113,8 +182,6 @@ export class CustomElement extends HTMLElement {
     private _onMouseUp(event: any) {
         if (!this.isOrbiting) {
             this._click()
-            console.log(this.mouseRaycast.intersection?.object.id)
-            console.log(this.transformControls.controls.object?.id)
         }
         this.isMouseDown = false
         this.isOrbiting = false
@@ -137,84 +204,91 @@ export class CustomElement extends HTMLElement {
         this.graphicContextElement.addObject(ambientLight)
         this.mouseRaycast.updateCamera(this.graphicContextElement.camera!)
         this.addObject(processor)
-        console.log(processor.id, "processor id")
     }
     updateMode(newMode: Mode) {
         this.mode = newMode
         switch (this.mode) {
             case Mode.Remove: {
+                this.graphicEffects.isSelectedMaterialRed = false
                 this.disableTransform()
+                this.transformControls.detach()
+                this.graphicEffects.keepHighlight = false
                 this.graphicEffects.setHighlightMode()
+                this.physics.enablePlaceTest(false)
             } break;
             case Mode.Add: {
+                this.graphicEffects.isSelectedMaterialRed = false
                 this.disableTransform()
+                this.transformControls.detach()
                 this.graphicEffects.setPlacePreviewMode()
+                this.physics.enablePlaceTest(true)
             } break;
             case Mode.Translate: {
+                this.graphicEffects.isSelectedMaterialRed = false
+                this.transformControls.setTranslationMode()
                 this.enableTransform()
                 this.graphicEffects.setHighlightMode()
+                this.physics.enablePlaceTest(false)
             } break;
             case Mode.Rotate: {
+                this.graphicEffects.isSelectedMaterialRed = false
+                this.transformControls.setRotationMode()
                 this.enableTransform()
+                this.transformControls.controls.setRotationSnap(Math.PI / 4)
                 this.graphicEffects.setHighlightMode()
+                this.physics.enablePlaceTest(false)
             } break;
             case Mode.None: {
                 // do nothing
             } break;
         }
     }
-    private _click() {
+    private async _click() {
         if (this.mouseRaycast.intersection == undefined) return
 
         switch (this.mode) {
             case Mode.Add: {
-                this._add()
+                await Utils.sleep(25)
+                if (this.physics.isPlaceTestBodyColliding) return
+                let position = Calculator.getPositionToPlaceComponent(this.mouseRaycast.intersection!)
+                if (position == undefined) return
+
+                let objectGeometry = new THREE.BoxGeometry(1, 1, 1)
+                let objectMaterial = new THREE.MeshPhongMaterial({ color: 0x00cc00 })
+                let object = new THREE.Mesh(objectGeometry, objectMaterial)
+                object.position.set(position.x, position.y, position.z)
+                this.addObject(object)
+                this.dispatchEvent(this.onComponentPlace)
             } break;
             case Mode.Remove: {
-                this._remove()
+                await Utils.sleep(25)
+                this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
+                if (this.mouseRaycast.intersection?.object != undefined) {
+                    this.removeObject(this.mouseRaycast.intersection!.object)
+                }
+                this.dispatchEvent(this.onComponentRemove)
             } break;
             case Mode.Translate: {
-                this._translate()
+                await Utils.sleep(25)
+                this.transformControls.attach(this.mouseRaycast.intersection!.object)
+                this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
+                this.graphicEffects.keepHighlight = true
             } break;
             case Mode.Rotate: {
-                this._rotate()
+                await Utils.sleep(25)
+                this.transformControls.attach(this.mouseRaycast.intersection!.object)
+                this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
+                this.graphicEffects.keepHighlight = true
             } break;
         }
     }
-    private async _rotate() {
-        await Utils.sleep(25)
-        this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
-    }
-    private async _translate() {
-        await Utils.sleep(25)
-        this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
-        this.transformControls.attach(this.mouseRaycast.intersection!.object)
-        this.transformControls.setTranslationMode()
-    }
-    private async _remove() {
-        await Utils.sleep(25)
-        this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
-        this.dispatchEvent(this.onComponentRemove)
-    }
-    private async _add() {
-        await Utils.sleep(25)
-        let position = Calculator.getPositionToPlaceComponent(this.mouseRaycast.intersection!)
-        if (position == undefined) return
-
-        let objectGeometry = new THREE.BoxGeometry(1, 1, 1)
-        let objectMaterial = new THREE.MeshPhongMaterial({ color: 0x00cc00, })
-        let object = new THREE.Mesh(objectGeometry, objectMaterial)
-        object.position.set(position.x, position.y, position.z)
-        this.addObject(object)
-        this.dispatchEvent(this.onComponentPlace)
-    }
-    private getGraphicRobotComponentIndexByObjectId(objectId: number): number | null {
+    private getRobotComponentIndexByObjectId(objectId: number): number | undefined {
         for (let [i, rGC] of this.robotComponents.entries()) {
             if (rGC.object.id == objectId) {
                 return i
             }
         }
-        return null
+        return undefined
     }
     private createSkybox(): THREE.Object3D {
         let front: any = new THREE.TextureLoader().load("assets/sky-nz.png")
@@ -234,11 +308,29 @@ export class CustomElement extends HTMLElement {
         let skyboxGeometry = new THREE.BoxGeometry(10000, 10000, 10000)
         return new THREE.Mesh(skyboxGeometry, materialArray)
     }
-    addObject(mesh: THREE.Mesh) {
-        this.graphicContextElement.addObject(mesh)
-        let body = this.physics.addBody(mesh)
+    removeObject(object: THREE.Object3D) {
+        this.graphicContextElement.removeObject(object)
+        let index = this.getRobotComponentIndexByObjectId(object.id)
+        if (index == undefined) return
+        this.physics.removeBody(this.robotComponents[index].body)
+    }
+    addObject(object: THREE.Object3D) {
+        this.graphicContextElement.addObject(object)
+        let body = this.physics.addBody(object)
         this.robotComponents.push(
-            new RobotComponent(mesh, body, this.selectedRobotComponentType!))
+            new RobotComponent(object, body, this.selectedRobotComponentType!))
+    }
+    updateObjectPosition(object: THREE.Object3D, position: THREE.Vector3) {
+        let index = this.getRobotComponentIndexByObjectId(object.id)
+        if (index == undefined) return
+        this.robotComponents[index].object.position.copy(position)
+        this.robotComponents[index].body.position.set(position.x, position.y, position.z)
+    }
+    updateObjectRotation(object: THREE.Object3D, rotation: THREE.Quaternion) {
+        let index = this.getRobotComponentIndexByObjectId(object.id)
+        if (index == undefined) return
+        this.robotComponents[index].object.rotation.setFromQuaternion(rotation)
+        this.robotComponents[index].body.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
     }
     enableTransform() {
         this.graphicContextElement.addObject(this.transformControls.controls)
@@ -261,24 +353,42 @@ class TransformControl {
     setTranslationMode() {
         this.controls.setMode("translate")
     }
+    detach() {
+        this.controls.detach()
+    }
+
 }
 class GraphicEffects {
     private graphicContext: GraphicContext.CustomElement
+    private collidingObjects: THREE.Object3D[]
     selectedObject: THREE.Object3D | undefined
-    isPlacePreview: boolean
+    isPlacePreviewEnabled: boolean
     intersection: THREE.Intersection<THREE.Object3D> | undefined
-    x: number
+    keepHighlight: boolean
+    isSelectedMaterialRed: boolean
+    private x: number
 
     constructor(newGraphicContext: GraphicContext.CustomElement, newIsPlacePreview: boolean) {
         this.graphicContext = newGraphicContext
-        this.isPlacePreview = newIsPlacePreview
+        this.isPlacePreviewEnabled = newIsPlacePreview
+        this.isSelectedMaterialRed = true
+        this.collidingObjects = []
+        this.keepHighlight = false
         this.x = 0
+    }
+    updateCollidingObjects(newCollidingObjects: THREE.Object3D[]) {
+        for (let cO of this.collidingObjects) {
+            ((cO as THREE.Mesh).material as any).color.set(0x00cc00)
+        }
+        this.collidingObjects = newCollidingObjects
+        for (let cO of this.collidingObjects) {
+            ((cO as THREE.Mesh).material as any).color.set(0xcc0000)
+        }
     }
     updatePreviewObject() {
         if (this.intersection == undefined && this.selectedObject != undefined) {
             this.graphicContext.removeObject(this.selectedObject)
             this.selectedObject = undefined
-            console.log("removing")
         }
         if (this.intersection != undefined && this.selectedObject == undefined) {
             let objectGeometry = new THREE.BoxGeometry(1, 1, 1)
@@ -295,42 +405,53 @@ class GraphicEffects {
         if (position == undefined) {
             this.graphicContext.removeObject(this.selectedObject)
             this.selectedObject = undefined
-            console.log("removing")
             return
         }
         this.selectedObject.position.set(position.x, position.y, position.z)
     }
     updateMaterialColor() {
         if (this.selectedObject == undefined) return
-
-        let hex = (Math.trunc((Math.sin(this.x * 0.15) + 1.5) * 5).toString(16))
-        hex = (parseInt("0x" + hex)).toString(16) + "f";
-        ((this.selectedObject as THREE.Mesh).material as any).color.set(parseInt("0xff" + hex + "ff"))
+        if (this.isSelectedMaterialRed) {
+            ((this.selectedObject as THREE.Mesh).material as any).color.set(0xff0000)
+        }
+        else {
+            let hex = (Math.trunc((Math.sin(this.x * 0.15) + 1.5) * 5).toString(16))
+            hex = (parseInt("0x" + hex)).toString(16) + "f";
+            ((this.selectedObject as THREE.Mesh).material as any).color.set(parseInt("0xff" + hex + "ff"))
+        }
         this.x += 1;
     }
     selectHighlightObject(intersection: THREE.Intersection<THREE.Object3D> | undefined) {
         if (intersection?.object == undefined) {
-            return
+            if (this.keepHighlight) {
+                return
+            } else {
+                this.clearSelectedObject()
+            }
         }
+        this.clearSelectedObject()
         let object = intersection?.object as THREE.Mesh
         this.selectedObject = object
     }
     setPlacePreviewMode() {
-        if (this.isPlacePreview) return
-        if (this.selectedObject != undefined) {
-            ((this.selectedObject as THREE.Mesh).material as any).color.set(0xffffff)
-            this.selectedObject = undefined
-            //            this.objectMaterial = undefined
-        }
-        this.isPlacePreview = true
+        if (this.isPlacePreviewEnabled) return
+        this.clearSelectedObject()
+        this.isPlacePreviewEnabled = true
     }
     setHighlightMode() {
-        if (!this.isPlacePreview) return
+        if (!this.isPlacePreviewEnabled) return
         if (this.selectedObject != undefined) {
             this.graphicContext.removeObject(this.selectedObject)
             this.selectedObject = undefined
         }
-        this.isPlacePreview = false
+        this.isPlacePreviewEnabled = false
+    }
+    clearSelectedObject() {
+        if (this.selectedObject != undefined) {
+            ((this.selectedObject as THREE.Mesh).material as any).color.set(0x00cc00)
+            this.selectedObject = undefined
+        }
+        this.keepHighlight = false
     }
 }
 class MouseRaycast {
@@ -339,27 +460,17 @@ class MouseRaycast {
     private scene: THREE.Scene
     private pointer: THREE.Vector2 | undefined
     private camera: THREE.PerspectiveCamera | undefined
-    private transformControls: THREE.Object3D | undefined
-    private previewObjectId: number | undefined
-    private skybox: THREE.Object3D
     allIntersections: THREE.Intersection<THREE.Object3D>[]
     intersection: THREE.Intersection<THREE.Object3D> | undefined
 
-    constructor(newScene: THREE.Scene, newSkybox: THREE.Object3D) {
+    constructor(newScene: THREE.Scene) {
         this.intersection = undefined
         this.allIntersections = []
         this.mouse3DIntersections = []
         this.scene = newScene
-        this.skybox = newSkybox
-    }
-    updateTransformControls(newTransformControls: THREE.Object3D) {
-        this.transformControls = newTransformControls
     }
     updateCamera(newCamera: THREE.PerspectiveCamera) {
         this.camera = newCamera
-    }
-    updatePreviewObjectId(newId: number | undefined) {
-        this.previewObjectId = newId
     }
     updateCursorPosition(event: any) {
         this.pointer = new THREE.Vector2(
@@ -379,7 +490,11 @@ class MouseRaycast {
                 if (rC.object.id == i.object.id) {
                     this.intersection = i
                     isIntersectionFound = true
+                    break
                 }
+            }
+            if (isIntersectionFound) {
+                break
             }
         }
         if (!isIntersectionFound) {
@@ -389,26 +504,146 @@ class MouseRaycast {
 }
 class Physics {
     world: CANNON.World
+    collidingBodiesId: [number, number][]
+
+    placeTestBody: CANNON.Body | undefined
+    isPlaceTestBodyColliding: boolean | undefined
+    isPlaceTestEnabled: boolean
+    placeTestCollisionCount: number
+
     constructor() {
         this.world = new CANNON.World()
+        this.world.addEventListener("endContact", this._onCollisionExit.bind(this))
+        this.world.addEventListener("beginContact", this._onCollisionEnter.bind(this))
+        this.collidingBodiesId = []
+        this.isPlaceTestEnabled = false
+        this.placeTestCollisionCount = 0
     }
-    addBody(mesh: THREE.Mesh): CANNON.Body {
-        let boundingBox = new THREE.Box3().setFromObject(mesh)
-        let xSize = boundingBox.max.x - boundingBox.min.x
-        let ySize = boundingBox.max.y - boundingBox.min.y
-        let zSize = boundingBox.max.z - boundingBox.min.z
+    enablePlaceTest(isEnabled: boolean) {
+        if (this.isPlaceTestEnabled == isEnabled) return
+        this.isPlaceTestEnabled = isEnabled
+        if (this.isPlaceTestEnabled) {
+            let xSize = 0.5
+            let ySize = 0.5
+            let zSize = 0.5
 
-        let shape = new CANNON.Box(new CANNON.Vec3(xSize / 2, ySize / 2, zSize / 2))
+            let shape = new CANNON.Box(new CANNON.Vec3(xSize, ySize, zSize))
+            let body = new CANNON.Body({
+                shape: shape,
+                mass: 0,
+            })
+            body.type = CANNON.BODY_TYPES.KINEMATIC
+            this.placeTestBody = body
+            this.world.addBody(body)
+        } else {
+            if (this.placeTestBody != undefined) {
+                this.world.removeBody(this.placeTestBody)
+                this.placeTestBody = undefined
+            }
+            this.isPlaceTestBodyColliding = undefined
+        }
+    }
+    updatePlaceTest(object: THREE.Object3D | undefined) {
+        if (this.placeTestBody == undefined || object == undefined) return
+        this.placeTestBody.position = new CANNON.Vec3(
+            object.position.x,
+            object.position.y,
+            object.position.z);
+
+        this.placeTestBody.quaternion = new CANNON.Quaternion(
+            object.quaternion.x,
+            object.quaternion.y,
+            object.quaternion.z,
+            object.quaternion.w);
+
+        if (this.placeTestCollisionCount == 0) {
+            this.isPlaceTestBodyColliding = false
+        }
+        else {
+            this.isPlaceTestBodyColliding = true
+        }
+    }
+    addBody(mesh: THREE.Object3D): CANNON.Body {
+        let xSize = 0.5
+        let ySize = 0.5
+        let zSize = 0.5
+
+        let shape = new CANNON.Box(new CANNON.Vec3(xSize, ySize, zSize))
         let body = new CANNON.Body({
-            position: new CANNON.Vec3(mesh.position.x, mesh.position.y, mesh.position.z),
-            shape: shape
+            position: new CANNON.Vec3(mesh.position.x,
+                mesh.position.y,
+                mesh.position.z),
+            quaternion: new CANNON.Quaternion(mesh.quaternion.x,
+                mesh.quaternion.y,
+                mesh.quaternion.z,
+                mesh.quaternion.w),
+            shape: shape,
+            mass: 0,
         })
-        body.addEventListener("collide", this._onCollision.bind(this))
+        body.type = CANNON.BODY_TYPES.KINEMATIC
         this.world.addBody(body)
         return body
     }
-    _onCollision() {
-        console.log('collision')
+    step() {
+        this.world.fixedStep()
+    }
+    removeBody(body: CANNON.Body) {
+        for (let bI = this.collidingBodiesId.length - 1; bI >= 0; bI--) {
+            let collidingBodyAId = this.collidingBodiesId[bI][0]
+            let collidingBodyBId = this.collidingBodiesId[bI][1]
+            if (
+                collidingBodyAId == body.id ||
+                collidingBodyBId == body.id
+            ) {
+                this.collidingBodiesId.splice(bI, 1)
+            }
+        }
+        this.world.removeBody(body)
+    }
+    private _onCollisionEnter(event: any) {
+        let bodyA = event.bodyA
+        let bodyB = event.bodyB
+        if (bodyA == undefined || bodyB == undefined) {
+            return
+        }
+
+        if (
+            this.isPlaceTestEnabled &&
+            this.placeTestBody != undefined &&
+            (bodyA.id == this.placeTestBody.id || bodyB.id == this.placeTestBody.id)
+        ) {
+            this.placeTestCollisionCount += 1
+            return
+        }
+
+        this.collidingBodiesId.push([bodyA.id, bodyB.id])
+    }
+    private _onCollisionExit(event: any) {
+        if (event.bodyA == undefined || event.bodyB == undefined) {
+            return
+        }
+        let exitedBodyAId = event.bodyA.id
+        let exitedBodyBId = event.bodyB.id
+        if (
+            this.isPlaceTestEnabled &&
+            this.placeTestBody != undefined &&
+            (exitedBodyAId == this.placeTestBody.id || exitedBodyBId == this.placeTestBody.id)
+        ) {
+            this.placeTestCollisionCount -= 1
+            return
+        }
+        for (let bI = this.collidingBodiesId.length - 1; bI >= 0; bI--) {
+            let collidingBodyAId = this.collidingBodiesId[bI][0]
+            let collidingBodyBId = this.collidingBodiesId[bI][1]
+            if (
+                collidingBodyAId == exitedBodyAId &&
+                collidingBodyBId == exitedBodyBId ||
+                collidingBodyBId == exitedBodyAId &&
+                collidingBodyAId == exitedBodyBId
+            ) {
+                this.collidingBodiesId.splice(bI, 1)
+            }
+        }
     }
 }
 class RobotComponent {
@@ -434,14 +669,14 @@ class RobotComponent {
     }
 }
 class Calculator {
-    static getPositionToPlaceComponent(intersection: THREE.Intersection<THREE.Object3D>): THREE.Vector3 | undefined {
-        if (intersection.face == undefined) {
+    static getPositionToPlaceComponent(intersection: THREE.Intersection<THREE.Object3D> | undefined): THREE.Vector3 | undefined {
+        if (intersection == undefined || intersection.face == undefined) {
             return undefined
         }
         return new THREE.Vector3(
-            Number(((intersection.face!.normal!.x * 0.5) + intersection.point.x).toFixed()),
-            Number(((intersection.face!.normal!.y * 0.5) + intersection.point.y).toFixed()),
-            Number(((intersection.face!.normal!.z * 0.5) + intersection.point.z).toFixed()))
+            (intersection.face!.normal!.x * 0.51) + intersection.point.x,
+            (intersection.face!.normal!.y * 0.51) + intersection.point.y,
+            (intersection.face!.normal!.z * 0.51) + intersection.point.z)
     }
 }
 //        let front= await Utils.AssetFetchCache.fetch("room-nz.png")

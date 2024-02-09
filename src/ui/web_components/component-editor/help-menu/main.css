@@ -9,15 +9,16 @@
   border-radius: 10px;
   background-color: #bbbbbb;
 }
-
 #help-menu {
     width: 500px;
+    overflow: auto;    
+}
+#description {
     word-wrap: break-word;
     white-space: pre-wrap;
     line-break: anywhere;
-    width: 300px;
-}
-pre {
-    white-space: pre-wrap;
-    word-break: keep-all;
+    width: 500px;
+    height: 400px;
+    overflow: auto;    
+    font-family: hack;
 }

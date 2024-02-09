@@ -9,7 +9,7 @@ export class CustomElement extends HTMLElement {
     onItemSelected: CustomEvent
     private worker: Worker | undefined
     private componentSelector: HTMLDivElement
-    private componentSelectorItem: ComponentSelectorItem.CustomElement[]
+    private componentSelectorItems: ComponentSelectorItem.CustomElement[]
     private selectedItem: ComponentSelectorItem.CustomElement | undefined
 
     constructor() {
@@ -19,7 +19,7 @@ export class CustomElement extends HTMLElement {
         this.componentSelector = this.shadowRoot!.getElementById("component-selector") as HTMLDivElement
 
         this.onItemSelected = new CustomEvent("itemselected", { bubbles: false, composed: true, cancelable: true, detail: {} })
-        this.componentSelectorItem = []
+        this.componentSelectorItems = []
         this.selectedItem = undefined
         this.worker = undefined
     }
@@ -38,16 +38,25 @@ export class CustomElement extends HTMLElement {
         this.selectedItem!.updateQuantity(this.selectedItem.quatity - 1)
 
         if (this.selectedItem.quatity != 0) return
+        for (let [iI, i] of this.componentSelectorItems.entries()) {
+            if (i.robotComponentType == this.selectedItem.robotComponentType) {
+                this.componentSelectorItems.splice(iI, 1)
+            }
+        }
         this.selectedItem.remove()
         this.updateSelection(undefined)
     }
-    onComponentRemoved() {
-        if (this.selectedItem == undefined) return
-        this.selectedItem!.updateQuantity(this.selectedItem.quatity - 1)
-
-        if (this.selectedItem.quatity != 0) return
-        this.selectedItem.remove()
-        this.updateSelection(undefined)
+    onComponentRemoved(robotComponentType: Comps.RobotComponentTypes) {
+        let isItemFound = false
+        for (let i of this.componentSelectorItems) {
+            if (i.robotComponentType == robotComponentType) {
+                i.updateQuantity(i.quatity + 1)
+                isItemFound = true
+            }
+        }
+        if (!isItemFound) {
+            this.createItem(robotComponentType, 1)
+        }
     }
     addAvailableRobotComponents(robotComponents: Ser.AvailableRobotComponents) {
         let isFirstSelected = false
@@ -55,17 +64,23 @@ export class CustomElement extends HTMLElement {
             if (robotComponents.robotComponentTypes[i] == Comps.RobotComponentTypes.Processor) {
                 continue
             }
-            let element = document.createElement("component-selector-item") as ComponentSelectorItem.CustomElement
-            element.setAttribute("component-type", robotComponents.robotComponentTypes[i].toString())
-            element.setAttribute("quantity", robotComponents.quantity[i].toString())
-            this.componentSelector.appendChild(element)
-            this.componentSelectorItem.push(element)
-            element.addEventListener("selected", this._onItemSelected.bind(this))
+            this.createItem(
+                robotComponents.robotComponentTypes[i],
+                robotComponents.quantity[i])
             if (!isFirstSelected) {
-                this.updateSelection(element)
+                this.updateSelection(this.componentSelectorItems[0])
                 isFirstSelected = true
             }
         }
+    }
+    createItem(robotComponentType: Comps.RobotComponentTypes, quantity: number): ComponentSelectorItem.CustomElement {
+        let element = document.createElement("component-selector-item") as ComponentSelectorItem.CustomElement
+        element.setAttribute("component-type", robotComponentType.toString())
+        element.setAttribute("quantity", quantity.toString())
+        this.componentSelector.appendChild(element)
+        this.componentSelectorItems.push(element)
+        element.addEventListener("selected", this._onItemSelected.bind(this))
+        return element
     }
     private _onItemSelected(event: any) {
         let newSelectedItem = event.originalTarget as ComponentSelectorItem.CustomElement

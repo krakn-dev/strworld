@@ -4,12 +4,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
@@ -28,9 +22,9 @@ export enum Mode {
     Rename,
 }
 export class CustomElement extends HTMLElement {
+    robotComponents: RobotComponent[]
     private robotVisualizerElement: HTMLDivElement
     private graphicContextElement: GraphicContext.CustomElement
-    private robotComponents: RobotComponent[]
     private isMouseDown: boolean
     private isOrbiting: boolean
     private onComponentPlace: CustomEvent
@@ -203,6 +197,7 @@ export class CustomElement extends HTMLElement {
         this.graphicContextElement.addObject(directionalLight)
         this.graphicContextElement.addObject(ambientLight)
         this.mouseRaycast.updateCamera(this.graphicContextElement.camera!)
+        this.selectedRobotComponentType = Comps.RobotComponentTypes.Processor
         this.addObject(processor)
     }
     updateMode(newMode: Mode) {
@@ -250,6 +245,7 @@ export class CustomElement extends HTMLElement {
             case Mode.Add: {
                 await Utils.sleep(25)
                 if (this.physics.isPlaceTestBodyColliding) return
+                if (this.selectedRobotComponentType == undefined) return
                 let position = Calculator.getPositionToPlaceComponent(this.mouseRaycast.intersection!)
                 if (position == undefined) return
 
@@ -262,10 +258,11 @@ export class CustomElement extends HTMLElement {
             } break;
             case Mode.Remove: {
                 await Utils.sleep(25)
-                this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
-                if (this.mouseRaycast.intersection?.object != undefined) {
-                    this.removeObject(this.mouseRaycast.intersection!.object)
-                }
+                if (this.mouseRaycast.intersection?.object == undefined) return
+                let index = this.getRobotComponentIndexByObjectId(this.mouseRaycast.intersection.object.id)
+                if (index == undefined || index == 0) return
+                this.onComponentRemove.detail.robotComponentType = this.robotComponents[index].robotComponentType
+                this.removeObject(this.mouseRaycast.intersection.object)
                 this.dispatchEvent(this.onComponentRemove)
             } break;
             case Mode.Translate: {
@@ -646,7 +643,7 @@ class Physics {
         }
     }
 }
-class RobotComponent {
+export class RobotComponent {
     object: THREE.Object3D
     body: CANNON.Body
     robotComponentType: Comps.RobotComponentTypes
@@ -658,14 +655,6 @@ class RobotComponent {
         this.object = newMesh
         this.body = newBody
         this.robotComponentType = newRobotComponentType
-    }
-    updatePosition(newPosition: THREE.Vector3) {
-        this.object.position.copy(newPosition)
-        this.body.position.set(newPosition.x, newPosition.y, newPosition.z)
-    }
-    remove(graphicContext: GraphicContext.CustomElement, world: CANNON.World) {
-        graphicContext.removeObject(this.object)
-        world.removeBody(this.body)
     }
 }
 class Calculator {

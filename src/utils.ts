@@ -60,7 +60,12 @@ export class Quaternion {
         this.w = newW
     }
 }
-
+export function addVector3(vectorA: Vector3, vectorB: Vector3): Vector3 {
+    return new Vector3(
+        vectorA.x + vectorB.x,
+        vectorA.y + vectorB.y,
+        vectorA.z + vectorB.z)
+}
 export function toCannonVec3(vector: Vector3): CANNON.Vec3 {
     return new CANNON.Vec3(vector.x, vector.y, vector.z)
 }

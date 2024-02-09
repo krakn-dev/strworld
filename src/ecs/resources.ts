@@ -3,33 +3,41 @@ import * as Cmds from "./commands"
 import * as Comps from "./components"
 import * as Utils from "../utils"
 import * as CANNON from 'cannon-es'
+import * as Ser from '../serialization'
 
 
 export class Resources {
     delta: DeltaResource
     isFirstTime: IsFirstTimeResource
     commandState: CommandStateResource
-    componentChanges: ComponentChanges
+    componentChanges: ComponentChangesResource
     input: InputResource
     options: OptionsResource
-    domState: DOMStateResouce
+    domState: DOMStateResource
     positionGrid: PositionGridResource
     physics: PhysicsResource
-    availableRobotComponents: AvailableRobotComponents
+    availableRobotComponents: AvailableRobotComponentsResource
+    newRobot: NewRobotResource
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
-        this.domState = new DOMStateResouce()
+        this.domState = new DOMStateResource()
         this.delta = new DeltaResource(newCurrentExecutingCommand)
         this.isFirstTime = new IsFirstTimeResource(newCurrentExecutingCommand)
         this.commandState = new CommandStateResource(newCurrentExecutingCommand)
-        this.componentChanges = new ComponentChanges()
+        this.componentChanges = new ComponentChangesResource()
         this.input = new InputResource()
         this.options = new OptionsResource()
         this.positionGrid = new PositionGridResource()
         this.physics = new PhysicsResource()
-        this.availableRobotComponents = new AvailableRobotComponents()
+        this.availableRobotComponents = new AvailableRobotComponentsResource()
+        this.newRobot = new NewRobotResource()
     }
 }
-
+export class NewRobotResource {
+    components: Ser.RobotComponent[]
+    constructor() {
+        this.components = []
+    }
+}
 export class Materials {
     wheel: CANNON.Material
     default: CANNON.Material
@@ -38,7 +46,7 @@ export class Materials {
         this.default = new CANNON.Material()
     }
 }
-export class AvailableRobotComponents {
+export class AvailableRobotComponentsResource {
     robotComponentTypes: Comps.RobotComponentTypes[]
     quantity: number[]
     constructor() {
@@ -174,7 +182,7 @@ export class OptionsResource {
         this.isEnableFreeCamera = undefined
     }
 }
-export class DOMStateResouce {
+export class DOMStateResource {
     windowWidth: number | undefined
     windowHeight: number | undefined
     constructor() {
@@ -191,7 +199,7 @@ export class InputResource {
     }
 }
 
-export class ComponentChanges {
+export class ComponentChangesResource {
     changedComponents: ECS.Component[][]
     removedComponents: ECS.Component[][]
     addedComponents: ECS.Component[][]

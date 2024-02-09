@@ -27,6 +27,10 @@ onmessage = (data) => {
             let newData = msg.data as Ser.Input
             resources.input.movementDirection = newData.movementDirection
         } break;
+        case Ser.Messages.RobotComponents: {
+            let newData = msg.data as Ser.RobotComponents
+            resources.newRobot.components = newData.robotComponents
+        } break;
         case Ser.Messages.RefreshGraphics: {
             let graphicChanges = new Ser.GraphicChanges()
             let foundComponents = system.find(

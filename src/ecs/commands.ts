@@ -13,6 +13,7 @@ export enum CommandTypes {
     MovePlayer,
     MoveVehicle,
     TorqueWheels,
+    CreateRobot,
     //    SetEntityElementsPositionAndDisplayElement = 3,
     //    SendComputedElementsToRender = 4,
     //    CreateShadows = 5,
@@ -42,6 +43,8 @@ export function getInstanceFromEnum(commandEnum: CommandTypes): ECS.Command {
         //        case Commands.MoveCameraWithPlayer:
         //            return new MoveCameraWithPlayer()
         //
+        case CommandTypes.CreateRobot:
+            return new CreateRobot()
         case CommandTypes.RunCode:
             return new RunCode()
         case CommandTypes.MoveVehicle:
@@ -85,6 +88,7 @@ export class TheFirst implements ECS.Command {
         system.addCommand(CommandTypes.RunCode)
         system.addCommand(CommandTypes.SyncPhysics)
         system.addCommand(CommandTypes.TorqueWheels)
+        system.addCommand(CommandTypes.CreateRobot)
 
         system.removeCommand(CommandTypes.TheFirst)
     }
@@ -218,8 +222,8 @@ export class CreateScene implements ECS.Command {
             //shapeComponent.numberOfSegments = 10
             //shapeComponent.radiusBottom = 1
             //shapeComponent.radiusTop = 1
-            let positionComponent = new Comps.Position(new Utils.Vector3(3, 0, 2), obstacle)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), obstacle)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, -10), obstacle)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 90), obstacle)
             let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), obstacle)
             let velocityComponent = new Comps.Velocity(new Utils.Vector3(0, 0, 0), obstacle)
             let massComponent = new Comps.Mass(1, obstacle)
@@ -485,6 +489,48 @@ export class CreateScene implements ECS.Command {
         system.removeCommand(CommandTypes.CreateScene)
     }
 }
+
+export class CreateRobot implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.CreateRobot
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        if (resources.newRobot.components.length != 0) {
+            for (let rC of resources.newRobot.components) {
+                let cube = Utils.newUid()
+
+                rC.position.entityUid = cube
+                rC.rotation.entityUid = cube
+
+                let translation = new Utils.Vector3(0, 0, 0)
+                let newPosition = Utils.addVector3(rC.position, translation)
+                rC.position.x = newPosition.x
+                rC.position.y = newPosition.y
+                rC.position.z = newPosition.z
+
+                let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, cube)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, cube)
+                shapeComponent.size = new Utils.Vector3(1, 1, 1)
+
+                let massComponent = new Comps.Mass(1, cube)
+                let shapeColorComponent = new Comps.ShapeColor(0x00cc00, cube)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.RobotComponent, cube)
+
+                system.addComponent(massComponent)
+                system.addComponent(rigidBodyComponent)
+                system.addComponent(rC.position)
+                system.addComponent(rC.rotation)
+                system.addComponent(shapeComponent)
+                system.addComponent(shapeColorComponent)
+                system.addComponent(entityTypeComponent)
+
+            }
+            resources.newRobot.components = []
+        }
+    }
+}
 export class TorqueWheels implements ECS.Command {
     readonly commandType: CommandTypes
     constructor() {
@@ -565,7 +611,7 @@ export class MoveVehicle implements ECS.Command {
             }
             if (resources.input.movementDirection.y == -1) {
                 wheelComponent.isOn = true
-                wheelComponent.velocity = 0
+                wheelComponent.velocity = -maxVelocity
             }
             if (resources.input.movementDirection.x == 1) {
                 if (!wheelComponent.isLeft) {

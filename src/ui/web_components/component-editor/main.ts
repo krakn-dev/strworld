@@ -2,13 +2,16 @@ import html from "./main.html"
 import css from "./main.css"
 import * as RobotVisualizer from "./robot-visualizer/main"
 import * as CoolButton from "../shared/cool-button/main"
+import * as Comps from '../../../ecs/components';
 import * as ComponentSelector from "./component-selector/main"
 import * as Ser from "../../../serialization"
+import * as Utils from '../../../utils';
 import * as HelpMenu from "./help-menu/main"
 import * as Toolbar from "./toolbar/main"
 
 export class CustomElement extends HTMLElement {
     onComponentEditorClose: CustomEvent
+    private worker: Worker | undefined
     private componentEditorElement: HTMLDivElement
     private robotVisualizerElement: RobotVisualizer.CustomElement
     private componentSelectorElement: ComponentSelector.CustomElement
@@ -39,9 +42,38 @@ export class CustomElement extends HTMLElement {
     }
     addWorker(newWorker: Worker) {
         this.componentSelectorElement.addWorker(newWorker)
+        this.worker = newWorker
     }
     addAvailableRobotComponents(robotComponents: Ser.AvailableRobotComponents) {
         this.componentSelectorElement.addAvailableRobotComponents(robotComponents)
+    }
+    private serializeAndSendRobotComponents(robotComponents: RobotVisualizer.RobotComponent[]) {
+        let serializedComponents: Ser.RobotComponent[] = []
+        for (let rC of robotComponents) {
+            let positionComponent = new Comps.Position(
+                new Utils.Vector3(
+                    rC.object.position.x,
+                    rC.object.position.y,
+                    rC.object.position.z,
+                ), 0)
+            let rotationComponent = new Comps.Rotation(
+                new Utils.Vector3(0, 0, 0), 0)
+            rotationComponent.x = rC.object.quaternion.x
+            rotationComponent.y = rC.object.quaternion.y
+            rotationComponent.z = rC.object.quaternion.z
+            rotationComponent.w = rC.object.quaternion.w
+
+            serializedComponents.push(
+                new Ser.RobotComponent(
+                    rC.robotComponentType,
+                    positionComponent,
+                    rotationComponent
+                ))
+        }
+        this.worker!.postMessage(
+            new Ser.Message(
+                Ser.Messages.RobotComponents,
+                new Ser.RobotComponents(serializedComponents)))
     }
     private _onHelpClicked() {
         let element = document.createElement("help-menu")
@@ -60,9 +92,11 @@ export class CustomElement extends HTMLElement {
         this.robotVisualizerElement.updateSelectedRobotComponentType(event.detail.robotComponentType)
     }
     private _onDoneClicked() {
+        this.serializeAndSendRobotComponents(this.robotVisualizerElement.robotComponents)
         this.dispatchEvent(this.onComponentEditorClose)
     }
-    private _onComponentRemoved() {
+    private _onComponentRemoved(event: any) {
+        this.componentSelectorElement.onComponentRemoved(event.detail.robotComponentType)
     }
     private _onComponentPlaced() {
         this.componentSelectorElement.onComponentPlaced()

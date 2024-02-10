@@ -76,6 +76,7 @@ export class CustomElement extends HTMLElement {
                 new Ser.RobotComponents(serializedComponents)))
     }
     private _onHelpClicked() {
+        if (this.helpMenuElement != undefined) return
         let element = document.createElement("help-menu")
         element.setAttribute("id", "help-menu")
         this.componentEditorElement.appendChild(element)
@@ -84,6 +85,7 @@ export class CustomElement extends HTMLElement {
     }
     private _onCloseHelpMenu() {
         this.helpMenuElement?.remove()
+        this.helpMenuElement = undefined
     }
     private _onToolbarItemSelected(event: any) {
         this.robotVisualizerElement.updateMode(event.detail.mode)

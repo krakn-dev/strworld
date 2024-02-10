@@ -83,7 +83,7 @@ export class CustomElement extends HTMLElement {
         return element
     }
     private _onItemSelected(event: any) {
-        let newSelectedItem = event.originalTarget as ComponentSelectorItem.CustomElement
+        let newSelectedItem = event.target as ComponentSelectorItem.CustomElement
         this.updateSelection(newSelectedItem)
     }
     private updateSelection(newSelectedItem: ComponentSelectorItem.CustomElement | undefined) {

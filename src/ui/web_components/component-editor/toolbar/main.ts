@@ -41,6 +41,7 @@ export class CustomElement extends HTMLElement {
         this.rotateItem.addEventListener("selected", this._onItemSelected.bind(this))
 
         this.updateSelection(this.addItem)
+        console.log(this.selectedItem, "a")
     }
     addWorker(newWorker: Worker) {
         this.worker = newWorker
@@ -65,17 +66,17 @@ export class CustomElement extends HTMLElement {
         }
     }
     private _onItemSelected(event: any) {
-        let newSelectedItem = event.originalTarget as ToolbarItem.CustomElement
+        let newSelectedItem = event.target as ToolbarItem.CustomElement
         this.updateSelection(newSelectedItem)
     }
-    private updateSelection(newSelectedItem: ToolbarItem.CustomElement | undefined) {
+    private updateSelection(newSelectedItem: ToolbarItem.CustomElement) {
         if (newSelectedItem?.id != this.selectedItem?.id) {
             this.selectedItem?.unselect()
         } else {
             return
         }
         this.selectedItem = newSelectedItem
-        this.selectedItem!.select()
+        this.selectedItem.select()
         switch (this.selectedItem?.id) {
             case "add-toolbar-item": {
                 this.onItemSelected.detail.mode = RobotVisualizer.Mode.Add

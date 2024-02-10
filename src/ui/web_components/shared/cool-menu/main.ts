@@ -13,11 +13,11 @@ export class CustomElement extends HTMLElement {
         this.buttonsElement = this.shadowRoot?.getElementById("buttons") as HTMLDivElement
     }
     connectedCallback() {
-        this.setButtonsDirection() 
+        this.setButtonsDirection()
     }
     private setButtonsDirection() {
         let buttonsDirection = this.getAttribute("buttons-direction");
-        if(buttonsDirection == "row") {
+        if (buttonsDirection == "row") {
             this.buttonsElement.setAttribute("class", "row")
         }
         else {

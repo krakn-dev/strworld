@@ -25,6 +25,7 @@ export enum ComponentTypes {
     Vehicle,
     Wheel,
     RobotComponent,
+    Robot,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -65,6 +66,7 @@ export enum LightTypes {
 export enum ShapeTypes {
     Box,
     Cylinder,
+    Composed,
 }
 export enum ConstraintTypes {
     PointToPoint,
@@ -87,22 +89,31 @@ export enum RobotComponentTypes {
     SteelPlate,
     WoodenStick,
 }
-//export class Robot implements ECS.Component {
-//    entityUid: number
-//    componentUid: number
-//    componentType: ComponentTypes
-//    childrenComponent: []
-//    constructor(
-//        newCode: string,
-//        newEntityUid: number
-//    ) {
-//        this.componentUid = Utils.newUid()
-//        this.entityUid = newEntityUid
-//        this.componentType = ComponentTypes.Code
-//        this.code = newCode
-//    }
-//}
 
+export class RobotComponent implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    robotComponentType: RobotComponentTypes
+    positionOffset: Utils.Vector3
+    rotationOffset: Utils.Quaternion
+    entityUidAttachedTo: number
+    constructor(
+        newRobotComponentType: RobotComponentTypes,
+        newPositionOffset: Utils.Vector3,
+        newRotationOffset: Utils.Quaternion,
+        newEntityUidAttachedTo: number,
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.positionOffset = newPositionOffset
+        this.rotationOffset = newRotationOffset
+        this.componentType = ComponentTypes.RobotComponent
+        this.robotComponentType = newRobotComponentType
+        this.entityUidAttachedTo = newEntityUidAttachedTo
+    }
+}
 export class Vehicle implements ECS.Component {
     entityUid: number
     componentUid: number

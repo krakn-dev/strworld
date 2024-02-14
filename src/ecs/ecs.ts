@@ -84,8 +84,7 @@ export class System {
     }
     addComponent(component: Component) {
         this.components[component.componentType].push(
-            this.createProxy(component)
-        )
+            this.createProxy(component))
         this
             .resources
             .componentChanges

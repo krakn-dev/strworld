@@ -19,7 +19,7 @@
     margin-top: auto;
     height: fit-content;
 }
-#done-button {
+#quit-button {
     position: absolute;
     right: 10px;
     top: 10px;
@@ -28,6 +28,18 @@
     position: absolute;
     right: 110px;
     top: 10px;
+}
+#confirm-placement-menu {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+#quit-menu {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
 #help-menu {
     position: absolute;

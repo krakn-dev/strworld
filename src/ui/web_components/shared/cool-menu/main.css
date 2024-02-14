@@ -19,9 +19,6 @@
     margin: 0;
     padding: 0;
     font-size: 22px;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-    line-break: anywhere;
 }
 #buttons {
     align-items: center;

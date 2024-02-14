@@ -33,7 +33,7 @@ export class Resources {
     }
 }
 export class NewRobotResource {
-    components: Ser.RobotComponent[]
+    components: Comps.RobotComponent[]
     constructor() {
         this.components = []
     }
@@ -51,7 +51,7 @@ export class AvailableRobotComponentsResource {
     quantity: number[]
     constructor() {
         this.robotComponentTypes = [2, 1, 0]
-        this.quantity = [8, 4, 1]
+        this.quantity = [200, 4, 1]
     }
 }
 export class PhysicsResource {

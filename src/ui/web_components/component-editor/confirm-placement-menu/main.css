@@ -1,0 +1,20 @@
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: #444444aa;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: #bbbbbb;
+}
+#confirm-placement-menu {
+    overflow: auto;    
+}
+#description {
+    width: 300px;
+    height: 200px;
+    overflow: auto;    
+    font-family: hack;
+}

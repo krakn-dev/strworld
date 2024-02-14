@@ -41,7 +41,6 @@ export class CustomElement extends HTMLElement {
         this.rotateItem.addEventListener("selected", this._onItemSelected.bind(this))
 
         this.updateSelection(this.addItem)
-        console.log(this.selectedItem, "a")
     }
     addWorker(newWorker: Worker) {
         this.worker = newWorker

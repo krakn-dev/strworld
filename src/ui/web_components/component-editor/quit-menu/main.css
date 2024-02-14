@@ -1,0 +1,27 @@
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: #444444aa;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: #bbbbbb;
+}
+#not-save-button {
+    margin-top: 30px;
+}
+#quit-menu {
+    width: 500px;
+    overflow: auto;    
+}
+#description {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    line-break: anywhere;
+    width: 500px;
+    height: 400px;
+    overflow: auto;    
+    font-family: hack;
+}

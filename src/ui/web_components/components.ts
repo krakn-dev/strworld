@@ -19,7 +19,9 @@ import * as ComponentSelector from "./component-editor/component-selector/main"
 import * as ComponentSelectorItem from "./component-editor/component-selector-item/main"
 import * as Toolbar from "./component-editor/toolbar/main"
 import * as HelpMenu from "./component-editor/help-menu/main"
+import * as QuitMenu from "./component-editor/quit-menu/main"
 import * as ToolbarItem from "./component-editor/toolbar-item/main"
+import * as ConfirmPlacementMenu from "./component-editor/confirm-placement-menu/main"
 
 customElements.define("input-field", InputField.CustomElement)
 customElements.define("cool-menu", CoolMenu.CustomElement)
@@ -42,6 +44,8 @@ customElements.define("component-selector-item", ComponentSelectorItem.CustomEle
 customElements.define("toolbar-", Toolbar.CustomElement)
 customElements.define("toolbar-item", ToolbarItem.CustomElement)
 customElements.define("help-menu", HelpMenu.CustomElement)
+customElements.define("quit-menu", QuitMenu.CustomElement)
+customElements.define("confirm-placement-menu", ConfirmPlacementMenu.CustomElement)
 
 // entry point
 customElements.define("main-component", MainComponent.CustomElement)

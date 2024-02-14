@@ -23,12 +23,15 @@ export enum Mode {
 }
 export class CustomElement extends HTMLElement {
     robotComponents: RobotComponent[]
+    hasRedRobotComponents: boolean
+    hasBlueRobotComponents: boolean
     private robotVisualizerElement: HTMLDivElement
     private graphicContextElement: GraphicContext.CustomElement
     private isMouseDown: boolean
     private isOrbiting: boolean
     private onComponentPlace: CustomEvent
     private onComponentRemove: CustomEvent
+    private showPlacementConfirm: CustomEvent
     private physics: Physics
     private mode: Mode
     private mouseRaycast: MouseRaycast
@@ -38,6 +41,8 @@ export class CustomElement extends HTMLElement {
     private selectedRobotComponentType: Comps.RobotComponentTypes | undefined
     private updateInterval: any | undefined
     private isTransforming: boolean
+    private savedRobotComponentPosition: THREE.Vector3 | undefined
+    private savedRobotComponentType: Comps.RobotComponentTypes | undefined
 
 
     constructor() {
@@ -49,6 +54,7 @@ export class CustomElement extends HTMLElement {
 
         this.onComponentPlace = new CustomEvent("componentplaced", { bubbles: false, cancelable: true, composed: true })
         this.onComponentRemove = new CustomEvent("componentremoved", { bubbles: false, cancelable: true, composed: true, detail: {} })
+        this.showPlacementConfirm = new CustomEvent("showconfirmplacementmenu", { bubbles: false, cancelable: true, composed: true, detail: {} })
 
         this.robotComponents = []
         this.isMouseDown = false
@@ -68,6 +74,9 @@ export class CustomElement extends HTMLElement {
         this.graphicContextElement.addObject(skybox)
         this.updateInterval = setInterval(this._update.bind(this), 25)
         this.transformControls.controls.addEventListener("objectChange", this._onObjectTransformed.bind(this))
+
+        this.hasRedRobotComponents = false
+        this.hasBlueRobotComponents = false
     }
     connectedCallback() {
         this.setupScene()
@@ -119,23 +128,67 @@ export class CustomElement extends HTMLElement {
             if (!this.graphicEffects.keepHighlight) {
                 this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
             }
+            this.graphicEffects.updateMaterialColor()
         }
-        this.graphicEffects.updateMaterialColor()
-        this.graphicEffects.updateCollidingObjects(this.getCollidingObjects())
+        let collidingObjects = this.getCollidingObjects()
+        let notGluedObjects = this.getNotGluedObjects()
+        this.graphicEffects.updateCollidingObjects(collidingObjects)
+        this.graphicEffects.updateNotGluedObjects(notGluedObjects)
+
+        if (collidingObjects.length > 0) {
+            this.hasRedRobotComponents = true
+        } else {
+            this.hasRedRobotComponents = false
+        }
+        if (notGluedObjects.length > 0) {
+            this.hasBlueRobotComponents = true
+        } else {
+            this.hasBlueRobotComponents = false
+        }
     }
     private getRobotComponentIndexByBodyId(bodyId: number): number | undefined {
         for (let [i, rGC] of this.robotComponents.entries()) {
-            if (rGC.body.id == bodyId) {
+            if (
+                rGC.collisionBody.id == bodyId ||
+                rGC.glueBody.id == bodyId
+            ) {
                 return i
             }
         }
         return undefined
     }
+    private getNotGluedObjects(): THREE.Object3D[] {
+        if (this.physics.graph.islands.length == 1) {
+            return []
+        }
+        let notGluedBodiesId: number[] = []
+        for (let island of this.physics.graph.islands) {
+            let isGlued = false
+            for (let bId of island) {
+                if (this.robotComponents[0].glueBody.id == bId) {
+                    isGlued = true
+                }
+            }
+            if (!isGlued) {
+                notGluedBodiesId = [...notGluedBodiesId, ...island]
+            }
+        }
+
+        let objects = []
+        for (let bI of notGluedBodiesId) {
+            let index = this.getRobotComponentIndexByBodyId(bI)
+            if (index != undefined) {
+                objects.push(this.robotComponents[index].object)
+            }
+        }
+        return objects
+    }
     private getCollidingObjects(): THREE.Object3D[] {
         let collidingBodiesId = []
-        for (let ids of this.physics.collidingBodiesId) {
+        for (let ids of this.physics.collisionBodiesOverlap) {
             let isAFound = false
             let isBFound = false
+
             for (let cId of collidingBodiesId) {
                 if (cId == ids[0]) {
                     isAFound = true
@@ -152,13 +205,14 @@ export class CustomElement extends HTMLElement {
                 collidingBodiesId.push(ids[1])
             }
         }
-        let result = []
+        let objects = []
         for (let cBI of collidingBodiesId) {
             let index = this.getRobotComponentIndexByBodyId(cBI)
-            if (index == undefined) continue
-            result.push(this.robotComponents[index].object)
+            if (index != undefined) {
+                objects.push(this.robotComponents[index].object)
+            }
         }
-        return result
+        return objects
     }
     private _onMouseMove(event: any) {
         if (this.isMouseDown) {
@@ -238,17 +292,36 @@ export class CustomElement extends HTMLElement {
             } break;
         }
     }
+    onPlaceAnywayClicked() {
+        if (
+            this.savedRobotComponentPosition == undefined ||
+            this.savedRobotComponentType == undefined
+        ) {
+            return
+        }
+
+        let objectGeometry = new THREE.BoxGeometry(1, 1, 1)
+        let objectMaterial = new THREE.MeshPhongMaterial({ color: 0x00cc00 })
+        let object = new THREE.Mesh(objectGeometry, objectMaterial)
+        this.selectedRobotComponentType = this.savedRobotComponentType
+        object.position.copy(this.savedRobotComponentPosition)
+        this.addObject(object)
+        this.dispatchEvent(this.onComponentPlace)
+    }
     private async _click() {
         if (this.mouseRaycast.intersection == undefined) return
-
         switch (this.mode) {
             case Mode.Add: {
                 await Utils.sleep(25)
-                if (this.physics.isPlaceTestBodyColliding) return
-                if (this.selectedRobotComponentType == undefined) return
                 let position = Calculator.getPositionToPlaceComponent(this.mouseRaycast.intersection!)
                 if (position == undefined) return
 
+                if (this.physics.isPlaceTestBodyColliding) {
+                    this.dispatchEvent(this.showPlacementConfirm)
+                    this.savedRobotComponentPosition = position
+                    this.savedRobotComponentType = this.selectedRobotComponentType
+                    return
+                }
                 let objectGeometry = new THREE.BoxGeometry(1, 1, 1)
                 let objectMaterial = new THREE.MeshPhongMaterial({ color: 0x00cc00 })
                 let object = new THREE.Mesh(objectGeometry, objectMaterial)
@@ -309,25 +382,29 @@ export class CustomElement extends HTMLElement {
         this.graphicContextElement.removeObject(object)
         let index = this.getRobotComponentIndexByObjectId(object.id)
         if (index == undefined) return
-        this.physics.removeBody(this.robotComponents[index].body)
+        this.physics.removeBodies(
+            this.robotComponents[index].collisionBody,
+            this.robotComponents[index].glueBody)
     }
     addObject(object: THREE.Object3D) {
         this.graphicContextElement.addObject(object)
-        let body = this.physics.addBody(object)
+        let [collisionBody, glueBody] = this.physics.addBody(object)
         this.robotComponents.push(
-            new RobotComponent(object, body, this.selectedRobotComponentType!))
+            new RobotComponent(object, collisionBody, glueBody, this.selectedRobotComponentType!))
     }
     updateObjectPosition(object: THREE.Object3D, position: THREE.Vector3) {
         let index = this.getRobotComponentIndexByObjectId(object.id)
         if (index == undefined) return
         this.robotComponents[index].object.position.copy(position)
-        this.robotComponents[index].body.position.set(position.x, position.y, position.z)
+        this.robotComponents[index].glueBody.position.set(position.x, position.y, position.z)
+        this.robotComponents[index].collisionBody.position.set(position.x, position.y, position.z)
     }
     updateObjectRotation(object: THREE.Object3D, rotation: THREE.Quaternion) {
         let index = this.getRobotComponentIndexByObjectId(object.id)
         if (index == undefined) return
         this.robotComponents[index].object.rotation.setFromQuaternion(rotation)
-        this.robotComponents[index].body.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
+        this.robotComponents[index].glueBody.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
+        this.robotComponents[index].collisionBody.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
     }
     enableTransform() {
         this.graphicContextElement.addObject(this.transformControls.controls)
@@ -358,6 +435,8 @@ class TransformControl {
 class GraphicEffects {
     private graphicContext: GraphicContext.CustomElement
     private collidingObjects: THREE.Object3D[]
+    private notGluedObjects: THREE.Object3D[]
+
     selectedObject: THREE.Object3D | undefined
     isPlacePreviewEnabled: boolean
     intersection: THREE.Intersection<THREE.Object3D> | undefined
@@ -370,6 +449,7 @@ class GraphicEffects {
         this.isPlacePreviewEnabled = newIsPlacePreview
         this.isSelectedMaterialRed = true
         this.collidingObjects = []
+        this.notGluedObjects = []
         this.keepHighlight = false
         this.x = 0
     }
@@ -380,6 +460,15 @@ class GraphicEffects {
         this.collidingObjects = newCollidingObjects
         for (let cO of this.collidingObjects) {
             ((cO as THREE.Mesh).material as any).color.set(0xcc0000)
+        }
+    }
+    updateNotGluedObjects(newNotGluedObjects: THREE.Object3D[]) {
+        for (let cO of this.notGluedObjects) {
+            ((cO as THREE.Mesh).material as any).color.set(0x00cc00)
+        }
+        this.notGluedObjects = newNotGluedObjects
+        for (let cO of this.notGluedObjects) {
+            ((cO as THREE.Mesh).material as any).color.set(0x0000cc)
         }
     }
     updatePreviewObject() {
@@ -499,26 +588,129 @@ class MouseRaycast {
         }
     }
 }
+class GraphElement {
+    id: number
+    siblingElements: GraphElement[]
+    constructor(newId: number) {
+        this.id = newId
+        this.siblingElements = []
+    }
+}
+class Graph {
+    private elements: GraphElement[]
+
+    islands: number[][]
+    private alreadyVisitedElements: number[]
+    private currentIsland: number[]
+
+    constructor() {
+        this.elements = []
+        this.islands = []
+        this.alreadyVisitedElements = []
+        this.currentIsland = []
+    }
+    removeElementSibling(elementId: number, siblingId: number) {
+        for (let e of this.elements) {
+            if (e.id == elementId) {
+                for (let [sEI, sE] of e.siblingElements.entries()) {
+                    if (sE.id == siblingId) {
+                        e.siblingElements.splice(sEI, 1)
+                    }
+                }
+            }
+        }
+    }
+    addElementSibling(elementId: number, siblingId: number) {
+        let siblingElement: GraphElement | undefined = undefined
+        let targetElement: GraphElement | undefined = undefined
+
+        for (let e of this.elements) {
+            if (e.id == elementId) {
+                targetElement = e
+            }
+            if (e.id == siblingId) {
+                siblingElement = e
+            }
+        }
+        if (siblingElement == undefined || targetElement == undefined) {
+            console.log("???????????")
+            return
+        }
+        targetElement.siblingElements.push(siblingElement)
+    }
+    newElement(elementId: number) {
+        this.elements.push(new GraphElement(elementId))
+    }
+    removeElement(elementId: number) {
+        for (let [eI, e] of this.elements.entries()) {
+            for (let [sI, s] of e.siblingElements.entries()) {
+                if (s.id == elementId) {
+                    e.siblingElements.splice(sI, 1)
+                    break;
+                }
+            }
+            if (e.id == elementId) {
+                this.elements.splice(eI, 1)
+            }
+        }
+    }
+    recursiveSearch(element: GraphElement) {
+        for (let aVE of this.alreadyVisitedElements) {
+            if (aVE == element.id) {
+                return
+            }
+        }
+        this.alreadyVisitedElements.push(element.id)
+        this.currentIsland.push(element.id)
+        for (let s of element.siblingElements) {
+            this.recursiveSearch(s)
+        }
+    }
+    updateIslands() {
+        this.islands = []
+        for (let e of this.elements) {
+            this.currentIsland = []
+            this.recursiveSearch(e)
+            if (this.currentIsland.length > 0) {
+                this.islands.push(this.currentIsland)
+            }
+        }
+        this.alreadyVisitedElements = []
+    }
+}
 class Physics {
     world: CANNON.World
-    collidingBodiesId: [number, number][]
+    collisionBodiesId: number[]
+    glueBodiesId: number[]
+    graph: Graph
+
+    collisionBodiesOverlap: [number, number][]
+    glueBodiesOverlap: [number, number][]
 
     placeTestBody: CANNON.Body | undefined
     isPlaceTestBodyColliding: boolean | undefined
     isPlaceTestEnabled: boolean
     placeTestCollisionCount: number
 
+    lastRemovedGlueBodyId: number | undefined
+    lastRemovedCollisionBodyId: number | undefined
+
     constructor() {
         this.world = new CANNON.World()
         this.world.addEventListener("endContact", this._onCollisionExit.bind(this))
         this.world.addEventListener("beginContact", this._onCollisionEnter.bind(this))
-        this.collidingBodiesId = []
+        this.collisionBodiesId = []
+        this.glueBodiesId = []
+        this.collisionBodiesOverlap = []
+        this.glueBodiesOverlap = []
+        this.graph = new Graph()
         this.isPlaceTestEnabled = false
         this.placeTestCollisionCount = 0
     }
     enablePlaceTest(isEnabled: boolean) {
         if (this.isPlaceTestEnabled == isEnabled) return
         this.isPlaceTestEnabled = isEnabled
+        this.placeTestCollisionCount = 0
         if (this.isPlaceTestEnabled) {
             let xSize = 0.5
             let ySize = 0.5
@@ -560,100 +752,233 @@ class Physics {
             this.isPlaceTestBodyColliding = true
         }
     }
-    addBody(mesh: THREE.Object3D): CANNON.Body {
+    addBody(mesh: THREE.Object3D): [CANNON.Body, CANNON.Body] {
         let xSize = 0.5
         let ySize = 0.5
         let zSize = 0.5
 
-        let shape = new CANNON.Box(new CANNON.Vec3(xSize, ySize, zSize))
-        let body = new CANNON.Body({
-            position: new CANNON.Vec3(mesh.position.x,
+        let collisionBody = new CANNON.Body({
+            position: new CANNON.Vec3(
+                mesh.position.x,
                 mesh.position.y,
                 mesh.position.z),
-            quaternion: new CANNON.Quaternion(mesh.quaternion.x,
+            quaternion: new CANNON.Quaternion(
+                mesh.quaternion.x,
                 mesh.quaternion.y,
                 mesh.quaternion.z,
                 mesh.quaternion.w),
-            shape: shape,
+            shape: new CANNON.Box(new CANNON.Vec3(xSize, ySize, zSize)),
             mass: 0,
         })
-        body.type = CANNON.BODY_TYPES.KINEMATIC
-        this.world.addBody(body)
-        return body
+        let glueBody = new CANNON.Body({
+            position: new CANNON.Vec3(
+                mesh.position.x,
+                mesh.position.y,
+                mesh.position.z),
+            quaternion: new CANNON.Quaternion(
+                mesh.quaternion.x,
+                mesh.quaternion.y,
+                mesh.quaternion.z,
+                mesh.quaternion.w),
+            shape: new CANNON.Box(new CANNON.Vec3(xSize + 0.1, ySize + 0.1, zSize + 0.1)),
+            mass: 0,
+        })
+        collisionBody.type = CANNON.BODY_TYPES.KINEMATIC
+        glueBody.type = CANNON.BODY_TYPES.KINEMATIC
+
+        this.glueBodiesId.push(glueBody.id)
+        this.collisionBodiesId.push(collisionBody.id)
+        this.world.addBody(collisionBody)
+        this.world.addBody(glueBody)
+
+        this.graph.newElement(glueBody.id)
+        return [collisionBody, glueBody]
     }
     step() {
         this.world.fixedStep()
     }
-    removeBody(body: CANNON.Body) {
-        for (let bI = this.collidingBodiesId.length - 1; bI >= 0; bI--) {
-            let collidingBodyAId = this.collidingBodiesId[bI][0]
-            let collidingBodyBId = this.collidingBodiesId[bI][1]
-            if (
-                collidingBodyAId == body.id ||
-                collidingBodyBId == body.id
-            ) {
-                this.collidingBodiesId.splice(bI, 1)
+    removeBodies(collisionBody: CANNON.Body, glueBody: CANNON.Body) {
+        for (let [cBII, cBI] of this.collisionBodiesId.entries()) {
+            if (cBI == collisionBody.id) {
+                this.collisionBodiesId.splice(cBII, 1)
+                this.glueBodiesId.splice(cBII, 1)
+                this.world.removeBody(collisionBody)
+                this.world.removeBody(glueBody)
+
+                this.graph.removeElement(glueBody.id)
+
+                this.lastRemovedGlueBodyId = glueBody.id
+                this.lastRemovedCollisionBodyId = collisionBody.id
+                return;
             }
         }
-        this.world.removeBody(body)
     }
     private _onCollisionEnter(event: any) {
-        let bodyA = event.bodyA
-        let bodyB = event.bodyB
-        if (bodyA == undefined || bodyB == undefined) {
+        let bodyAId = event.bodyA.id
+        let bodyBId = event.bodyB.id
+
+        if (bodyAId == undefined || bodyBId == undefined) {
             return
         }
 
         if (
             this.isPlaceTestEnabled &&
             this.placeTestBody != undefined &&
-            (bodyA.id == this.placeTestBody.id || bodyB.id == this.placeTestBody.id)
+            (bodyAId == this.placeTestBody.id || bodyBId == this.placeTestBody.id)
         ) {
+            for (let gBI of this.glueBodiesId) {
+                if (bodyAId == gBI || bodyBId == gBI) {
+                    return
+                }
+            }
             this.placeTestCollisionCount += 1
             return
         }
 
-        this.collidingBodiesId.push([bodyA.id, bodyB.id])
-    }
-    private _onCollisionExit(event: any) {
-        if (event.bodyA == undefined || event.bodyB == undefined) {
-            return
+        // glue bodies only overlaps with its kind
+        let foundGlueCount = 0
+        for (let gBI of this.glueBodiesId) {
+            if (gBI == bodyAId || gBI == bodyBId) {
+                foundGlueCount += 1
+            }
         }
-        let exitedBodyAId = event.bodyA.id
-        let exitedBodyBId = event.bodyB.id
+        // same for collision bodies
+        let foundCollisionCount = 0
+        for (let cBI of this.collisionBodiesId) {
+            if (cBI == bodyAId || cBI == bodyBId) {
+                foundCollisionCount += 1
+            }
+        }
+        if (foundGlueCount == 2) {
+            this.glueBodiesOverlap.push([bodyAId, bodyBId])
+
+            this.graph.addElementSibling(bodyBId, bodyAId)
+            this.graph.addElementSibling(bodyAId, bodyBId)
+        }
+        if (foundCollisionCount == 2) {
+            this.collisionBodiesOverlap.push([bodyAId, bodyBId])
+        }
+        this.graph.updateIslands()
+    }
+    private removeOverlap(exitedBodyAId: number, exitedBodyBId: number) {
+        for (let oI = this.collisionBodiesOverlap.length - 1; oI >= 0; oI--) {
+            let collidingBodyAId = this.collisionBodiesOverlap[oI][0]
+            let collidingBodyBId = this.collisionBodiesOverlap[oI][1]
+            if (
+                (collidingBodyAId == exitedBodyAId && collidingBodyBId == exitedBodyBId) ||
+                (collidingBodyBId == exitedBodyAId && collidingBodyAId == exitedBodyBId)
+            ) {
+                this.collisionBodiesOverlap.splice(oI, 1)
+                break;
+            }
+        }
+        for (let oI = this.glueBodiesOverlap.length - 1; oI >= 0; oI--) {
+            let glueBodyAId = this.glueBodiesOverlap[oI][0]
+            let glueBodyBId = this.glueBodiesOverlap[oI][1]
+            if (
+                (glueBodyAId == exitedBodyAId && glueBodyBId == exitedBodyBId) ||
+                (glueBodyBId == exitedBodyAId && glueBodyAId == exitedBodyBId)
+            ) {
+                this.graph.removeElementSibling(exitedBodyAId, exitedBodyBId)
+                this.graph.removeElementSibling(exitedBodyBId, exitedBodyAId)
+                this.graph.updateIslands()
+                this.glueBodiesOverlap.splice(oI, 1)
+                break;
+            }
+        }
+    }
+    private isPlaceTestBodyOverlapRemoved(exitedBodyAId: number, exitedBodyBId: number): boolean {
         if (
             this.isPlaceTestEnabled &&
             this.placeTestBody != undefined &&
             (exitedBodyAId == this.placeTestBody.id || exitedBodyBId == this.placeTestBody.id)
         ) {
+            for (let gBI of this.glueBodiesId) {
+                if (exitedBodyAId == gBI || exitedBodyBId == gBI) {
+                    return true
+                }
+            }
             this.placeTestCollisionCount -= 1
+            return true
+        }
+        return false
+    }
+    private _onCollisionExit(event: any) {
+        let exitedBodyAId: number | undefined = undefined;
+        let exitedBodyBId: number | undefined = undefined;
+
+        if (event.bodyA != undefined) {
+            exitedBodyAId = event.bodyA.id
+        }
+        if (event.bodyB != undefined) {
+            exitedBodyBId = event.bodyB.id
+        }
+
+        if (exitedBodyAId != undefined && exitedBodyBId != undefined) {
+            if (this.isPlaceTestBodyOverlapRemoved(exitedBodyAId, exitedBodyBId)) {
+                return
+            }
+            this.removeOverlap(exitedBodyAId, exitedBodyBId)
+            this.graph.updateIslands()
             return
         }
-        for (let bI = this.collidingBodiesId.length - 1; bI >= 0; bI--) {
-            let collidingBodyAId = this.collidingBodiesId[bI][0]
-            let collidingBodyBId = this.collidingBodiesId[bI][1]
-            if (
-                collidingBodyAId == exitedBodyAId &&
-                collidingBodyBId == exitedBodyBId ||
-                collidingBodyBId == exitedBodyAId &&
-                collidingBodyAId == exitedBodyBId
-            ) {
-                this.collidingBodiesId.splice(bI, 1)
-            }
+
+        if (
+            (exitedBodyAId == undefined || exitedBodyBId == undefined) &&
+            (this.lastRemovedCollisionBodyId == undefined || this.lastRemovedGlueBodyId == undefined)
+        ) {
+            return
         }
+
+        let isBodyAUndefined = false
+        let isBodyBUndefined = false
+
+        if (exitedBodyAId == undefined) {
+            isBodyAUndefined = true
+        }
+        if (exitedBodyBId == undefined) {
+            isBodyBUndefined = true
+        }
+
+        if (isBodyAUndefined) {
+            exitedBodyAId = this.lastRemovedCollisionBodyId
+        }
+        if (isBodyBUndefined) {
+            exitedBodyBId = this.lastRemovedCollisionBodyId
+        }
+
+        // collision bodies
+        if (this.isPlaceTestBodyOverlapRemoved(exitedBodyAId!, exitedBodyBId!)) {
+            return
+        }
+        this.removeOverlap(exitedBodyAId!, exitedBodyBId!)
+
+        // glue bodies
+        if (isBodyAUndefined) {
+            exitedBodyAId = this.lastRemovedGlueBodyId
+        }
+        if (isBodyBUndefined) {
+            exitedBodyBId = this.lastRemovedGlueBodyId
+        }
+        this.removeOverlap(exitedBodyAId!, exitedBodyBId!)
+        this.graph.updateIslands()
+
     }
 }
 export class RobotComponent {
     object: THREE.Object3D
-    body: CANNON.Body
+    glueBody: CANNON.Body
+    collisionBody: CANNON.Body
     robotComponentType: Comps.RobotComponentTypes
     constructor(
         newMesh: THREE.Object3D,
-        newBody: CANNON.Body,
+        newCollisionBody: CANNON.Body,
+        newGlueBody: CANNON.Body,
         newRobotComponentType: Comps.RobotComponentTypes,
     ) {
         this.object = newMesh
-        this.body = newBody
+        this.glueBody = newGlueBody
+        this.collisionBody = newCollisionBody
         this.robotComponentType = newRobotComponentType
     }
 }

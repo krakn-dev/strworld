@@ -171,6 +171,7 @@ export class CustomElement extends HTMLElement {
 
                 let newGraphicObject: GraphicObject | undefined = undefined
                 switch (entityType) {
+                    case Comps.EntityTypes.Robot: continue;
                     case Comps.EntityTypes.Stickman:
                     case Comps.EntityTypes.Grass:
                     case Comps.EntityTypes.Dog:
@@ -196,7 +197,6 @@ export class CustomElement extends HTMLElement {
                         this.graphicContextElement.camera = newGraphicObject.object as THREE.PerspectiveCamera
                     } break;
                     case Comps.EntityTypes.GeometricShape:
-                    case Comps.EntityTypes.Robot:
                     case Comps.EntityTypes.RobotComponent: {
                         let material = new THREE.MeshPhongMaterial();
                         let geometry: THREE.BufferGeometry;
@@ -215,6 +215,7 @@ export class CustomElement extends HTMLElement {
                                     shapeComponent!.numberOfSegments,
                                 );
                             } break;
+                            case Comps.ShapeTypes.Composed: continue
                         }
                         const mesh = new THREE.Mesh(geometry, material);
                         newGraphicObject = new GraphicObject(mesh, cBE[0])

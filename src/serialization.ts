@@ -39,28 +39,6 @@ export class DOMData {
     }
 }
 
-export class RobotComponent {
-    position: Comps.Position
-    rotation: Comps.Rotation
-    robotComponentType: Comps.RobotComponentTypes
-    constructor(
-        newRobotComponentType: Comps.RobotComponentTypes,
-        newPosition: Comps.Position,
-        newRotation: Comps.Rotation,
-    ) {
-        this.position = newPosition
-        this.rotation = newRotation
-        this.robotComponentType = newRobotComponentType
-    }
-}
-export class RobotComponents {
-    robotComponents: RobotComponent[]
-    constructor(
-        newRobotComponents: RobotComponent[]
-    ) {
-        this.robotComponents = newRobotComponents
-    }
-}
 export class Options {
     isShadowsEnabled: boolean
     isSetNight: boolean
@@ -131,10 +109,10 @@ export enum Messages {
 
 export class Message {
     message: Messages
-    data: Input | RobotComponents | AvailableRobotComponents | DOMData | GraphicChanges | Options | null
+    data: Input | Comps.RobotComponent[] | AvailableRobotComponents | DOMData | GraphicChanges | Options | null
     constructor(
         newMessage: Messages,
-        newData: Input | RobotComponents | AvailableRobotComponents | GraphicChanges | Options | DOMData | null = null
+        newData: Input | Comps.RobotComponent[] | AvailableRobotComponents | GraphicChanges | Options | DOMData | null = null
     ) {
         this.message = newMessage
         this.data = newData

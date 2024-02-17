@@ -128,8 +128,8 @@ export class CustomElement extends HTMLElement {
             if (!this.graphicEffects.keepHighlight) {
                 this.graphicEffects.selectHighlightObject(this.mouseRaycast.intersection)
             }
-            this.graphicEffects.updateMaterialColor()
         }
+        this.graphicEffects.updateMaterialColor()
         let collidingObjects = this.getCollidingObjects()
         let notGluedObjects = this.getNotGluedObjects()
         this.graphicEffects.updateCollidingObjects(collidingObjects)

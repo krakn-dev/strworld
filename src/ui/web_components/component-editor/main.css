@@ -29,6 +29,12 @@
     right: 110px;
     top: 10px;
 }
+#invalid-robot-menu {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
 #confirm-placement-menu {
     position: absolute;
     left: 50%;

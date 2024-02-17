@@ -15,6 +15,7 @@ export enum ComponentTypes {
     TargetLocation,
     Timer,
     Shape,
+    ComposedShape,
     Mass,
     ShapeColor,
     Force,
@@ -22,10 +23,10 @@ export enum ComponentTypes {
     Code,
     RigidBody,
     Constraint,
-    Vehicle,
     Wheel,
     RobotComponent,
     Robot,
+    RobotSuperComponent
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -49,6 +50,7 @@ export enum EntityTypes {
     GeometricShape,
     Robot,
     RobotComponent,
+    RobotSuperComponent
 }
 export enum EntityStates {
     Idle,
@@ -66,7 +68,6 @@ export enum LightTypes {
 export enum ShapeTypes {
     Box,
     Cylinder,
-    Composed,
 }
 export enum ConstraintTypes {
     PointToPoint,
@@ -90,6 +91,39 @@ export enum RobotComponentTypes {
     WoodenStick,
 }
 
+export class RobotSuperComponent implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    robotComponentsEntityUid: number[]
+    robotEntityUidAttachedTo: number
+    constructor(
+        newRobotComponentsEntityUid: number[],
+        newRobotEntityUidAttachedTo: number,
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.RobotSuperComponent
+        this.robotComponentsEntityUid = newRobotComponentsEntityUid
+        this.robotEntityUidAttachedTo = newRobotEntityUidAttachedTo
+    }
+}
+export class ComposedShape implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    shapesEntityUid: number[]
+    constructor(
+        newShapesEntityUid: number[],
+        newEntityUid: number,
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.ComposedShape
+        this.shapesEntityUid = newShapesEntityUid
+    }
+}
 export class RobotComponent implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -97,12 +131,12 @@ export class RobotComponent implements ECS.Component {
     robotComponentType: RobotComponentTypes
     positionOffset: Utils.Vector3
     rotationOffset: Utils.Quaternion
-    entityUidAttachedTo: number
+    robotEntityUidAttachedTo: number
     constructor(
         newRobotComponentType: RobotComponentTypes,
         newPositionOffset: Utils.Vector3,
         newRotationOffset: Utils.Quaternion,
-        newEntityUidAttachedTo: number,
+        newRobotEntityUidAttachedTo: number,
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
@@ -111,22 +145,7 @@ export class RobotComponent implements ECS.Component {
         this.rotationOffset = newRotationOffset
         this.componentType = ComponentTypes.RobotComponent
         this.robotComponentType = newRobotComponentType
-        this.entityUidAttachedTo = newEntityUidAttachedTo
-    }
-}
-export class Vehicle implements ECS.Component {
-    entityUid: number
-    componentUid: number
-    componentType: ComponentTypes
-    controller: CANNON.RaycastVehicle
-    constructor(
-        body: CANNON.Body,
-        newEntityUid: number
-    ) {
-        this.componentUid = Utils.newUid()
-        this.entityUid = newEntityUid
-        this.componentType = ComponentTypes.Vehicle
-        this.controller = new CANNON.RaycastVehicle({ chassisBody: body })
+        this.robotEntityUidAttachedTo = newRobotEntityUidAttachedTo
     }
 }
 export class Wheel implements ECS.Component {
@@ -135,11 +154,7 @@ export class Wheel implements ECS.Component {
     componentType: ComponentTypes
     velocity: number
     isOn: boolean
-    isLeft: boolean
-    entityUidAttachedTo: number
     constructor(
-        newIsLeft: boolean,
-        newEntityUidAttachedTo: number,
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
@@ -147,8 +162,6 @@ export class Wheel implements ECS.Component {
         this.componentType = ComponentTypes.Wheel
         this.velocity = 0
         this.isOn = false
-        this.isLeft = newIsLeft
-        this.entityUidAttachedTo = newEntityUidAttachedTo
     }
 }
 
@@ -189,22 +202,15 @@ export class Constraint implements ECS.Component {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Constraint
-
         this.constraintType = newConstraintType
         this.entityUidConstrainedTo = newEntityUidConstrainedTo
-        this.constraint = undefined
-        this.distance = undefined
-        this.pivotA = undefined
-        this.pivotB = undefined
-        this.axisA = undefined
-        this.axisB = undefined
     }
 }
 export class RigidBody implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    body: CANNON.Body
+    body: CANNON.Body | undefined
     bodyType: BodyTypes
     disableCollisions: boolean
     materialType: MaterialTypes
@@ -215,7 +221,6 @@ export class RigidBody implements ECS.Component {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.RigidBody
-        this.body = new CANNON.Body()
         this.disableCollisions = false
         this.bodyType = newBodyType
         this.materialType = MaterialTypes.Default
@@ -261,6 +266,7 @@ export class Shape implements ECS.Component {
     height: number | undefined
     numberOfSegments: number | undefined
     shapeType: ShapeTypes
+    shape: CANNON.Shape | undefined
     constructor(
         newShapeType: ShapeTypes,
         newEntityUid: number,

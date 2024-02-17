@@ -9,6 +9,7 @@ import * as Utils from '../../../utils';
 import * as HelpMenu from "./help-menu/main"
 import * as QuitMenu from "./quit-menu/main"
 import * as ConfirmPlacementMenu from "./confirm-placement-menu/main"
+import * as InvalidRobotMenu from "./invalid-robot-menu/main"
 import * as Toolbar from "./toolbar/main"
 
 export class CustomElement extends HTMLElement {
@@ -21,6 +22,7 @@ export class CustomElement extends HTMLElement {
     private helpMenuElement: HelpMenu.CustomElement | undefined
     private quitMenuElement: QuitMenu.CustomElement | undefined
     private confirmPlacementMenuElement: ConfirmPlacementMenu.CustomElement | undefined
+    private invalidRobotMenuElement: InvalidRobotMenu.CustomElement | undefined
     helpButtonElement: CoolButton.CustomElement
     quitButtonElement: CoolButton.CustomElement
 
@@ -37,7 +39,7 @@ export class CustomElement extends HTMLElement {
         this.onComponentEditorClose = new CustomEvent("closecomponenteditor", { bubbles: false, composed: true, cancelable: true })
     }
     connectedCallback() {
-        this.helpButtonElement.addEventListener("clicked", this._addHelpElement.bind(this))
+        this.helpButtonElement.addEventListener("clicked", this._addHelpMenu.bind(this))
         this.quitButtonElement.addEventListener("clicked", this._onQuitClicked.bind(this))
         this.robotVisualizerElement.addEventListener("componentplaced", this._onComponentPlaced.bind(this))
         this.robotVisualizerElement.addEventListener("componentremoved", this._onComponentRemoved.bind(this))
@@ -76,10 +78,20 @@ export class CustomElement extends HTMLElement {
         return (
             this.helpMenuElement != undefined ||
             this.quitMenuElement != undefined ||
-            this.confirmPlacementMenuElement != undefined
+            this.confirmPlacementMenuElement != undefined ||
+            this.invalidRobotMenuElement != undefined
         )
     }
-    private _addHelpElement() {
+    private _addInvalidRobotMenu() {
+        if (this.isAnyMenuOpen()) return
+
+        let element = document.createElement("invalid-robot-menu")
+        element.setAttribute("id", "invalid-robot-menu")
+        this.componentEditorElement.appendChild(element)
+        this.invalidRobotMenuElement = element as InvalidRobotMenu.CustomElement
+        this.invalidRobotMenuElement.addEventListener("okpressed", this._onInvalidRobotMenuOkPressed.bind(this))
+    }
+    private _addHelpMenu() {
         if (this.isAnyMenuOpen()) return
 
         let element = document.createElement("help-menu")
@@ -126,11 +138,28 @@ export class CustomElement extends HTMLElement {
         this.helpMenuElement?.remove()
         this.helpMenuElement = undefined
     }
+    private _onInvalidRobotMenuOkPressed() {
+        this.invalidRobotMenuElement?.remove()
+        this.invalidRobotMenuElement = undefined
+    }
     private _onQuitMenuNotSavePressed() {
-        console.log("not save");
+        this.dispatchEvent(this.onComponentEditorClose)
     }
     private _onQuitMenuSavePressed() {
-        console.log("save");
+        this.quitMenuElement?.remove()
+        this.quitMenuElement = undefined
+        if (this.robotVisualizerElement.hasRedRobotComponents) {
+            this._addInvalidRobotMenu()
+            this.invalidRobotMenuElement?.setRed()
+            return
+        }
+        if (this.robotVisualizerElement.hasBlueRobotComponents) {
+            this._addInvalidRobotMenu()
+            this.invalidRobotMenuElement?.setBlue()
+            return
+        }
+        this.serializeAndSendRobotComponents(this.robotVisualizerElement.robotComponents)
+        this.dispatchEvent(this.onComponentEditorClose)
     }
     private _onToolbarItemSelected(event: any) {
         this.robotVisualizerElement.updateMode(event.detail.mode)
@@ -140,8 +169,6 @@ export class CustomElement extends HTMLElement {
     }
     private _onQuitClicked() {
         this._addQuitMenu()
-        //this.serializeAndSendRobotComponents(this.robotVisualizerElement.robotComponents)
-        //this.dispatchEvent(this.onComponentEditorClose)
     }
     private _onComponentRemoved(event: any) {
         this.componentSelectorElement.onComponentRemoved(event.detail.robotComponentType)

@@ -22,19 +22,10 @@ export class CustomElement extends HTMLElement {
         this.okButtonElement.addEventListener("clicked", this._onOk.bind(this))
     }
     setRed() {
-        this.descriptionElement.innerText = `
-        There are red components, that means that they
-        are overlapping each other, try moving them apart
-        or removing any of the involved components. 
-        `
+        this.descriptionElement.innerText = `There are red components, that means that they are overlapping each other, try moving them apart or removing any of the involved components.`
     }
     setBlue() {
-        this.descriptionElement.innerText = `
-        There are blue components, that means that they
-        are too far from the other components, try bringing
-        them closer or placing a component between to bridge
-        them, you can remove the blue components too. 
-        `
+        this.descriptionElement.innerText = `There are blue components, that means that they are too far from the other components, try bringing them closer or placing a component between to bridge them, you can remove the blue components too.`
     }
     private _onOk() {
         this.dispatchEvent(this.onOkPressed)

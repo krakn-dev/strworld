@@ -24,10 +24,10 @@ export class CustomElement extends HTMLElement {
         this.mainComponentElement = this.shadowRoot!.getElementById("main-component") as HTMLDivElement
     }
     private addInitialElements() {
-        //this._addGameGraphicsElement()
-        //this._addGameInputElement()
-        //this._addRobotMenuElement()
-        this._addComponentEditorElement()
+        this._addGameGraphicsElement()
+        this._addGameInputElement()
+        this._addRobotMenuElement()
+        //this._addComponentEditorElement()
     }
 
     private _onCloseComponentEditor() {

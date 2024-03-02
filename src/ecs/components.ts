@@ -1,24 +1,20 @@
 import * as ECS from "./ecs"
 import * as Utils from "../utils"
-import * as CANNON from 'cannon-es'
+import { PhysXT } from "../physx/physx"
 
 export enum ComponentTypes {
     Health = 0,
     Camera,
     Light,
-    Velocity,
-    Rotation,
     EntityState,
     Name,
     EntityType,
-    Position,
     TargetLocation,
     Timer,
     Shape,
     ComposedShape,
     Mass,
     ShapeColor,
-    Force,
     HardCodedId,
     Code,
     RigidBody,
@@ -26,7 +22,14 @@ export enum ComponentTypes {
     Wheel,
     RobotComponent,
     Robot,
-    RobotSuperComponent
+    RobotSuperComponent,
+
+    Force,
+    Torque,
+    LinearVelocity,
+    AngularVelocity,
+    Position,
+    Rotation,
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -67,10 +70,9 @@ export enum LightTypes {
 }
 export enum ShapeTypes {
     Box,
-    Cylinder,
+    Capsule,
 }
 export enum ConstraintTypes {
-    PointToPoint,
     Lock,
     Distance,
     Hinge,
@@ -78,7 +80,6 @@ export enum ConstraintTypes {
 export enum BodyTypes {
     Dynamic,
     Static,
-    Kinematic,
 }
 export enum MaterialTypes {
     Default,
@@ -191,12 +192,13 @@ export class Constraint implements ECS.Component {
     distance: number | undefined
     pivotA: Utils.Vector3 | undefined
     pivotB: Utils.Vector3 | undefined
-    axisA: Utils.Vector3 | undefined
-    axisB: Utils.Vector3 | undefined
-    constraint: CANNON.Constraint | undefined
+    axisA: Utils.Quaternion | undefined
+    axisB: Utils.Quaternion | undefined
+
+    constraint: PhysXT.PxJoint | undefined
     constructor(
-        newEntityUidConstrainedTo: number,
         newConstraintType: ConstraintTypes,
+        newEntityUidConstrainedTo: number,
         newEntityUid: number,
     ) {
         this.componentUid = Utils.newUid()
@@ -210,10 +212,9 @@ export class RigidBody implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    body: CANNON.Body | undefined
+    body: PhysXT.PxRigidActor | undefined
     bodyType: BodyTypes
     disableCollisions: boolean
-    materialType: MaterialTypes
     constructor(
         newBodyType: BodyTypes,
         newEntityUid: number,
@@ -223,7 +224,6 @@ export class RigidBody implements ECS.Component {
         this.componentType = ComponentTypes.RigidBody
         this.disableCollisions = false
         this.bodyType = newBodyType
-        this.materialType = MaterialTypes.Default
     }
 }
 export class HardCodedId implements ECS.Component {
@@ -261,12 +261,11 @@ export class Shape implements ECS.Component {
     componentUid: number
     componentType: ComponentTypes
     size: Utils.Vector3 | undefined
-    radiusTop: number | undefined
-    radiusBottom: number | undefined
     height: number | undefined
-    numberOfSegments: number | undefined
+    radius: number | undefined
     shapeType: ShapeTypes
-    shape: CANNON.Shape | undefined
+    shape: PhysXT.PxShape | undefined
+    materialType: MaterialTypes
     constructor(
         newShapeType: ShapeTypes,
         newEntityUid: number,
@@ -275,6 +274,7 @@ export class Shape implements ECS.Component {
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Shape
         this.shapeType = newShapeType
+        this.materialType = MaterialTypes.Default
     }
 }
 export class Light implements ECS.Component {
@@ -404,7 +404,7 @@ export class Health implements ECS.Component {
         this.health = newHealth
     }
 }
-export class Velocity implements ECS.Component {
+export class AngularVelocity implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
@@ -412,32 +412,59 @@ export class Velocity implements ECS.Component {
     y: number
     z: number
 
-    constructor(newVelocity: Utils.Vector3, newEntityUid: number) {
-        this.x = newVelocity.x
-        this.y = newVelocity.y
-        this.z = newVelocity.z
+    constructor(newEntityUid: number) {
+        this.x = 0
+        this.y = 0
+        this.z = 0
 
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.componentType = ComponentTypes.Velocity
+        this.componentType = ComponentTypes.AngularVelocity
+    }
+}
+export class LinearVelocity implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    x: number
+    y: number
+    z: number
+
+    constructor(newEntityUid: number) {
+        this.x = 0
+        this.y = 0
+        this.z = 0
+
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.LinearVelocity
+    }
+}
+export class Torque implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    xToApply: number
+    yToApply: number
+    zToApply: number
+    constructor(newEntityUid: number) {
+        this.xToApply = 0
+        this.yToApply = 0
+        this.zToApply = 0
+
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Torque
     }
 }
 export class Force implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    x: number
-    y: number
-    z: number
-
     xToApply: number
     yToApply: number
     zToApply: number
-    constructor(newForce: Utils.Vector3, newEntityUid: number) {
-        this.x = newForce.x
-        this.y = newForce.y
-        this.z = newForce.z
-
+    constructor(newEntityUid: number) {
         this.xToApply = 0
         this.yToApply = 0
         this.zToApply = 0
@@ -469,11 +496,7 @@ export class Rotation implements ECS.Component {
     z: number
     w: number
     constructor(newRotation: Utils.Vector3, newEntityUid: number) {
-        let quaternion = new CANNON.Quaternion()
-            .setFromEuler(
-                Utils.degreesToRadians(newRotation.x),
-                Utils.degreesToRadians(newRotation.y),
-                Utils.degreesToRadians(newRotation.z))
+        let quaternion = Utils.eulerToQuaternion(newRotation)
         this.x = quaternion.x
         this.y = quaternion.y
         this.z = quaternion.z

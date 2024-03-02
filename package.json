@@ -26,6 +26,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "ammojs-typed": "^1.0.6",
     "cannon-es": "^0.20.0",
     "esprima": "^4.0.1",
     "file-loader": "^6.2.0",

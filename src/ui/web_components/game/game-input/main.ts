@@ -5,93 +5,103 @@ import * as Ser from "../../../../serialization"
 
 export class CustomElement extends HTMLElement {
     private worker: Worker | undefined
-    private movementDirection: Utils.Vector2
     private updateInputInterval: any | undefined
-    private up = false
-    private down = false
-    private left = false
-    private right = false
 
     constructor() {
         super()
         this.attachShadow({ mode: "open" })
         this.shadowRoot!.innerHTML = html + `<style>${css[0][1]}</style>`
-        this.movementDirection = new Utils.Vector2(0, 0)
         this.worker = undefined
     }
     connectedCallback() {
         document.addEventListener("keyup", this.onKeyUp.bind(this),);
         document.addEventListener("keydown", this.onKeyDown.bind(this));
-        this.updateInputInterval = setInterval(this.sendInputToWorker.bind(this), 30)
-    }
-    disconnectedCallback() {
-        if (this.updateInputInterval != undefined) {
-            clearInterval(this.updateInputInterval)
-        }
     }
     addWorker(newWorker: Worker) {
         this.worker = newWorker
     }
-    private sendInputToWorker() {
+    private sendKeyChange(key: Ser.Keys, isPressed: boolean) {
         if (this.worker == undefined) {
             return
         }
         this.worker.postMessage(
             new Ser.Message(
                 Ser.Messages.Input,
-                new Ser.Input(
-                    this.movementDirection,
-                )
-            )
-        )
+                new Ser.Input(key, isPressed)))
     }
-    private onKeyDown(event: any) {
-        if (event.key == "w" || event.key == "ArrowUp")
-            this.up = true
+    private onKeyDown(event: KeyboardEvent) {
+        if (event.repeat) return
 
-        if (event.key == "s" || event.key == "ArrowDown")
-            this.down = true
+        switch (event.code) {
+            case "KeyW":
+                this.sendKeyChange(Ser.Keys.W, true)
+                break;
 
-        if (event.key == "a" || event.key == "ArrowLeft")
-            this.left = true
+            case "KeyA":
+                this.sendKeyChange(Ser.Keys.A, true)
+                break;
 
-        if (event.key == "d" || event.key == "ArrowRight")
-            this.right = true
+            case "KeyS":
+                this.sendKeyChange(Ser.Keys.S, true)
+                break;
 
-        this.setPlayerInput()
+            case "KeyD":
+                this.sendKeyChange(Ser.Keys.D, true)
+                break;
+
+            case "ArrowUp":
+                this.sendKeyChange(Ser.Keys.Up, true)
+                break;
+
+            case "ArrowDown":
+                this.sendKeyChange(Ser.Keys.Down, true)
+                break;
+
+            case "ArrowLeft":
+                this.sendKeyChange(Ser.Keys.Left, true)
+                break;
+
+            case "ArrowRight":
+                this.sendKeyChange(Ser.Keys.Right, true)
+                break;
+        }
     }
-    private onKeyUp(event: any) {
+    private onKeyUp(event: KeyboardEvent) {
+        if (event.repeat) return
 
-        if (event.key == "w" || event.key == "ArrowUp")
-            this.up = false
+        switch (event.code) {
+            case "KeyW":
+                this.sendKeyChange(Ser.Keys.W, false)
+                break;
 
-        if (event.key == "s" || event.key == "ArrowDown")
-            this.down = false
+            case "KeyA":
+                this.sendKeyChange(Ser.Keys.A, false)
+                break;
 
-        if (event.key == "a" || event.key == "ArrowLeft")
-            this.left = false
+            case "KeyS":
+                this.sendKeyChange(Ser.Keys.S, false)
+                break;
 
-        if (event.key == "d" || event.key == "ArrowRight")
-            this.right = false
+            case "KeyD":
+                this.sendKeyChange(Ser.Keys.D, false)
+                break;
 
-        this.setPlayerInput()
-    }
+            case "ArrowUp":
+                this.sendKeyChange(Ser.Keys.Up, false)
+                break;
 
-    private setPlayerInput() {
-        this.movementDirection.x = 0
-        this.movementDirection.y = 0
+            case "ArrowDown":
+                this.sendKeyChange(Ser.Keys.Down, false)
+                break;
 
-        if (this.down)
-            this.movementDirection.y--
+            case "ArrowLeft":
+                this.sendKeyChange(Ser.Keys.Left, false)
+                break;
 
-        if (this.up)
-            this.movementDirection.y++
-
-        if (this.left)
-            this.movementDirection.x--
-
-        if (this.right)
-            this.movementDirection.x++
+            case "ArrowRight":
+                this.sendKeyChange(Ser.Keys.Right, false)
+                break;
+        }
     }
 }
 

@@ -4,10 +4,11 @@ import * as Comps from "./components"
 import * as Utils from "../utils"
 import * as CANNON from 'cannon-es'
 import * as Ser from '../serialization'
+import { PhysX, PhysXT } from "../physx/physx"
 
 
 export class Resources {
-    delta: DeltaResource
+    deltaTime: DeltaTimeResource
     isFirstTime: IsFirstTimeResource
     commandState: CommandStateResource
     componentChanges: ComponentChangesResource
@@ -18,9 +19,10 @@ export class Resources {
     physics: PhysicsResource
     availableRobotComponents: AvailableRobotComponentsResource
     newRobot: NewRobotResource
+    entitiesCache: EntitiesCache
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
         this.domState = new DOMStateResource()
-        this.delta = new DeltaResource(newCurrentExecutingCommand)
+        this.deltaTime = new DeltaTimeResource(newCurrentExecutingCommand)
         this.isFirstTime = new IsFirstTimeResource(newCurrentExecutingCommand)
         this.commandState = new CommandStateResource(newCurrentExecutingCommand)
         this.componentChanges = new ComponentChangesResource()
@@ -30,20 +32,13 @@ export class Resources {
         this.physics = new PhysicsResource()
         this.availableRobotComponents = new AvailableRobotComponentsResource()
         this.newRobot = new NewRobotResource()
+        this.entitiesCache = new EntitiesCache()
     }
 }
 export class NewRobotResource {
     components: Comps.RobotComponent[]
     constructor() {
         this.components = []
-    }
-}
-export class Materials {
-    wheel: CANNON.Material
-    default: CANNON.Material
-    constructor() {
-        this.wheel = new CANNON.Material()
-        this.default = new CANNON.Material()
     }
 }
 export class AvailableRobotComponentsResource {
@@ -54,25 +49,78 @@ export class AvailableRobotComponentsResource {
         this.quantity = [200, 4, 1]
     }
 }
-export class PhysicsResource {
-    world: CANNON.World
-    materials: Materials
+class EntityCache {
+    entityUid: number
+    position: Comps.Position | undefined
+    rotation: Comps.Rotation | undefined
+    mass: Comps.Mass | undefined
+    rigidbody: Comps.RigidBody | undefined
+    angularVelocity: Comps.AngularVelocity | undefined
+    linearVelocity: Comps.LinearVelocity | undefined
+    entityType: Comps.EntityType | undefined
+    health: Comps.Health | undefined
+    camera: Comps.Camera | undefined
+    robotComponent: Comps.RobotComponent | undefined
+    targetPosition: Comps.TargetPosition | undefined
+    wheel: Comps.Wheel | undefined
+    light: Comps.Light | undefined
+    entityState: Comps.EntityState | undefined
+    shape: Comps.Shape | undefined
+    force: Comps.Torque | undefined
+    torque: Comps.Torque | undefined
+    constraint: Comps.Constraint | undefined
+    constructor(newEntityUid: number) {
+        this.entityUid = newEntityUid
+    }
+}
+export class EntitiesCache {
+    entities: Map<number, EntityCache>
     constructor() {
-        this.world = new CANNON.World({
-            gravity: new CANNON.Vec3(0, -9.82, 0),
-        })
-        this.materials = new Materials()
-        let defaultDefaultContact = new CANNON.ContactMaterial(
-            this.materials.default,
-            this.materials.default,
-            {})
-        let wheelDefaultContact = new CANNON.ContactMaterial(
-            this.materials.wheel,
-            this.materials.default,
-            { friction: 1 })
+        this.entities = new Map()
+    }
+    newEntity(entityUid: number): EntityCache {
+        let entityCache = new EntityCache(entityUid)
+        this.entities.set(entityUid, entityCache)
+        return entityCache
+    }
+}
+export class Materials {
+    wheel: PhysXT.PxMaterial
+    default: PhysXT.PxMaterial
+    constructor(physics: PhysXT.PxPhysics) {
+        this.default = physics.createMaterial(0.5, 0.5, 0)
+        this.wheel = physics.createMaterial(0.5, 0.8, 0.5)
+    }
+}
+export class PhysicsResource {
+    materials: Materials
+    scene: PhysXT.PxScene
+    physics: PhysXT.PxPhysics
+    rigidBodyPtrAndEntityUid: Map<number, number>
+    constructor() {
+        let version = (PhysX as any).PHYSICS_VERSION;
+        let allocator = new PhysX.PxDefaultAllocator()
+        let errorCallback = new PhysX.PxDefaultErrorCallback()
+        let foundation = (PhysX as any).CreateFoundation(version, allocator, errorCallback)
+        let tolerances = new PhysX.PxTolerancesScale()
+        this.physics = (PhysX as any).CreatePhysics(version, foundation, tolerances) as PhysXT.PxPhysics
+        let gravityVector = new PhysX.PxVec3(0, -9.81, 0)
+        let sceneDesc = new PhysX.PxSceneDesc(tolerances);
 
-        this.world.addContactMaterial(defaultDefaultContact)
-        this.world.addContactMaterial(wheelDefaultContact)
+        (sceneDesc as any).set_gravity(gravityVector);
+        (sceneDesc as any).set_cpuDispatcher((PhysX as any).DefaultCpuDispatcherCreate(0));
+        (sceneDesc as any).set_filterShader((PhysX as any).DefaultFilterShader());
+
+        this.scene = this.physics.createScene(sceneDesc)
+        this.scene.setFlag((PhysX.PxSceneFlagEnum as any).eENABLE_ACTIVE_ACTORS, true)
+
+
+        PhysX.destroy(gravityVector)
+        PhysX.destroy(tolerances)
+        PhysX.destroy(sceneDesc)
+
+        this.materials = new Materials(this.physics)
+        this.rigidBodyPtrAndEntityUid = new Map()
     }
 }
 class LastTimeCommandWasRun {
@@ -84,7 +132,7 @@ class LastTimeCommandWasRun {
     }
 }
 
-export class DeltaResource {
+export class DeltaTimeResource {
     private currentExecutingCommand: ECS.CurrentExecutingCommand
 
     private lastTimeCommandsWereRun: LastTimeCommandWasRun[]
@@ -191,11 +239,25 @@ export class DOMStateResource {
     }
 }
 export class InputResource {
-    movementDirection: Utils.Vector2
-    code: string | undefined
+    keys: Map<Ser.Keys, boolean>
     constructor() {
-        this.movementDirection = new Utils.Vector2(0, 0)
-        this.code = undefined
+        this.keys = new Map()
+        this.keys.set(Ser.Keys.W, false)
+        this.keys.set(Ser.Keys.A, false)
+        this.keys.set(Ser.Keys.S, false)
+        this.keys.set(Ser.Keys.D, false)
+        this.keys.set(Ser.Keys.Left, false)
+        this.keys.set(Ser.Keys.Up, false)
+        this.keys.set(Ser.Keys.Down, false)
+        this.keys.set(Ser.Keys.Right, false)
+    }
+    isKeyDown(key: Ser.Keys): boolean {
+        let isDown = this.keys.get(key)
+        if (isDown == undefined) {
+            console.log("key doesn't exist")
+            return false
+        }
+        return isDown
     }
 }
 

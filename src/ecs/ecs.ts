@@ -107,7 +107,7 @@ export class System {
 
     // checks for changes in component properties
     // not nested ones
-    private createProxy<T extends Component>(obj: T): T {
+    createProxy<T extends Component>(obj: T): T {
         let outer = this
         let handler = {
             set(obj: { [key: string]: any }, prop: string, value: any) {
@@ -269,8 +269,6 @@ export class System {
         }
     }
     run() {
-        //    console.log("commands", this.commands)
-        //console.log("components", this.components)
         for (let c of this.commands) {
             this.currentExecutingCommand.command = c.commandType
             c.run(this, this.resources)
@@ -279,5 +277,8 @@ export class System {
         this.updateCommands()
         this.commandChangesBuffer.clearChanges()
         this.resources.componentChanges.cycleChanges()
+        //let start = performance.now()
+        //let end = performance.now()
+        //console.log(end - start, "everything")
     }
 }

@@ -2,9 +2,9 @@ import * as ECS from "./ecs"
 import * as Res from "./resources"
 import * as Utils from "../utils"
 import * as Comps from "./components"
+import * as Funs from "./functions"
 import * as Ser from "../serialization"
-import * as CANNON from 'cannon-es'
-import * as CMDUtils from "./cmd_utils"
+import { PhysX, PhysXT } from "../physx/physx"
 
 // order in which they get executed
 export enum CommandTypes {
@@ -85,12 +85,13 @@ export class TheFirst implements ECS.Command {
         system.addCommand(CommandTypes.CreateScene)
         system.addCommand(CommandTypes.SendGraphicComponentsToRender)
         //system.addCommand(Commands.CreateDog)
-        system.addCommand(CommandTypes.RunCode)
         system.addCommand(CommandTypes.SyncPhysics)
-        system.addCommand(CommandTypes.TorqueWheels)
+        // system.addCommand(CommandTypes.TorqueWheels)
         system.addCommand(CommandTypes.CreateRobot)
+        system.addCommand(CommandTypes.RunCode)
 
-        system.removeCommand(CommandTypes.TheFirst)
+
+        system.removeCommand(this.commandType)
     }
 }
 export class RunCode implements ECS.Command {
@@ -101,26 +102,36 @@ export class RunCode implements ECS.Command {
 
     run(system: ECS.System, resources: Res.Resources) {
 
-        //if (resources.input.code == undefined) {
-        //    return
+        let foundRigidbody = system.find([
+            ECS.Get.All,
+            [Comps.ComponentTypes.RigidBody],
+            ECS.By.Any,
+            null
+        ]);
+        if (foundRigidbody[0].length == 0) return
+
+        let foundPosition = system.find([
+            ECS.Get.All,
+            [Comps.ComponentTypes.Position],
+            ECS.By.EntityUid,
+            foundRigidbody[0][0].entityUid
+        ]);
+        if (foundPosition[0].length == 0) return
+
+        let position = foundPosition[0][0] as Comps.Position
+
+        let direction = Funs.getMovementDirection(resources)
+        if (direction.x == 0 && direction.y == 0) return
+
+        let force = 10
+        let angularForceComponent = resources.entitiesCache.entities.get(position.entityUid)!.torque!
+
+        angularForceComponent.xToApply = direction.x * force
+        angularForceComponent.zToApply = -direction.y * force
+
+        //for (let cpC of resources.componentChanges.changedComponents[Comps.ComponentTypes.Position]) {
+        //    console.log(cpC)
         //}
-        //return
-        //try {
-        //    let f = new Function()
-        //    //            f()
-        //}
-        //catch (e: any) {
-        //            let line = e.stack.split("\n").find((e:any) => e.includes("<anonymous>:") || e.includes("Function:"));
-        //            let lineIndex = (line.includes("<anonymous>:") && line.indexOf("<anonymous>:") + "<anonymous>:".length) ||  (line.includes("Function:") && line.indexOf("Function:") + "Function:".length);
-        //            console.log(+line.substring(lineIndex, lineIndex + 1) - 2);
-        //            if (e instanceof SyntaxError) {
-        //                console.log(":( syntax error")
-        //            }
-        //            else if (e instanceof ReferenceError) {
-        //                console.log(":( reference error")
-        //            }
-        //console.log(e)
-        //            console.log((e as any).lineNumber)
     }
 }
 export class CameraFollowGeometry implements ECS.Command {
@@ -164,24 +175,23 @@ export class CreateScene implements ECS.Command {
         {
             let camera = Utils.newUid()
             let cameraComponent = new Comps.Camera(
-                45,
+                70,
                 0.1,
                 500,
                 resources.domState.windowWidth! / resources.domState.windowHeight!,
                 camera)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, 0), camera)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(-45, 0, 0), camera)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 3, 5), camera)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, -0.1), camera)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Camera, camera)
             system.addComponent(cameraComponent)
             system.addComponent(rotationComponent)
             system.addComponent(positionComponent)
             system.addComponent(entityTypeComponent)
-            system.addCommand(CommandTypes.CameraFollowGeometry)
         }
         {
             let pointLight = Utils.newUid()
-            let lightComponent = new Comps.Light(Comps.LightTypes.PointLight, 50, 0xffffff, 10, 0, pointLight)
-            let positionComponent = new Comps.Position(new Utils.Vector3(3, 8, 3), pointLight)
+            let lightComponent = new Comps.Light(Comps.LightTypes.PointLight, 100, 0xffffff, 10, 0, pointLight)
+            let positionComponent = new Comps.Position(new Utils.Vector3(3, 10, 3), pointLight)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Light, pointLight)
             system.addComponent(lightComponent)
             system.addComponent(positionComponent)
@@ -195,188 +205,23 @@ export class CreateScene implements ECS.Command {
             system.addComponent(entityTypeComponent)
         }
         {
-            let plane = Utils.newUid()
-            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Static, plane)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, plane)
-            shapeComponent.size = new Utils.Vector3(25, 0.2, 80)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, -3, 0), plane)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), plane)
-            let massComponent = new Comps.Mass(0, plane)
-            let shapeColorComponent = new Comps.ShapeColor(0x88ffcc, plane)
-            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, plane)
+            let floor = Utils.newUid()
+            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Static, floor)
+            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, floor)
+            shapeComponent.size = new Utils.Vector3(100, 100, 200)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, -51, 0), floor)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), floor)
+            let shapeColorComponent = new Comps.ShapeColor(0xffffff, floor)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, floor)
 
-            system.addComponent(shapeComponent)
-            system.addComponent(rotationComponent)
-            system.addComponent(massComponent)
             system.addComponent(rigidBodyComponent)
             system.addComponent(positionComponent)
-            system.addComponent(shapeColorComponent)
-            system.addComponent(entityTypeComponent)
-        }
-        {
-            let obstacle = Utils.newUid()
-            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, obstacle)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, obstacle)
-            shapeComponent.size = new Utils.Vector3(1, 10, 1)
-            //shapeComponent.height = 1
-            //shapeComponent.numberOfSegments = 10
-            //shapeComponent.radiusBottom = 1
-            //shapeComponent.radiusTop = 1
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, -10), obstacle)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 90), obstacle)
-            let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), obstacle)
-            let velocityComponent = new Comps.Velocity(new Utils.Vector3(0, 0, 0), obstacle)
-            let massComponent = new Comps.Mass(10, obstacle)
-            let shapeColorComponent = new Comps.ShapeColor(0xffffff, obstacle)
-            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, obstacle)
-
-            system.addComponent(velocityComponent)
-            system.addComponent(rigidBodyComponent)
-            system.addComponent(forceComponent)
-            system.addComponent(positionComponent)
             system.addComponent(rotationComponent)
-            system.addComponent(massComponent)
             system.addComponent(shapeComponent)
             system.addComponent(shapeColorComponent)
             system.addComponent(entityTypeComponent)
         }
-        {
-            let obstacle = Utils.newUid()
-            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, obstacle)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, obstacle)
-            shapeComponent.size = new Utils.Vector3(1, 2, 1)
-            //shapeComponent.height = 1
-            //shapeComponent.numberOfSegments = 10
-            //shapeComponent.radiusBottom = 1
-            //shapeComponent.radiusTop = 1
-            let positionComponent = new Comps.Position(new Utils.Vector3(5, 0, -5), obstacle)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), obstacle)
-            let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), obstacle)
-            let velocityComponent = new Comps.Velocity(new Utils.Vector3(0, 0, 0), obstacle)
-            let massComponent = new Comps.Mass(1, obstacle)
-            let shapeColorComponent = new Comps.ShapeColor(0xffffff, obstacle)
-            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, obstacle)
-
-            system.addComponent(velocityComponent)
-            system.addComponent(rigidBodyComponent)
-            system.addComponent(forceComponent)
-            system.addComponent(positionComponent)
-            system.addComponent(rotationComponent)
-            system.addComponent(massComponent)
-            system.addComponent(shapeComponent)
-            system.addComponent(shapeColorComponent)
-            system.addComponent(entityTypeComponent)
-        }
-        {
-            let obstacle = Utils.newUid()
-            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, obstacle)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, obstacle)
-            shapeComponent.size = new Utils.Vector3(1, 2, 1)
-            //shapeComponent.height = 1
-            //shapeComponent.numberOfSegments = 10
-            //shapeComponent.radiusBottom = 1
-            //shapeComponent.radiusTop = 1
-            let positionComponent = new Comps.Position(new Utils.Vector3(-3, 0, -8), obstacle)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 90, 0), obstacle)
-            let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), obstacle)
-            let velocityComponent = new Comps.Velocity(new Utils.Vector3(0, 0, 0), obstacle)
-            let massComponent = new Comps.Mass(1, obstacle)
-            let shapeColorComponent = new Comps.ShapeColor(0xffffff, obstacle)
-            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, obstacle)
-
-            system.addComponent(velocityComponent)
-            system.addComponent(rigidBodyComponent)
-            system.addComponent(forceComponent)
-            system.addComponent(positionComponent)
-            system.addComponent(rotationComponent)
-            system.addComponent(massComponent)
-            system.addComponent(shapeComponent)
-            system.addComponent(shapeColorComponent)
-            system.addComponent(entityTypeComponent)
-        }
-        {
-            let obstacle = Utils.newUid()
-            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, obstacle)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, obstacle)
-            shapeComponent.size = new Utils.Vector3(1, 2, 1)
-            //shapeComponent.height = 1
-            //shapeComponent.numberOfSegments = 10
-            //shapeComponent.radiusBottom = 1
-            //shapeComponent.radiusTop = 1
-            let positionComponent = new Comps.Position(new Utils.Vector3(-3, 0, 8), obstacle)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), obstacle)
-            let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), obstacle)
-            let velocityComponent = new Comps.Velocity(new Utils.Vector3(0, 0, 0), obstacle)
-            let massComponent = new Comps.Mass(1, obstacle)
-            let shapeColorComponent = new Comps.ShapeColor(0xffffff, obstacle)
-            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, obstacle)
-
-            system.addComponent(velocityComponent)
-            system.addComponent(rigidBodyComponent)
-            system.addComponent(forceComponent)
-            system.addComponent(positionComponent)
-            system.addComponent(rotationComponent)
-            system.addComponent(massComponent)
-            system.addComponent(shapeComponent)
-            system.addComponent(shapeColorComponent)
-            system.addComponent(entityTypeComponent)
-        }
-        {
-
-            let robot = Utils.newUid()
-            { // robot
-                let hardCodedIdComponent = new Comps.HardCodedId(0, robot)
-
-                system.addComponent(hardCodedIdComponent)
-            }
-            let block1 = Utils.newUid()
-            {
-                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, block1)
-                shapeComponent.size = new Utils.Vector3(2, 0.5, 1)
-                let shapeColorComponent = new Comps.ShapeColor(0xd2294d, block1)
-                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.RobotComponent, block1)
-                let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, 0), block1)
-                let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), block1)
-                let robotComponentComponent = new Comps.RobotComponent(
-                    Comps.RobotComponentTypes.SteelPlate,
-                    new Utils.Vector3(0, 0, 0),
-                    new Utils.Quaternion(
-                        rotationComponent.x,
-                        rotationComponent.y,
-                        rotationComponent.z,
-                        rotationComponent.w),
-                    robot, block1)
-
-                system.addComponent(robotComponentComponent)
-                system.addComponent(positionComponent)
-                system.addComponent(rotationComponent)
-                system.addComponent(shapeComponent)
-                system.addComponent(shapeColorComponent)
-                system.addComponent(entityTypeComponent)
-            }
-            {
-                let superComponent = Utils.newUid()
-
-                let robotSuperComponentComponent = new Comps.RobotSuperComponent(
-                    [block1],
-                    robot,
-                    superComponent)
-                let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), superComponent)
-                let velocityComponent = new Comps.Velocity(new Utils.Vector3(0, 0, 0), superComponent)
-                let massComponent = new Comps.Mass(1, superComponent)
-                let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, superComponent)
-                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Composed, superComponent)
-
-                system.addComponent(forceComponent)
-                system.addComponent(velocityComponent)
-                system.addComponent(massComponent)
-                system.addComponent(rigidBodyComponent)
-                system.addComponent(shapeComponent)
-                system.addComponent(robotSuperComponentComponent)
-            }
-            //            system.addCommand(CommandTypes.MoveVehicle)
-        }
-        system.removeCommand(CommandTypes.CreateScene)
+        system.removeCommand(this.commandType)
     }
 }
 
@@ -387,46 +232,35 @@ export class CreateRobot implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        //        if (resources.newRobot.components.length == 0) return
-        //
-        //        let robotComponents = resources.newRobot.components
-        //
-        //        let robot = Utils.newUid()
-        //        {
-        //            let positionComponent = new Comps.Position(new Utils.Vector3(0, 1, 0), robot)
-        //            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), robot)
-        //            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, robot)
-        //            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Composed, robot)
-        //            let massComponent = new Comps.Mass(robotComponents.length * 1, robot)
-        //
-        //            system.addComponent(positionComponent)
-        //            system.addComponent(rotationComponent)
-        //            system.addComponent(shapeComponent)
-        //            system.addComponent(rigidBodyComponent)
-        //            system.addComponent(massComponent)
-        //        }
-        //
-        //        for (let robotComponent of resources.newRobot.components) {
-        //            let newUid = Utils.newUid()
-        //
-        //            robotComponent.entityUid = newUid
-        //            robotComponent.entityUidAttachedTo = robot
-        //
-        //            let shapeColorComponent = new Comps.ShapeColor(0x00cc00, newUid)
-        //            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, newUid)
-        //            shapeComponent.size = new Utils.Vector3(1, 1, 1)
-        //            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.RobotComponent, newUid)
-        //            let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, 0), newUid)
-        //            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), newUid)
-        //
-        //            system.addComponent(positionComponent)
-        //            system.addComponent(rotationComponent)
-        //            system.addComponent(shapeComponent)
-        //            system.addComponent(shapeColorComponent)
-        //            system.addComponent(entityTypeComponent)
-        //
-        //        }
-        //        resources.newRobot.components = []
+        for (let i = 0; i < 1; i++) {
+            let shape = Utils.newUid()
+            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, shape)
+            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, shape)
+            shapeComponent.size = new Utils.Vector3(0.25, 0.25, 0.25)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 5, 0), shape)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), shape)
+            let linearVelocityComponent = new Comps.LinearVelocity(shape)
+            let angularVelocityComponent = new Comps.AngularVelocity(shape)
+            let forceComponent = new Comps.Force(shape)
+            let angularForceComponent = new Comps.Torque(shape)
+            let massComponent = new Comps.Mass(1, shape)
+            let shapeColorComponent = new Comps.ShapeColor(0xffffff, shape)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, shape)
+
+            system.addComponent(forceComponent)
+            system.addComponent(angularForceComponent)
+            system.addComponent(angularVelocityComponent)
+            system.addComponent(linearVelocityComponent)
+            system.addComponent(rigidBodyComponent)
+            system.addComponent(positionComponent)
+            system.addComponent(rotationComponent)
+            system.addComponent(massComponent)
+            system.addComponent(shapeComponent)
+            system.addComponent(shapeColorComponent)
+            system.addComponent(entityTypeComponent);
+
+        }
+        system.removeCommand(this.commandType)
     }
 }
 export class TorqueWheels implements ECS.Command {
@@ -436,36 +270,36 @@ export class TorqueWheels implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-
-        for (let cWC of resources.componentChanges.changedComponents[Comps.ComponentTypes.Wheel]) {
-            let wheelComponent = cWC as Comps.Wheel
-            let foundComponents = system.find(
-                [
-                    ECS.Get.All,
-                    [Comps.ComponentTypes.Constraint],
-                    ECS.By.EntityUid,
-                    wheelComponent.entityUid
-                ])
-            if (foundComponents[0].length == 0) {
-                console.log("no constraint component found")
-                return
-            }
-            let constraintComponent = foundComponents[0][0] as Comps.Constraint
-            if (
-                constraintComponent.constraint == undefined ||
-                constraintComponent.constraintType != Comps.ConstraintTypes.Hinge
-            ) {
-                continue
-            }
-            let hinge = constraintComponent.constraint as CANNON.HingeConstraint
-            if (wheelComponent.isOn) {
-                hinge.enableMotor()
-                hinge.setMotorSpeed(wheelComponent.velocity)
-            } else {
-                //hinge.setMotorSpeed(0)
-                hinge.disableMotor()
-            }
-        }
+        //
+        //        for (let cWC of resources.componentChanges.changedComponents[Comps.ComponentTypes.Wheel]) {
+        //            let wheelComponent = cWC as Comps.Wheel
+        //            let foundComponents = system.find(
+        //                [
+        //                    ECS.Get.All,
+        //                    [Comps.ComponentTypes.Constraint],
+        //                    ECS.By.EntityUid,
+        //                    wheelComponent.entityUid
+        //                ])
+        //            if (foundComponents[0].length == 0) {
+        //                console.log("no constraint component found")
+        //                return
+        //            }
+        //            let constraintComponent = foundComponents[0][0] as Comps.Constraint
+        //            if (
+        //                constraintComponent.constraint == undefined ||
+        //                constraintComponent.constraintType != Comps.ConstraintTypes.Hinge
+        //            ) {
+        //                continue
+        //            }
+        //            let hinge = constraintComponent.constraint as CANNON.HingeConstraint
+        //            if (wheelComponent.isOn) {
+        //                hinge.enableMotor()
+        //                hinge.setMotorSpeed(wheelComponent.velocity)
+        //            } else {
+        //                //hinge.setMotorSpeed(0)
+        //                hinge.disableMotor()
+        //            }
+        //        }
     }
 }
 export class MoveVehicle implements ECS.Command {
@@ -475,94 +309,55 @@ export class MoveVehicle implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        let maxVelocity = 20
-        let turningVelocity = 10
-
-        let foundHardCodedIdComponent = system.find(
-            [
-                ECS.Get.All,
-                [Comps.ComponentTypes.HardCodedId],
-                ECS.By.Any,
-                null
-            ])
-        if (foundHardCodedIdComponent[0].length == 0) {
-            console.log("no hardcodedid found")
-            return
-        }
-        let vehicleEntityUid = (foundHardCodedIdComponent[0][0] as Comps.HardCodedId).entityUid
-        // get geometryUid
-        let foundComponents = system.find(
-            [
-                ECS.Get.All,
-                [Comps.ComponentTypes.Wheel],
-                ECS.By.Any,
-                null
-            ])
-        if (foundComponents[0].length == 0) {
-            console.log("no wheel components found")
-            return
-        }
-        for (let wC of foundComponents[0]) {
-            let wheelComponent = wC as Comps.Wheel
-            if (wheelComponent.entityUidAttachedTo != vehicleEntityUid) continue
-            if (resources.input.movementDirection.y == 1) {
-                wheelComponent.isOn = true
-                wheelComponent.velocity = maxVelocity
-            }
-            if (resources.input.movementDirection.y == -1) {
-                wheelComponent.isOn = true
-                wheelComponent.velocity = -maxVelocity
-            }
-            if (
-                resources.input.movementDirection.x == 0 &&
-                resources.input.movementDirection.y == 0
-            ) {
-
-                wheelComponent.isOn = false
-            }
-        }
+        //        let maxVelocity = 20
+        //        let turningVelocity = 10
+        //
+        //        let foundHardCodedIdComponent = system.find(
+        //            [
+        //                ECS.Get.All,
+        //                [Comps.ComponentTypes.HardCodedId],
+        //                ECS.By.Any,
+        //                null
+        //            ])
+        //        if (foundHardCodedIdComponent[0].length == 0) {
+        //            console.log("no hardcodedid found")
+        //            return
+        //        }
+        //        let vehicleEntityUid = (foundHardCodedIdComponent[0][0] as Comps.HardCodedId).entityUid
+        //        // get geometryUid
+        //        let foundComponents = system.find(
+        //            [
+        //                ECS.Get.All,
+        //                [Comps.ComponentTypes.Wheel],
+        //                ECS.By.Any,
+        //                null
+        //            ])
+        //        if (foundComponents[0].length == 0) {
+        //            console.log("no wheel components found")
+        //            return
+        //        }
+        //        for (let wC of foundComponents[0]) {
+        //            let wheelComponent = wC as Comps.Wheel
+        //            if (wheelComponent.entityUidAttachedTo != vehicleEntityUid) continue
+        //            if (resources.input.movementDirection.y == 1) {
+        //                wheelComponent.isOn = true
+        //                wheelComponent.velocity = maxVelocity
+        //            }
+        //            if (resources.input.movementDirection.y == -1) {
+        //                wheelComponent.isOn = true
+        //                wheelComponent.velocity = -maxVelocity
+        //            }
+        //            if (
+        //                resources.input.movementDirection.x == 0 &&
+        //                resources.input.movementDirection.y == 0
+        //            ) {
+        //
+        //                wheelComponent.isOn = false
+        //            }
+        //        }
+        //    }
     }
 }
-// create entity
-//export class CreateDog implements ECS.Command {
-//    readonly type: Commands
-//    constructor() {
-//        this.type = Commands.CreateDog
-//    }
-//
-//    run(system: ECS.System) {
-//        for (let x = 0; x < 5; x++) {
-//            let dog = Utils.newUid()
-//            let positionComponent = new Comps.Position(new Utils.Vector3(50 * x + 100, 0, 0), dog)
-//            let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), dog)
-//            let massComponent = new Comps.Mass(2, dog)
-//            let sizeComponent = new Comps.Size(new Utils.Vector3(40, 90, 30), dog)
-//            let entityStateComponent = new Comps.EntityState(new Map([[Comps.EntityStates.Idle, null]]), dog)
-//            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Dog, dog)
-//            let healthComponent = new Comps.Health(10, dog)
-//            let animationComponent = new Comps.Animation([new Anims.PlayerIdle(), new Anims.PlayerRunning()], dog)
-//            let computedElement = new Comps.GraphicProperties(Comps.ElementTypes.Entity, dog)
-//            computedElement.translateX = positionComponent.x
-//            computedElement.translateY = positionComponent.y
-//            computedElement.zIndex = positionComponent.y
-//            computedElement.color = "#ff0000"
-//
-//            system.addComponent(massComponent)
-//            system.addComponent(sizeComponent)
-//            system.addComponent(forceComponent)
-//            system.addComponent(healthComponent)
-//            system.addComponent(animationComponent)
-//            system.addComponent(positionComponent)
-//            system.addComponent(entityStateComponent)
-//
-//            system.addComponent(computedElement)
-//            system.addComponent(entityTypeComponent)
-//        }
-//
-//        system.addCommand(Commands.MoveDog)
-//        system.removeCommand(Commands.CreateDog)
-//    }
-//}
 export class CreateStickman implements ECS.Command {
     readonly commandType: CommandTypes
     constructor() {
@@ -577,14 +372,12 @@ export class CreateStickman implements ECS.Command {
                 let entityStateComponent = new Comps.EntityState([Comps.EntityStates.Idle], stickman)
                 let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Stickman, stickman)
                 let healthComponent = new Comps.Health(10, stickman)
-                let forceComponent = new Comps.Force(new Utils.Vector3(0, 0, 0), stickman)
                 let massComponent = new Comps.Mass(4, stickman)
                 let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, stickman)
                 shapeComponent.size = new Utils.Vector3(40, 90, 30)
 
                 system.addComponent(massComponent)
                 system.addComponent(shapeComponent)
-                system.addComponent(forceComponent)
                 system.addComponent(healthComponent)
                 system.addComponent(positionComponent)
                 system.addComponent(entityStateComponent)
@@ -604,100 +397,100 @@ export class MovePlayer implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        let acceleration = 0.003
-        let forceLimit = 0.02
-        // get playerUid
-        let foundEntityTypeComponents = system.find([ECS.Get.All, [Comps.ComponentTypes.EntityType], ECS.By.Any, null])
-        if (foundEntityTypeComponents[0].length == 0) {
-            console.log("no entity types found")
-            return
-        }
-        let playerUid: number | null = null
-        for (let fC of foundEntityTypeComponents[0]) {
-            let entityTypeComponent = fC as Comps.EntityType
-            if (entityTypeComponent.entityType == Comps.EntityTypes.Stickman) {
-                playerUid = entityTypeComponent.entityUid
-            }
-        }
-        if (playerUid == null)
-            return
+        //    let acceleration = 0.003
+        //    let forceLimit = 0.02
+        //    // get playerUid
+        //    let foundEntityTypeComponents = system.find([ECS.Get.All, [Comps.ComponentTypes.EntityType], ECS.By.Any, null])
+        //    if (foundEntityTypeComponents[0].length == 0) {
+        //        console.log("no entity types found")
+        //        return
+        //    }
+        //    let playerUid: number | null = null
+        //    for (let fC of foundEntityTypeComponents[0]) {
+        //        let entityTypeComponent = fC as Comps.EntityType
+        //        if (entityTypeComponent.entityType == Comps.EntityTypes.Stickman) {
+        //            playerUid = entityTypeComponent.entityUid
+        //        }
+        //    }
+        //    if (playerUid == null)
+        //        return
 
-        // if was found, move it
-        if (resources.input.movementDirection.x == 0 &&
-            resources.input.movementDirection.y == 0
-        ) {
-            let foundEntityState = system.find(
-                [
-                    ECS.Get.All,
-                    [
-                        Comps.ComponentTypes.EntityState,
-                    ],
-                    ECS.By.EntityUid,
-                    foundEntityTypeComponents[0][0].entityUid
-                ]
-            )
-            if (foundEntityState[0].length == 0) {
-                console.log("entityState not found")
-                return
-            }
+        //    // if was found, move it
+        //    if (resources.input.movementDirection.x == 0 &&
+        //        resources.input.movementDirection.y == 0
+        //    ) {
+        //        let foundEntityState = system.find(
+        //            [
+        //                ECS.Get.All,
+        //                [
+        //                    Comps.ComponentTypes.EntityState,
+        //                ],
+        //                ECS.By.EntityUid,
+        //                foundEntityTypeComponents[0][0].entityUid
+        //            ]
+        //        )
+        //        if (foundEntityState[0].length == 0) {
+        //            console.log("entityState not found")
+        //            return
+        //        }
 
-            for (let fC of foundEntityState[0]) {
-                let entityStateComponent = fC as Comps.EntityState
+        //        for (let fC of foundEntityState[0]) {
+        //            let entityStateComponent = fC as Comps.EntityState
 
-                if (entityStateComponent.entityUid == playerUid) {
-                    // cannot change state to idle if wasnt runnning
-                    let indexOfRun = entityStateComponent.states.indexOf(Comps.EntityStates.Run)
-                    if (indexOfRun != -1) {
-                        entityStateComponent.states.splice(indexOfRun, 1)
+        //            if (entityStateComponent.entityUid == playerUid) {
+        //                // cannot change state to idle if wasnt runnning
+        //                let indexOfRun = entityStateComponent.states.indexOf(Comps.EntityStates.Run)
+        //                if (indexOfRun != -1) {
+        //                    entityStateComponent.states.splice(indexOfRun, 1)
 
-                        if (entityStateComponent.states.includes(Comps.EntityStates.Idle)) return
-                        entityStateComponent.states.push(Comps.EntityStates.Idle)
-                    }
-                    return
-                }
-            }
-        }
+        //                    if (entityStateComponent.states.includes(Comps.EntityStates.Idle)) return
+        //                    entityStateComponent.states.push(Comps.EntityStates.Idle)
+        //                }
+        //                return
+        //            }
+        //        }
+        //    }
 
-        let foundForceComponent = system.find([ECS.Get.One, [Comps.ComponentTypes.Force], ECS.By.EntityUid, playerUid])
-        if (foundForceComponent[0].length == 0) {
-            console.log("no player force found found")
-            return
-        }
-        let forceComponent = foundForceComponent[0][0] as Comps.Force
-        let newForce = new Utils.Vector3(0, 0, 0)
-        newForce.x = forceComponent.x + resources.input.movementDirection.x * acceleration
-        newForce.z = forceComponent.z + (-resources.input.movementDirection.y) * acceleration
+        //    let foundForceComponent = system.find([ECS.Get.One, [Comps.ComponentTypes.Force], ECS.By.EntityUid, playerUid])
+        //    if (foundForceComponent[0].length == 0) {
+        //        console.log("no player force found found")
+        //        return
+        //    }
+        //    let forceComponent = foundForceComponent[0][0] as Comps.Force
+        //    let newForce = new Utils.Vector3(0, 0, 0)
+        //    newForce.x = forceComponent.x + resources.input.movementDirection.x * acceleration
+        //    newForce.z = forceComponent.z + (-resources.input.movementDirection.y) * acceleration
 
-        if (Math.abs(newForce.x) > forceLimit) {
-            newForce.x = forceLimit * (newForce.x < 0 ? -1 : 1)
-        }
-        if (Math.abs(newForce.z) > forceLimit) {
-            newForce.z = forceLimit * (newForce.z < 0 ? -1 : 1)
-        }
+        //    if (Math.abs(newForce.x) > forceLimit) {
+        //        newForce.x = forceLimit * (newForce.x < 0 ? -1 : 1)
+        //    }
+        //    if (Math.abs(newForce.z) > forceLimit) {
+        //        newForce.z = forceLimit * (newForce.z < 0 ? -1 : 1)
+        //    }
 
-        let foundEntityState = system.find(
-            [ECS.Get.One, [Comps.ComponentTypes.EntityState], ECS.By.EntityUid, playerUid])
+        //    let foundEntityState = system.find(
+        //        [ECS.Get.One, [Comps.ComponentTypes.EntityState], ECS.By.EntityUid, playerUid])
 
-        if (foundEntityState[0].length == 0) {
-            console.log("player entityState not found")
-            return
-        }
-        let entityStateComponent = foundEntityState[0][0] as Comps.EntityState
+        //    if (foundEntityState[0].length == 0) {
+        //        console.log("player entityState not found")
+        //        return
+        //    }
+        //    let entityStateComponent = foundEntityState[0][0] as Comps.EntityState
 
-        if (!entityStateComponent.states.includes(Comps.EntityStates.Run)) {
-            entityStateComponent.states.push(Comps.EntityStates.Run)
-        }
-        let indexOfIdle = entityStateComponent.states.indexOf(Comps.EntityStates.Idle)
-        if (indexOfIdle != -1) {
-            entityStateComponent.states.splice(indexOfIdle, 1)
-        }
+        //    if (!entityStateComponent.states.includes(Comps.EntityStates.Run)) {
+        //        entityStateComponent.states.push(Comps.EntityStates.Run)
+        //    }
+        //    let indexOfIdle = entityStateComponent.states.indexOf(Comps.EntityStates.Idle)
+        //    if (indexOfIdle != -1) {
+        //        entityStateComponent.states.splice(indexOfIdle, 1)
+        //    }
 
-        if (resources.input.movementDirection.x != 0) {
-            forceComponent.x = newForce.x
-        }
-        if (resources.input.movementDirection.y != 0) {
-            forceComponent.z = newForce.z
-        }
+        //    if (resources.input.movementDirection.x != 0) {
+        //        forceComponent.x = newForce.x
+        //    }
+        //    if (resources.input.movementDirection.y != 0) {
+        //        forceComponent.z = newForce.z
+        //    }
     }
 }
 //// render
@@ -769,14 +562,168 @@ export class SyncPhysics implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        resources.physics.world.fixedStep()
+        let dt = resources.deltaTime.get()
+        if (dt != null) {
+            resources.physics.scene.simulate(dt / 1000)
+            resources.physics.scene.fetchResults(true)
+        }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
-        //////      for added
+        //////      added
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
+        /////////////////
+        // added rigidbody
+        /////////////////
+        for (let aRB of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.RigidBody]) {
+            let rigidBodyComponent = aRB as Comps.RigidBody
+
+            let transform = new PhysX.PxTransform((PhysX.PxIDENTITYEnum as any).PxIdentity)
+
+            let rigidBody: PhysXT.PxRigidActor
+            switch (rigidBodyComponent.bodyType) {
+                case Comps.BodyTypes.Dynamic: {
+                    rigidBody = resources.physics.physics.createRigidDynamic(transform);
+                } break;
+                case Comps.BodyTypes.Static: {
+                    rigidBody = resources.physics.physics.createRigidStatic(transform)
+                } break;
+            }
+
+            rigidBodyComponent.body = rigidBody
+            resources.physics.scene.addActor(rigidBody)
+
+            resources.physics.rigidBodyPtrAndEntityUid.set(
+                (rigidBody as any).ptr as number,
+                rigidBodyComponent.entityUid)
+
+            let entityCache = resources.entitiesCache.newEntity(rigidBodyComponent.entityUid)
+            entityCache.rigidbody = system.createProxy(rigidBodyComponent);
+
+            PhysX.destroy(transform)
+        }
+        /////////////////
+        // added shape
+        /////////////////
+        for (let aSC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Shape]) {
+            let shapeComponent = aSC as Comps.Shape
+
+            let geometry: PhysXT.PxGeometry
+            switch (shapeComponent.shapeType) {
+                case Comps.ShapeTypes.Box: {
+                    geometry = new PhysX.PxBoxGeometry(
+                        shapeComponent.size!.x / 2,
+                        shapeComponent.size!.y / 2,
+                        shapeComponent.size!.z / 2);
+                } break;
+                case Comps.ShapeTypes.Capsule: {
+                    geometry = new PhysX.PxCapsuleGeometry(
+                        shapeComponent.radius!,
+                        shapeComponent.height! / 2,
+                    )
+                } break;
+            }
+            let shape: PhysXT.PxShape
+            switch (shapeComponent.materialType) {
+                case Comps.MaterialTypes.Wheel: {
+                    shape = resources.physics.physics.createShape(
+                        geometry,
+                        resources.physics.materials.wheel,
+                        true)
+                } break;
+                case Comps.MaterialTypes.Default: {
+                    shape = resources.physics.physics.createShape(
+                        geometry,
+                        resources.physics.materials.default,
+                        true)
+                } break;
+            }
+
+            let isRobotComponent = Funs.isEntityType(Comps.EntityTypes.RobotComponent, aSC.entityUid, system)
+            if (isRobotComponent) {
+                console.log("not supported")
+            } else {
+                let foundRigidBodyComponent = system.find([
+                    ECS.Get.One,
+                    [Comps.ComponentTypes.RigidBody],
+                    ECS.By.EntityUid,
+                    shapeComponent.entityUid
+                ])
+                if (foundRigidBodyComponent[0].length == 0) {
+                    console.log("shape without rigidbody")
+                    continue
+                }
+                var filterData = new PhysX.PxFilterData(1, 1, 0, 0);
+                shape.setSimulationFilterData(filterData)
+                let rigidbodyComponent = foundRigidBodyComponent[0][0] as Comps.RigidBody
+                rigidbodyComponent.body!.attachShape(shape)
+                shapeComponent.shape = shape
+            }
+            let entityCache = resources.entitiesCache.entities.get(shapeComponent.entityUid)
+            entityCache!.shape = system.createProxy(shapeComponent)
+
+            PhysX.destroy(geometry);
+        }
+        /////////////////
+        // added position
+        /////////////////
+        for (let aPC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Position]) {
+            let foundComponents = system.find([
+                ECS.Get.One,
+                [Comps.ComponentTypes.RigidBody],
+                ECS.By.EntityUid,
+                aPC.entityUid
+            ])
+            if (foundComponents[0].length == 0) {
+                continue
+            }
+            let positionComponent = aPC as Comps.Position
+            let rigidBodyComponent = foundComponents[0][0] as Comps.RigidBody;
+            let transform = rigidBodyComponent.body!.getGlobalPose();
+
+            rigidBodyComponent.body!.setGlobalPose(
+                new PhysX.PxTransform(
+                    new PhysX.PxVec3(
+                        positionComponent.x,
+                        positionComponent.y,
+                        positionComponent.z),
+                    transform.q,
+                ))
+
+            let entityCache = resources.entitiesCache.entities.get(positionComponent.entityUid)
+            entityCache!.position = system.createProxy(positionComponent)
+        }
+        /////////////////
+        // added rotation
+        /////////////////
+        for (let aRC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Rotation]) {
+            let foundComponents = system.find([
+                ECS.Get.One,
+                [Comps.ComponentTypes.RigidBody],
+                ECS.By.EntityUid,
+                aRC.entityUid
+            ])
+            if (foundComponents[0].length == 0) {
+                continue
+            }
+            let rotationComponent = aRC as Comps.Rotation
+            let rigidBodyComponent = foundComponents[0][0] as Comps.RigidBody;
+            let transform = rigidBodyComponent.body!.getGlobalPose();
+
+            rigidBodyComponent.body!.setGlobalPose(
+                new PhysX.PxTransform(
+                    transform.p,
+                    new PhysX.PxQuat(
+                        rotationComponent.x,
+                        rotationComponent.y,
+                        rotationComponent.z,
+                        rotationComponent.w)))
+
+            let entityCache = resources.entitiesCache.entities.get(rotationComponent.entityUid)
+            entityCache!.rotation = system.createProxy(rotationComponent)
+        }
         /////////////////
         // added mass
         /////////////////
@@ -791,138 +738,147 @@ export class SyncPhysics implements ECS.Command {
                 continue
             }
             let rigidBodyComponent = foundRigidBody[0][0] as Comps.RigidBody
-            let addedMassComponent = aMC as Comps.Mass
-            rigidBodyComponent.body.mass = addedMassComponent.mass
-            rigidBodyComponent.body.updateMassProperties()
+            let massComponent = aMC as Comps.Mass
+            (rigidBodyComponent.body as PhysXT.PxRigidBody).setMass(massComponent.mass)
+
+            let entityCache = resources.entitiesCache.entities.get(massComponent.entityUid)
+            entityCache!.mass = system.createProxy(massComponent)
         }
         /////////////////
-        // added shape
+        // added angular velocity
         /////////////////
-        for (let aSC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Shape]) {
-            let foundComponents = system.find([
+        for (let aAVC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.AngularVelocity]) {
+            let foundRigidBody = system.find([
                 ECS.Get.One,
-                [
-                    Comps.ComponentTypes.RigidBody,
-                    Comps.ComponentTypes.RobotComponent
-                ],
+                [Comps.ComponentTypes.RigidBody],
                 ECS.By.EntityUid,
-                aSC.entityUid
+                aAVC.entityUid
             ])
-            let isRobotComponent = false
-            if (foundComponents[1].length != 0) {
-                isRobotComponent = true
-            }
-            else if (foundComponents[0].length == 0 && !isRobotComponent) {
+            if (foundRigidBody[0].length == 0) {
                 continue
             }
-            let addedShapeComponent = aSC as Comps.Shape
-            let shape: CANNON.Shape
-            switch (addedShapeComponent.shapeType) {
-                case Comps.ShapeTypes.Box: {
-                    let size = new CANNON.Vec3(
-                        addedShapeComponent.size!.x / 2,
-                        addedShapeComponent.size!.y / 2,
-                        addedShapeComponent.size!.z / 2)
-                    shape = new CANNON.Box(size)
-                } break;
-                case Comps.ShapeTypes.Cylinder: {
-                    shape = new CANNON.Cylinder(
-                        addedShapeComponent.radiusTop,
-                        addedShapeComponent.radiusBottom,
-                        addedShapeComponent.height,
-                        addedShapeComponent.numberOfSegments)
-                } break;
-                case Comps.ShapeTypes.Composed: {
-                    return
-                }
-            }
-            if (isRobotComponent) {
-                let robotComponent = foundComponents[1][0] as Comps.RobotComponent
-                let foundRigidBody = system.find([
-                    ECS.Get.One,
-                    [Comps.ComponentTypes.RigidBody],
-                    ECS.By.EntityUid,
-                    robotComponent.robotEntityUidAttachedTo])
+            let rigidBodyComponent = foundRigidBody[0][0] as Comps.RigidBody
+            let angularVelocityComponent = aAVC as Comps.AngularVelocity
+            (rigidBodyComponent.body as PhysXT.PxRigidDynamic)
+                .setAngularVelocity(
+                    new PhysX.PxVec3(
+                        angularVelocityComponent.x,
+                        angularVelocityComponent.y,
+                        angularVelocityComponent.z))
 
-                if (foundRigidBody[0].length == 0) {
+            let entityCache = resources.entitiesCache.entities.get(angularVelocityComponent.entityUid)
+            entityCache!.angularVelocity = system.createProxy(angularVelocityComponent)
+        }
+        /////////////////
+        // added constraint
+        /////////////////
+        for (let aCC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Constraint]) {
+            let foundRigidBodyA = system.find([
+                ECS.Get.One,
+                [Comps.ComponentTypes.RigidBody],
+                ECS.By.EntityUid,
+                aCC.entityUid
+            ])
+            if (foundRigidBodyA[0].length == 0) {
+                continue
+            }
+            let constraintComponent = aCC as Comps.Constraint
+
+            let foundRigidBodyB = system.find([
+                ECS.Get.One,
+                [Comps.ComponentTypes.RigidBody],
+                ECS.By.EntityUid,
+                constraintComponent.entityUidConstrainedTo
+            ])
+            if (foundRigidBodyB[0].length == 0) {
+                continue
+            }
+            let rigidBodyAComponent = foundRigidBodyA[0][0] as Comps.RigidBody
+            let rigidBodyBComponent = foundRigidBodyB[0][0] as Comps.RigidBody
+
+            if (rigidBodyAComponent.body == undefined || rigidBodyBComponent.body == undefined) continue
+
+
+            let rigidBodyA = rigidBodyAComponent.body!
+            let rigidBodyB = rigidBodyBComponent.body!
+
+            let constraint: PhysXT.PxJoint
+            switch (constraintComponent.constraintType) {
+                case Comps.ConstraintTypes.Lock: {
+                    let localFrameA = new PhysX.PxTransform(
+                        new PhysX.PxVec3(
+                            constraintComponent.pivotA!.x,
+                            constraintComponent.pivotA!.y,
+                            constraintComponent.pivotA!.z),
+                        new PhysX.PxQuat(
+                            constraintComponent.axisA!.x,
+                            constraintComponent.axisA!.y,
+                            constraintComponent.axisA!.z,
+                            constraintComponent.axisA!.w));
+
+                    let localFrameB = new PhysX.PxTransform(
+                        new PhysX.PxVec3(
+                            constraintComponent.pivotB!.x,
+                            constraintComponent.pivotB!.y,
+                            constraintComponent.pivotB!.z),
+                        new PhysX.PxQuat(
+                            constraintComponent.axisB!.x,
+                            constraintComponent.axisB!.y,
+                            constraintComponent.axisB!.z,
+                            constraintComponent.axisB!.w));
+
+                    constraint = PhysX.PxTopLevelFunctions.FixedJointCreate(
+                        resources.physics.physics,
+                        rigidBodyA,
+                        localFrameA,
+                        rigidBodyB,
+                        localFrameB)
                     continue
-                }
-                let rigidBodyComponentAttachedTo = foundRigidBody[0][0] as Comps.RigidBody
+                } break;
+                case Comps.ConstraintTypes.Distance: {
+                    console.log("not yet")
+                    continue
+                } break;
 
-                rigidBodyComponentAttachedTo.body.addShape(
-                    shape,
-                    new CANNON.Vec3(
-                        robotComponent.positionOffset.x,
-                        robotComponent.positionOffset.y,
-                        robotComponent.positionOffset.z),
-                    new CANNON.Quaternion(
-                        robotComponent.rotationOffset.x,
-                        robotComponent.rotationOffset.y,
-                        robotComponent.rotationOffset.z,
-                        robotComponent.rotationOffset.w))
-            } else {
-                let rigidBodyComponent = foundComponents[0][0] as Comps.RigidBody
-                rigidBodyComponent.body.addShape(shape)
+                case Comps.ConstraintTypes.Hinge: {
+                    let localFrameA = new PhysX.PxTransform(
+                        new PhysX.PxVec3(
+                            constraintComponent.pivotA!.x,
+                            constraintComponent.pivotA!.y,
+                            constraintComponent.pivotA!.z),
+                        new PhysX.PxQuat(
+                            constraintComponent.axisA!.x,
+                            constraintComponent.axisA!.y,
+                            constraintComponent.axisA!.z,
+                            constraintComponent.axisA!.w));
+
+                    let localFrameB = new PhysX.PxTransform(
+                        new PhysX.PxVec3(
+                            constraintComponent.pivotB!.x,
+                            constraintComponent.pivotB!.y,
+                            constraintComponent.pivotB!.z),
+                        new PhysX.PxQuat(
+                            constraintComponent.axisB!.x,
+                            constraintComponent.axisB!.y,
+                            constraintComponent.axisB!.z,
+                            constraintComponent.axisB!.w));
+
+                    constraint = PhysX.PxTopLevelFunctions.RevoluteJointCreate(
+                        resources.physics.physics,
+                        rigidBodyA,
+                        localFrameA,
+                        rigidBodyB,
+                        localFrameB)
+                } break;
             }
+            constraintComponent.constraint = constraint
+            let entityCache = resources.entitiesCache.entities.get(constraintComponent.entityUid)
+            entityCache!.constraint = system.createProxy(constraintComponent)
         }
         /////////////////
-        // added rotation
+        // added linear velocity
         /////////////////
-        for (let aRC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Rotation]) {
-            let foundComponents = system.find([
-                ECS.Get.One,
-                [
-                    Comps.ComponentTypes.RigidBody,
-                    Comps.ComponentTypes.Shape,
-                ],
-                ECS.By.EntityUid,
-                aRC.entityUid
-            ])
-            if (foundComponents[0].length == 0 || foundComponents[1].length == 0) {
-                continue
-            }
-            let rigidBodyComponent = foundComponents[0][0] as Comps.RigidBody
-            let shapeComponent = foundComponents[1][0] as Comps.Shape
-            let addedRotationComponent = aRC as Comps.Rotation
-            if (shapeComponent.shapeType == Comps.ShapeTypes.Composed) {
-                let foundRobotComponentComponents = system.find([
-                    ECS.Get.All,
-                    [Comps.ComponentTypes.RobotComponent],
-                    ECS.By.EntityType,
-                    Comps.ComponentTypes.RobotComponent
-                ])
-                for (let rC of foundRobotComponentComponents[0]) {
-                    let robotComponentComponent = rC as Comps.RobotComponent
-                    if (robotComponentComponent.robotEntityUidAttachedTo != rigidBodyComponent.entityUid) continue
-
-                    let foundRobotComponentRotationComponent = system.find([
-                        ECS.Get.All,
-                        [Comps.ComponentTypes.Rotation],
-                        ECS.By.EntityUid,
-                        robotComponentComponent.entityUid
-                    ])
-                    if (foundRobotComponentRotationComponent[0].length == 0) {
-                        continue
-                    }
-                    let robotComponentRotationComponent = foundRobotComponentComponents[0][0] as Comps.Rotation
-
-                    robotComponentRotationComponent.x = robotComponentComponent.rotationOffset.x * addedRotationComponent.x
-                    robotComponentRotationComponent.y = robotComponentComponent.rotationOffset.y * addedRotationComponent.y
-                    robotComponentRotationComponent.z = robotComponentComponent.rotationOffset.z * addedRotationComponent.z
-                    robotComponentRotationComponent.w = robotComponentComponent.rotationOffset.w * addedRotationComponent.w
-                }
-            }
-            let rotation = new CANNON.Quaternion(
-                addedRotationComponent.x,
-                addedRotationComponent.y,
-                addedRotationComponent.z,
-                addedRotationComponent.w)
-            rigidBodyComponent.body.quaternion = rotation
-        }
-        /////////////////
-        // added velocity
-        /////////////////
-        for (let aVC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Velocity]) {
+        for (let aVC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.LinearVelocity]) {
             let foundRigidBody = system.find([
                 ECS.Get.One,
                 [Comps.ComponentTypes.RigidBody],
@@ -933,13 +889,46 @@ export class SyncPhysics implements ECS.Command {
                 continue
             }
             let rigidBodyComponent = foundRigidBody[0][0] as Comps.RigidBody
-            let addedVelocityComponent = aVC as Comps.Velocity
-            let newVelocity = new CANNON.Vec3(
-                addedVelocityComponent.x,
-                addedVelocityComponent.y,
-                addedVelocityComponent.z)
+            let linearVelocityComponent = aVC as Comps.LinearVelocity
+            (rigidBodyComponent.body as PhysXT.PxRigidDynamic)
+                .setLinearVelocity(
+                    new PhysX.PxVec3(
+                        linearVelocityComponent.x,
+                        linearVelocityComponent.y,
+                        linearVelocityComponent.z))
 
-            rigidBodyComponent.body.velocity = newVelocity
+            let entityCache = resources.entitiesCache.entities.get(linearVelocityComponent.entityUid)
+            entityCache!.linearVelocity = system.createProxy(linearVelocityComponent)
+        }
+        /////////////////
+        // added angular force
+        /////////////////
+        for (let aAFC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Torque]) {
+            let foundRigidBody = system.find([
+                ECS.Get.One,
+                [Comps.ComponentTypes.RigidBody],
+                ECS.By.EntityUid,
+                aAFC.entityUid
+            ])
+            if (foundRigidBody[0].length == 0) {
+                continue
+            }
+            let rigidBodyComponent = foundRigidBody[0][0] as Comps.RigidBody
+            let torqueComponent = aAFC as Comps.Torque
+
+            (rigidBodyComponent.body as PhysXT.PxRigidDynamic)
+                .addTorque(
+                    new PhysX.PxVec3(
+                        torqueComponent.xToApply,
+                        torqueComponent.yToApply,
+                        torqueComponent.zToApply))
+
+            torqueComponent.xToApply = 0
+            torqueComponent.yToApply = 0
+            torqueComponent.zToApply = 0
+
+            let entityCache = resources.entitiesCache.entities.get(torqueComponent.entityUid)
+            entityCache!.torque = system.createProxy(torqueComponent)
         }
         /////////////////
         // added force
@@ -955,416 +944,185 @@ export class SyncPhysics implements ECS.Command {
                 continue
             }
             let rigidBodyComponent = foundRigidBody[0][0] as Comps.RigidBody
-            let addedForceComponent = aFC as Comps.Force
-            let force = new CANNON.Vec3(addedForceComponent.x, addedForceComponent.y, addedForceComponent.z)
-            rigidBodyComponent.body.force = force
+            let forceComponent = aFC as Comps.Torque
+
+            (rigidBodyComponent.body as PhysXT.PxRigidDynamic)
+                .addForce(
+                    new PhysX.PxVec3(
+                        forceComponent.xToApply,
+                        forceComponent.yToApply,
+                        forceComponent.zToApply))
+
+            forceComponent.xToApply = 0
+            forceComponent.yToApply = 0
+            forceComponent.zToApply = 0
+
+            let entityCache = resources.entitiesCache.entities.get(forceComponent.entityUid)
+            entityCache!.force = system.createProxy(forceComponent)
         }
-        /////////////////
-        // added position
-        /////////////////
-        for (let aPC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Position]) {
-            let foundComponents = system.find([
-                ECS.Get.One,
-                [
-                    Comps.ComponentTypes.RigidBody,
-                    Comps.ComponentTypes.Shape,
-                ],
-                ECS.By.EntityUid,
-                aPC.entityUid
-            ])
-            if (foundComponents[0].length == 0 || foundComponents[1].length == 0) {
-                continue
-            }
-            let rigidBodyComponent = foundComponents[0][0] as Comps.RigidBody
-            let shapeComponent = foundComponents[1][0] as Comps.Shape
-            let addedPositionComponent = aPC as Comps.Position
-            if (shapeComponent.shapeType == Comps.ShapeTypes.Composed) {
-                let foundRobotComponentComponents = system.find([
-                    ECS.Get.All,
-                    [Comps.ComponentTypes.RobotComponent],
-                    ECS.By.EntityType,
-                    Comps.ComponentTypes.RobotComponent
-                ])
-                for (let rC of foundRobotComponentComponents[0]) {
-                    let robotComponentComponent = rC as Comps.RobotComponent
-                    if (robotComponentComponent.robotEntityUidAttachedTo != rigidBodyComponent.entityUid) continue
 
-                    let foundRobotComponentPositionComponent = system.find([
-                        ECS.Get.All,
-                        [Comps.ComponentTypes.Position],
-                        ECS.By.EntityUid,
-                        robotComponentComponent.entityUid
-                    ])
-                    if (foundRobotComponentPositionComponent[0].length == 0) {
-                        continue
-                    }
-                    let robotComponentPositionComponent = foundRobotComponentComponents[0][0] as Comps.Position
-
-                    robotComponentPositionComponent.x = robotComponentComponent.positionOffset.x + addedPositionComponent.x
-                    robotComponentPositionComponent.y = robotComponentComponent.positionOffset.y + addedPositionComponent.y
-                    robotComponentPositionComponent.z = robotComponentComponent.positionOffset.z + addedPositionComponent.z
-                }
-            }
-            rigidBodyComponent.body.position.set(
-                addedPositionComponent.x,
-                addedPositionComponent.y,
-                addedPositionComponent.z)
-        }
-        /////////////////
-        // added rigidbody
-        /////////////////
-        for (let aRB of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.RigidBody]) {
-            let rigidBodyComponent = aRB as Comps.RigidBody
-
-            switch (rigidBodyComponent.bodyType) {
-                case Comps.BodyTypes.Dynamic: {
-                    rigidBodyComponent.body.type = CANNON.BODY_TYPES.DYNAMIC
-                } break;
-                case Comps.BodyTypes.Static: {
-                    rigidBodyComponent.body.type = CANNON.BODY_TYPES.STATIC
-                } break;
-                case Comps.BodyTypes.Kinematic: {
-                    rigidBodyComponent.body.type = CANNON.BODY_TYPES.KINEMATIC
-                } break;
-            }
-            switch (rigidBodyComponent.materialType) {
-                case Comps.MaterialTypes.Wheel: {
-                    rigidBodyComponent.body.material = resources.physics.materials.wheel
-                } break;
-                case Comps.MaterialTypes.Default: {
-                    rigidBodyComponent.body.material = resources.physics.materials.default
-                } break;
-            }
-
-            if (rigidBodyComponent.disableCollisions) {
-                rigidBodyComponent.body.collisionFilterGroup = 0
-            }
-            resources.physics.world.addBody(rigidBodyComponent.body)
-        }
-        /////////////////
-        // added constraint
-        /////////////////
-        for (let aCC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Constraint]) {
-            let foundRigidBodyA = system.find([
-                ECS.Get.One,
-                [Comps.ComponentTypes.RigidBody],
-                ECS.By.EntityUid,
-                aCC.entityUid
-            ])
-            if (foundRigidBodyA[0].length == 0) {
-                continue
-            }
-            let rigidBodyComponentA = foundRigidBodyA[0][0] as Comps.RigidBody
-            let addedConstraintComponent = aCC as Comps.Constraint
-
-            let foundRigidBodyB = system.find([
-                ECS.Get.One,
-                [Comps.ComponentTypes.RigidBody],
-                ECS.By.EntityUid,
-                addedConstraintComponent.entityUidConstrainedTo
-            ])
-            if (foundRigidBodyB[0].length == 0) {
-                continue
-            }
-            let rigidBodyComponentB = foundRigidBodyB[0][0] as Comps.RigidBody
-            let constraint: CANNON.Constraint | undefined = undefined
-            switch (addedConstraintComponent.constraintType) {
-                case Comps.ConstraintTypes.Hinge: {
-                    let hinge = new CANNON.HingeConstraint(
-                        rigidBodyComponentB.body, rigidBodyComponentA.body,
-                        {
-                            pivotA: Utils.toCannonVec3(addedConstraintComponent.pivotA!),
-                            pivotB: Utils.toCannonVec3(addedConstraintComponent.pivotB!),
-                            axisA: Utils.toCannonVec3(addedConstraintComponent.axisA!),
-                            axisB: Utils.toCannonVec3(addedConstraintComponent.axisB!),
-                        })
-                    constraint = hinge
-                } break;
-                case Comps.ConstraintTypes.PointToPoint: {
-                    console.log("point to point constraint not implemented")
-                } break;
-                case Comps.ConstraintTypes.Lock: {
-                    console.log("lock constraint not implemented")
-                } break;
-                case Comps.ConstraintTypes.Distance: {
-                    constraint = new CANNON.DistanceConstraint(
-                        rigidBodyComponentA.body,
-                        rigidBodyComponentB.body,
-                        addedConstraintComponent.distance)
-                } break;
-            }
-            if (constraint == undefined) continue
-            addedConstraintComponent.constraint = constraint
-            resources.physics.world.addConstraint(constraint)
-        }
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
-        //////      for changed
+        //////      changed
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        let foundRigidBodyComponents = system.find([ECS.Get.All, [Comps.ComponentTypes.RigidBody], ECS.By.Any, null])
+        /////////////////
+        // changed angular velocity
+        /////////////////
+        for (let cAVC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.AngularVelocity]) {
+            let entityCache = resources.entitiesCache.entities.get(cAVC.entityUid)
+            let rigidBodyComponent = entityCache!.rigidbody!
 
-        /////////////////
-        // changed rigidbody
-        /////////////////
-        for (let cRBC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.RigidBody]) {
-            let changedRigidBodyComponent = cRBC as Comps.RigidBody
+            let angularVelocityComponent = cAVC as Comps.AngularVelocity
+            let body = rigidBodyComponent.body as PhysXT.PxRigidDynamic
+            body.setAngularVelocity(
+                new PhysX.PxVec3(
+                    angularVelocityComponent.x,
+                    angularVelocityComponent.y,
+                    angularVelocityComponent.z))
 
-            switch (changedRigidBodyComponent.bodyType) {
-                case Comps.BodyTypes.Dynamic: {
-                    changedRigidBodyComponent.body.type = CANNON.BODY_TYPES.DYNAMIC
-                } break;
-                case Comps.BodyTypes.Static: {
-                    changedRigidBodyComponent.body.type = CANNON.BODY_TYPES.STATIC
-                } break;
-                case Comps.BodyTypes.Kinematic: {
-                    changedRigidBodyComponent.body.type = CANNON.BODY_TYPES.KINEMATIC
-                } break;
-            }
-            if (changedRigidBodyComponent.disableCollisions) {
-                changedRigidBodyComponent.body.collisionFilterGroup = 0
-            } else {
-                changedRigidBodyComponent.body.collisionFilterGroup = 1
-            }
         }
         /////////////////
-        // changed mass
+        // changed force to apply
         /////////////////
-        for (let cMC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Mass]) {
-            let changedMassComponent = cMC as Comps.Mass
-            for (let rBC of foundRigidBodyComponents[0]) {
-                if (rBC.entityUid != changedMassComponent.entityUid) continue
-                let rigidBodyComponent = rBC as Comps.RigidBody
-                rigidBodyComponent.body.mass = changedMassComponent.mass
-            }
+        for (let cFC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Torque]) {
+            let entityCache = resources.entitiesCache.entities.get(cFC.entityUid)
+            let rigidBodyComponent = entityCache!.rigidbody!
+            let forceComponent = cFC as Comps.Torque
+
+            let body = rigidBodyComponent.body as PhysXT.PxRigidDynamic
+            body.addTorque(
+                new PhysX.PxVec3(
+                    forceComponent.xToApply,
+                    forceComponent.yToApply,
+                    forceComponent.zToApply))
+            forceComponent.xToApply = 0
+            forceComponent.yToApply = 0
+            forceComponent.zToApply = 0
         }
         /////////////////
-        // changed force
+        // changed linear velocity
         /////////////////
-        for (let cFC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Force]) {
-            let changedForceComponent = cFC as Comps.Force
-            for (let rBC of foundRigidBodyComponents[0]) {
-                if (rBC.entityUid != changedForceComponent.entityUid) continue
-                let rigidBodyComponent = rBC as Comps.RigidBody
-                rigidBodyComponent.body.applyImpulse(
-                    new CANNON.Vec3(
-                        changedForceComponent.xToApply,
-                        changedForceComponent.yToApply,
-                        changedForceComponent.zToApply))
-                changedForceComponent.xToApply = 0
-                changedForceComponent.yToApply = 0
-                changedForceComponent.zToApply = 0
-            }
-        }
-        /////////////////
-        // changed position
-        /////////////////
-        for (let cPC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Position]) {
-            let changedPositionComponent = cPC as Comps.Position
-            for (let rBC of foundRigidBodyComponents[0]) {
-                if (rBC.entityUid != changedPositionComponent.entityUid) continue
-                let rigidBodyComponent = rBC as Comps.RigidBody
-                rigidBodyComponent.body.position = new CANNON.Vec3(
-                    changedPositionComponent.x,
-                    changedPositionComponent.y,
-                    changedPositionComponent.z)
-            }
+        for (let cLVC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.LinearVelocity]) {
+            let entityCache = resources.entitiesCache.entities.get(cLVC.entityUid)
+            let rigidBodyComponent = entityCache!.rigidbody!
+            let linearVelocityComponent = cLVC as Comps.LinearVelocity
+
+            let body = rigidBodyComponent.body as PhysXT.PxRigidDynamic
+            body.setLinearVelocity(
+                new PhysX.PxVec3(
+                    linearVelocityComponent.x,
+                    linearVelocityComponent.y,
+                    linearVelocityComponent.z))
+
         }
         /////////////////
         // changed rotation
         /////////////////
         for (let cRC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Rotation]) {
+            let entityCache = resources.entitiesCache.entities.get(cRC.entityUid)
+            let rigidBodyComponent = entityCache!.rigidbody!
+            let rotationComponent = cRC as Comps.Rotation
 
-            let changedRotationComponent = cRC as Comps.Rotation
-            for (let rBC of foundRigidBodyComponents[0]) {
-                if (rBC.entityUid != changedRotationComponent.entityUid) continue
-                let rigidBodyComponent = rBC as Comps.RigidBody
-
-                let foundShapeComponent = system.find([
-                    ECS.Get.One,
-                    [Comps.ComponentTypes.Shape],
-                    ECS.By.EntityUid,
-                    rigidBodyComponent.entityUid
-                ])
-                if (foundShapeComponent[0].length == 0) {
-                    continue
-                }
-                let shapeComponent = foundShapeComponent[0][0] as Comps.Shape
-                if (shapeComponent.shapeType == Comps.ShapeTypes.Composed) {
-                    let foundRobotComponentComponents = system.find([
-                        ECS.Get.All,
-                        [Comps.ComponentTypes.RobotComponent],
-                        ECS.By.EntityType,
-                        Comps.ComponentTypes.RobotComponent
-                    ])
-                    for (let rC of foundRobotComponentComponents[0]) {
-                        let robotComponentComponent = rC as Comps.RobotComponent
-                        if (robotComponentComponent.robotEntityUidAttachedTo != rigidBodyComponent.entityUid) continue
-
-                        let foundRobotComponentRotationComponent = system.find([
-                            ECS.Get.All,
-                            [Comps.ComponentTypes.Rotation],
-                            ECS.By.EntityUid,
-                            robotComponentComponent.entityUid
-                        ])
-                        if (foundRobotComponentRotationComponent[0].length == 0) {
-                            continue
-                        }
-                        let robotComponentRotationComponent = foundRobotComponentComponents[0][0] as Comps.Rotation
-
-                        robotComponentRotationComponent.x = robotComponentComponent.rotationOffset.x * changedRotationComponent.x
-                        robotComponentRotationComponent.y = robotComponentComponent.rotationOffset.y * changedRotationComponent.y
-                        robotComponentRotationComponent.z = robotComponentComponent.rotationOffset.z * changedRotationComponent.z
-                        robotComponentRotationComponent.w = robotComponentComponent.rotationOffset.w * changedRotationComponent.w
-                    }
-                }
-                rigidBodyComponent.body.quaternion = new CANNON.Quaternion(
-                    changedRotationComponent.x,
-                    changedRotationComponent.y,
-                    changedRotationComponent.z,
-                    changedRotationComponent.w)
-            }
+            let transform = rigidBodyComponent.body!.getGlobalPose();
+            rigidBodyComponent.body!.setGlobalPose(
+                new PhysX.PxTransform(
+                    transform.p,
+                    new PhysX.PxQuat(
+                        rotationComponent.x,
+                        rotationComponent.y,
+                        rotationComponent.z,
+                        rotationComponent.w)))
         }
         /////////////////
-        // changed velocity
+        // changed position
         /////////////////
-        for (let cVC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Velocity]) {
-            let changedVelocityComponent = cVC as Comps.Velocity
-            for (let rBC of foundRigidBodyComponents[0]) {
-                if (rBC.entityUid != changedVelocityComponent.entityUid) continue
-                let rigidBodyComponent = rBC as Comps.RigidBody
-                let newVelocity = new CANNON.Vec3(
-                    changedVelocityComponent.x,
-                    changedVelocityComponent.y,
-                    changedVelocityComponent.z)
+        for (let cPC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Position]) {
+            let entityCache = resources.entitiesCache.entities.get(cPC.entityUid)
+            let rigidBodyComponent = entityCache!.rigidbody!
+            let positionComponent = cPC as Comps.Position
 
-                rigidBodyComponent.body.velocity = newVelocity
-            }
+            let transform = rigidBodyComponent.body!.getGlobalPose();
+            rigidBodyComponent.body!.setGlobalPose(
+                new PhysX.PxTransform(
+                    new PhysX.PxVec3(
+                        positionComponent.x,
+                        positionComponent.y,
+                        positionComponent.z),
+                    transform.q))
         }
-        /////////////////
-        // changed shape
-        /////////////////
-        for (let cSC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Shape]) {
-            let changedShapeComponent = cSC as Comps.Shape
-            for (let rBC of foundRigidBodyComponents[0]) {
-                if (rBC.entityUid != changedShapeComponent.entityUid) continue
-                let rigidBodyComponent = rBC as Comps.RigidBody
-                let position = rigidBodyComponent.body.position
-                let rotation = rigidBodyComponent.body.quaternion
-                let velocity = rigidBodyComponent.body.velocity
 
-                let shape: CANNON.Shape
-                switch (changedShapeComponent.shapeType) {
-                    case (Comps.ShapeTypes.Box): {
-                        let size = new CANNON.Vec3(
-                            changedShapeComponent.size!.x / 2,
-                            changedShapeComponent.size!.y / 2,
-                            changedShapeComponent.size!.z / 2)
-                        shape = new CANNON.Box(size)
-                    } break;
-                    case (Comps.ShapeTypes.Cylinder): {
-                        shape = new CANNON.Cylinder(
-                            changedShapeComponent.radiusTop,
-                            changedShapeComponent.radiusBottom,
-                            changedShapeComponent.height,
-                            changedShapeComponent.numberOfSegments,
-                        )
-                    } break;
-                    case Comps.ShapeTypes.Composed: return
-                }
-                let newBody = new CANNON.Body({
-                    velocity: velocity,
-                    position: position,
-                    quaternion: rotation,
-                    shape: shape
-                })
-                rigidBodyComponent.body = newBody
-            }
-        }
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
-        //////      update components
+        //////      get rigidbodies changes
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
-        let foundComponentsToUpdate = system.find(
-            [
-                ECS.Get.All,
-                [
-                    Comps.ComponentTypes.Position,
-                    Comps.ComponentTypes.Rotation,
-                    Comps.ComponentTypes.Force,
-                    Comps.ComponentTypes.Velocity
-                ], ECS.By.Any, null
-            ])
-        for (let rBC of foundRigidBodyComponents[0]) {
-            let rigidBodyComponent = rBC as Comps.RigidBody
 
-            /////////////////
-            // update position
-            /////////////////
-            for (let pC of foundComponentsToUpdate[0]) {
-                if (pC.entityUid != rigidBodyComponent.entityUid) continue
-                let positionComponent = pC as Comps.Position
-                if (
-                    rigidBodyComponent.body.position.x != positionComponent.x ||
-                    rigidBodyComponent.body.position.y != positionComponent.y ||
-                    rigidBodyComponent.body.position.z != positionComponent.z
-                ) {
-                    positionComponent.x = rigidBodyComponent.body.position.x
-                    positionComponent.y = rigidBodyComponent.body.position.y
-                    positionComponent.z = rigidBodyComponent.body.position.z
-                }
-            }
-            /////////////////
-            // update rotation
-            /////////////////
-            for (let rC of foundComponentsToUpdate[1]) {
-                if (rC.entityUid != rigidBodyComponent.entityUid) continue
-                let rotationComponent = rC as Comps.Rotation
-                if (
-                    rotationComponent.x != rigidBodyComponent.body.quaternion.x ||
-                    rotationComponent.y != rigidBodyComponent.body.quaternion.y ||
-                    rotationComponent.z != rigidBodyComponent.body.quaternion.z ||
-                    rotationComponent.w != rigidBodyComponent.body.quaternion.w
-                ) {
-                    rotationComponent.x = rigidBodyComponent.body.quaternion.x
-                    rotationComponent.y = rigidBodyComponent.body.quaternion.y
-                    rotationComponent.z = rigidBodyComponent.body.quaternion.z
-                    rotationComponent.w = rigidBodyComponent.body.quaternion.w
-                }
+        let activeActors = (PhysX.SupportFunctions.prototype as any)
+            .PxScene_getActiveActors(resources.physics.scene) as PhysXT.PxArray_PxActorPtr
 
+        for (let i = 0; i < activeActors.size(); i++) {
+            let entityUid = resources.physics.rigidBodyPtrAndEntityUid.get((activeActors.get(i) as any).ptr)
+            if (entityUid == undefined) {
+                continue
             }
-            /////////////////
-            // update force
-            /////////////////
-            for (let fC of foundComponentsToUpdate[2]) {
-                if (fC.entityUid != rigidBodyComponent.entityUid) continue
-                let forceComponent = fC as Comps.Force
+            let entityCache = resources.entitiesCache.entities.get(entityUid)!
+
+            let rigidBody = entityCache!.rigidbody!.body as PhysXT.PxRigidDynamic
+            let transform = entityCache!.rigidbody!.body!.getGlobalPose();
+
+            let positionComponent = entityCache.position!
+            let rigidBodyPosition = transform.p
+            if (
+                rigidBodyPosition.x != positionComponent.x ||
+                rigidBodyPosition.y != positionComponent.y ||
+                rigidBodyPosition.z != positionComponent.z
+            ) {
+                positionComponent.x = rigidBodyPosition.x
+                positionComponent.y = rigidBodyPosition.y
+                positionComponent.z = rigidBodyPosition.z
+            }
+
+            let rotationComponent = entityCache.rotation!
+            let rigidBodyQuaternion = transform.q
+            if (
+                rigidBodyQuaternion.x != rotationComponent.x ||
+                rigidBodyQuaternion.y != rotationComponent.y ||
+                rigidBodyQuaternion.z != rotationComponent.z ||
+                rigidBodyQuaternion.w != rotationComponent.w
+            ) {
+                rotationComponent.x = rigidBodyQuaternion.x
+                rotationComponent.y = rigidBodyQuaternion.y
+                rotationComponent.z = rigidBodyQuaternion.z
+                rotationComponent.w = rigidBodyQuaternion.w
+            }
+
+            let linearVelocityComponent = entityCache.linearVelocity
+            if (linearVelocityComponent != undefined) {
+                let rigidBodyLinearVelocity = rigidBody.getLinearVelocity()
                 if (
-                    forceComponent.x != rigidBodyComponent.body.force.x ||
-                    forceComponent.y != rigidBodyComponent.body.force.y ||
-                    forceComponent.z != rigidBodyComponent.body.force.z
+                    rigidBodyLinearVelocity.x != linearVelocityComponent.x ||
+                    rigidBodyLinearVelocity.y != linearVelocityComponent.y ||
+                    rigidBodyLinearVelocity.z != linearVelocityComponent.z
                 ) {
-                    forceComponent.x = rigidBodyComponent.body.force.x
-                    forceComponent.y = rigidBodyComponent.body.force.y
-                    forceComponent.z = rigidBodyComponent.body.force.z
+                    linearVelocityComponent.x = rigidBodyLinearVelocity.x
+                    linearVelocityComponent.y = rigidBodyLinearVelocity.y
+                    linearVelocityComponent.z = rigidBodyLinearVelocity.z
                 }
             }
-            /////////////////
-            // update velocity
-            /////////////////
-            for (let vC of foundComponentsToUpdate[3]) {
-                if (vC.entityUid != rigidBodyComponent.entityUid) continue
-                let velocityComponent = vC as Comps.Velocity
+
+            let angularVelocityComponent = entityCache.angularVelocity
+            if (angularVelocityComponent != undefined) {
+                let rigidBodyAngularVelocity = rigidBody.getAngularVelocity()
                 if (
-                    rigidBodyComponent.body.velocity.x != velocityComponent.x ||
-                    rigidBodyComponent.body.velocity.y != velocityComponent.y ||
-                    rigidBodyComponent.body.velocity.z != velocityComponent.z
+                    rigidBodyAngularVelocity.x != angularVelocityComponent.x ||
+                    rigidBodyAngularVelocity.y != angularVelocityComponent.y ||
+                    rigidBodyAngularVelocity.z != angularVelocityComponent.z
                 ) {
-                    velocityComponent.x = rigidBodyComponent.body.velocity.x
-                    velocityComponent.y = rigidBodyComponent.body.velocity.y
-                    velocityComponent.z = rigidBodyComponent.body.velocity.z
+                    angularVelocityComponent.x = rigidBodyAngularVelocity.x
+                    angularVelocityComponent.y = rigidBodyAngularVelocity.y
+                    angularVelocityComponent.z = rigidBodyAngularVelocity.z
                 }
             }
         }

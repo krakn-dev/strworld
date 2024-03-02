@@ -63,12 +63,18 @@ export class Options {
 //    submitedCode: string
 //    modifiedCode: string 
 //}
+export enum Keys {
+    W, A, S, D, Up, Left, Down, Right
+}
 export class Input {
-    movementDirection: Utils.Vector2
+    changedKey: Keys
+    isKeyDown: boolean
     constructor(
-        newMovementDirection: Utils.Vector2,
+        newChangedKey: Keys,
+        newIsKeyDown: boolean
     ) {
-        this.movementDirection = newMovementDirection
+        this.changedKey = newChangedKey
+        this.isKeyDown = newIsKeyDown
     }
 }
 

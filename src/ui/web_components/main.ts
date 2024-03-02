@@ -55,12 +55,6 @@ export class CustomElement extends HTMLElement {
     addWorker(newWorker: Worker) {
         this.worker = newWorker
         this.worker.onmessage = this._onWorkerMessage.bind(this)
-        this.worker.postMessage(
-            new Ser.Message(
-                Ser.Messages.Start,
-                new Ser.DOMData(window.innerWidth, window.innerHeight)
-            ));
-        this.addInitialElements()
     }
 
     private _onWorkerMessage(data: any) {
@@ -72,6 +66,14 @@ export class CustomElement extends HTMLElement {
             case Ser.Messages.AvailableRobotComponents: {
                 this.componentEditorElement?.addAvailableRobotComponents(msg.data as Ser.AvailableRobotComponents)
             } break;
+            case Ser.Messages.Start: {
+                this.worker!.postMessage(
+                    new Ser.Message(
+                        Ser.Messages.Start,
+                        new Ser.DOMData(window.innerWidth, window.innerHeight)
+                    ));
+                this.addInitialElements()
+            }
         }
     }
     private _addComponentEditorElement() {

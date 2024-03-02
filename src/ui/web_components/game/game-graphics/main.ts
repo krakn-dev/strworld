@@ -207,15 +207,9 @@ export class CustomElement extends HTMLElement {
                                     shapeComponent!.size!.y,
                                     shapeComponent!.size!.z);
                             } break;
-                            case Comps.ShapeTypes.Cylinder: {
-                                geometry = new THREE.CylinderGeometry(
-                                    shapeComponent!.radiusTop,
-                                    shapeComponent!.radiusBottom,
-                                    shapeComponent!.height,
-                                    shapeComponent!.numberOfSegments,
-                                );
+                            case Comps.ShapeTypes.Capsule: {
+                                continue
                             } break;
-                            case Comps.ShapeTypes.Composed: continue
                         }
                         const mesh = new THREE.Mesh(geometry, material);
                         newGraphicObject = new GraphicObject(mesh, cBE[0])
@@ -298,6 +292,8 @@ export class CustomElement extends HTMLElement {
                 throw "robot shape is not an asset"
             case Comps.EntityTypes.RobotComponent:
                 throw "robot component is not an asset"
+            case Comps.EntityTypes.RobotSuperComponent:
+                throw "robot super component is not an asset"
         }
     }
     private getAnimationToPlayByEntityStates(entityStates: Comps.EntityStates[]): string {

@@ -26,7 +26,7 @@ export class CustomElement extends HTMLElement {
     private addInitialElements() {
         this._addGameGraphicsElement()
         this._addGameInputElement()
-        this._addRobotMenuElement()
+        //this._addRobotMenuElement()
         //this._addComponentEditorElement()
     }
 
@@ -67,13 +67,12 @@ export class CustomElement extends HTMLElement {
                 this.componentEditorElement?.addAvailableRobotComponents(msg.data as Ser.AvailableRobotComponents)
             } break;
             case Ser.Messages.Start: {
+                this.addInitialElements()
                 this.worker!.postMessage(
                     new Ser.Message(
                         Ser.Messages.Start,
-                        new Ser.DOMData(window.innerWidth, window.innerHeight)
-                    ));
-                this.addInitialElements()
-            }
+                        new Ser.DOMData(window.innerWidth, window.innerHeight)));
+            } break;
         }
     }
     private _addComponentEditorElement() {

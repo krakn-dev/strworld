@@ -283,26 +283,20 @@ export class Light implements ECS.Component {
     componentUid: number
     componentType: ComponentTypes
     lightType: LightTypes
-    intensity: number
-    color: number
-    distance: number
-    decay: number
+    intensity: number | undefined
+    color: number | undefined
+    distance: number | undefined
+    decay: number | undefined
+    penumbra: number | undefined
+    angle: number | undefined
     constructor(
         newLightType: LightTypes,
-        newIntensity: number,
-        newColor: number,
-        newDistance: number,
-        newDecay: number,
         newEntityUid: number,
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Light
         this.lightType = newLightType
-        this.intensity = newIntensity
-        this.color = newColor
-        this.distance = newDistance
-        this.decay = newDecay
     }
 }
 export class Camera implements ECS.Component {

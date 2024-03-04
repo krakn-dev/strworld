@@ -9,6 +9,7 @@ import { PhysX, PhysXT } from "../physx/physx"
 // order in which they get executed
 export enum CommandTypes {
     TheFirst = 0,
+    SendGraphicComponentsToRender,
     CreateStickman,
     MovePlayer,
     MoveVehicle,
@@ -29,7 +30,6 @@ export enum CommandTypes {
     //    CreateDog = 15,
     //    MoveDog = 16,
     CreateScene,
-    SendGraphicComponentsToRender,
     RunCode,
     SyncPhysics,
     CameraFollowGeometry,
@@ -88,7 +88,7 @@ export class TheFirst implements ECS.Command {
         system.addCommand(CommandTypes.SyncPhysics)
         // system.addCommand(CommandTypes.TorqueWheels)
         system.addCommand(CommandTypes.CreateRobot)
-        //        system.addCommand(CommandTypes.RunCode)
+        system.addCommand(CommandTypes.RunCode)
 
 
         system.removeCommand(this.commandType)
@@ -111,22 +111,25 @@ export class RunCode implements ECS.Command {
         if (foundRigidbody[0].length == 0) return
 
         let rigidBodyA = foundRigidbody[0][0] as Comps.RigidBody
-        //       let rigidBodyB = foundRigidbody[0][2] as Comps.RigidBody
 
         let direction = Funs.getMovementDirection(resources)
         if (direction.x == 0 && direction.y == 0) return
+        let positionComponent = resources.entitiesCache.entities.get(rigidBodyA.entityUid)!.position!
+        console.log(positionComponent.y)
+        let rigidBodyB = foundRigidbody[0][2] as Comps.RigidBody
+
 
         let force = 20
         let angularForceComponentA = resources.entitiesCache.entities.get(rigidBodyA.entityUid)!.torque!
-        //        let angularForceComponentB = resources.entitiesCache.entities.get(rigidBodyB.entityUid)!.torque!
+        ////        let angularForceComponentB = resources.entitiesCache.entities.get(rigidBodyB.entityUid)!.torque!
 
         angularForceComponentA.xToApply = direction.x * force
         angularForceComponentA.zToApply = -direction.y * force
 
-        //      angularForceComponentB.xToApply = direction.x * force
-        //      angularForceComponentB.zToApply = -direction.y * force
-        //for (let cpC of resources.componentChanges.changedComponents[Comps.ComponentTypes.Position]) {
-        //    console.log(cpC)
+        ////      angularForceComponentB.xToApply = direction.x * force
+        ////      angularForceComponentB.zToApply = -direction.y * force
+        ////for (let cpC of resources.componentChanges.changedComponents[Comps.ComponentTypes.Position]) {
+        ////    console.log(cpC)
         //}
     }
 }
@@ -186,8 +189,12 @@ export class CreateScene implements ECS.Command {
         }
         {
             let pointLight = Utils.newUid()
-            let lightComponent = new Comps.Light(Comps.LightTypes.PointLight, 200, 0xffffff, 10, 0, pointLight)
-            let positionComponent = new Comps.Position(new Utils.Vector3(3, 20, 3), pointLight)
+            let lightComponent = new Comps.Light(Comps.LightTypes.PointLight, pointLight);
+            lightComponent.intensity = 1
+            lightComponent.color = 0xffffff
+            lightComponent.distance = 200
+            lightComponent.decay = 0
+            let positionComponent = new Comps.Position(new Utils.Vector3(3, 10, 3), pointLight)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Light, pointLight)
             system.addComponent(lightComponent)
             system.addComponent(positionComponent)
@@ -195,7 +202,9 @@ export class CreateScene implements ECS.Command {
         }
         {
             let ambientLight = Utils.newUid()
-            let lightComponent = new Comps.Light(Comps.LightTypes.AmbientLight, 0.5, 0xffffff, 0, 0, ambientLight)
+            let lightComponent = new Comps.Light(Comps.LightTypes.AmbientLight, ambientLight)
+            lightComponent.intensity = 0.5
+            lightComponent.color = 0xffffff
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Light, ambientLight)
             system.addComponent(lightComponent)
             system.addComponent(entityTypeComponent)
@@ -228,26 +237,26 @@ export class CreateRobot implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        for (let i = 0; i < 300; i++) {
-            let shape1 = Utils.newUid()
+        for (let i = 0; i < 100; i++) {
+            let shape = Utils.newUid()
 
-            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, shape1)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, shape1)
+            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, shape)
+            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, shape)
             shapeComponent.size = new Utils.Vector3(1, 1, 1)
-            let positionComponent = new Comps.Position(new Utils.Vector3(Math.sin(i) * 10, i, Math.sin(i) * 10), shape1)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), shape1)
-            let linearVelocityComponent = new Comps.LinearVelocity(shape1)
-            let angularVelocityComponent = new Comps.AngularVelocity(shape1)
-            let forceComponent = new Comps.Force(shape1)
-            let torqueComponent = new Comps.Torque(shape1)
-            let massComponent = new Comps.Mass(1, shape1)
-            let shapeColorComponent = new Comps.ShapeColor(0xffffff, shape1)
-            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, shape1)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, i, 0), shape)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), shape)
+            let linearVelocityComponent = new Comps.LinearVelocity(shape)
+            let angularVelocityComponent = new Comps.AngularVelocity(shape)
+            let forceComponent = new Comps.Force(shape)
+            let torqueComponent = new Comps.Torque(shape)
+            let massComponent = new Comps.Mass(1, shape)
+            let shapeColorComponent = new Comps.ShapeColor(0xff0000, shape)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, shape)
 
-            system.addComponent(forceComponent)
-            system.addComponent(torqueComponent)
-            system.addComponent(angularVelocityComponent)
-            system.addComponent(linearVelocityComponent)
+            //system.addComponent(forceComponent)
+            //system.addComponent(torqueComponent)
+            //system.addComponent(angularVelocityComponent)
+            //system.addComponent(linearVelocityComponent)
             system.addComponent(rigidBodyComponent)
             system.addComponent(positionComponent)
             system.addComponent(rotationComponent)
@@ -498,7 +507,8 @@ export class SendGraphicComponentsToRender implements ECS.Command {
 
     run(system: ECS.System, resources: Res.Resources) {
         let graphicChanges = new Ser.GraphicChanges()
-        // for changed
+
+        // changed
         graphicChanges.changedComponents.push(
             ...resources.componentChanges.changedComponents[Comps.ComponentTypes.Camera])
         graphicChanges.changedComponents.push(
@@ -514,24 +524,31 @@ export class SendGraphicComponentsToRender implements ECS.Command {
         graphicChanges.changedComponents.push(
             ...resources.componentChanges.changedComponents[Comps.ComponentTypes.ShapeColor])
 
-        // for added
-        graphicChanges.changedComponents.push(
+        // order is important
+        // added
+        graphicChanges.addedComponents.push(
             ...resources.componentChanges.addedComponents[Comps.ComponentTypes.EntityType])
-        graphicChanges.changedComponents.push(
+        graphicChanges.addedComponents.push(
             ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Camera])
-        graphicChanges.changedComponents.push(
+        graphicChanges.addedComponents.push(
             ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Light])
-        graphicChanges.changedComponents.push(
-            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Position])
-        graphicChanges.changedComponents.push(
-            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.EntityState])
-        graphicChanges.changedComponents.push(
-            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Rotation])
-        graphicChanges.changedComponents.push(
+        graphicChanges.addedComponents.push(
             ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Shape])
-        graphicChanges.changedComponents.push(
+        graphicChanges.addedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.EntityState])
+        graphicChanges.addedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Rotation])
+        graphicChanges.addedComponents.push(
+            ...resources.componentChanges.addedComponents[Comps.ComponentTypes.Position])
+        graphicChanges.addedComponents.push(
             ...resources.componentChanges.addedComponents[Comps.ComponentTypes.ShapeColor])
 
+        //console.log(
+        //    graphicChanges.addedComponents.length, "length a",
+        //    graphicChanges.changedComponents.length, "length c")
+        //        console.log(
+        //            resources.componentChanges.addedComponents[Comps.ComponentTypes.Camera].length, "length a",
+        //            resources.componentChanges.changedComponents[Comps.ComponentTypes.Camera].length, "length c")
 
         // check for removed entities
         for (let rC of resources.componentChanges.removedComponents[Comps.ComponentTypes.EntityType]) {
@@ -539,11 +556,13 @@ export class SendGraphicComponentsToRender implements ECS.Command {
         }
 
         // check for added entities
-        for (let rC of resources.componentChanges.addedComponents[Comps.ComponentTypes.EntityType]) {
-            graphicChanges.addedEntitiesUid.push(rC.entityUid)
+        for (let aC of resources.componentChanges.addedComponents[Comps.ComponentTypes.EntityType]) {
+            graphicChanges.addedEntitiesUid.push(aC.entityUid)
         }
 
-        if (graphicChanges.changedComponents.length == 0 &&
+        if (
+            graphicChanges.changedComponents.length == 0 &&
+            graphicChanges.addedComponents.length == 0 &&
             graphicChanges.removedEntitiesUid.length == 0
         ) {
             return

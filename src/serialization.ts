@@ -80,10 +80,12 @@ export class Input {
 
 export class GraphicChanges {
     changedComponents: ECS.Component[]
+    addedComponents: ECS.Component[]
     addedEntitiesUid: number[]
     removedEntitiesUid: number[]
     constructor() {
         this.changedComponents = []
+        this.addedComponents = []
         this.addedEntitiesUid = []
         this.removedEntitiesUid = []
     }

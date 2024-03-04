@@ -1,8 +1,6 @@
 import * as ECS from "./ecs"
 import * as Cmds from "./commands"
 import * as Comps from "./components"
-import * as Utils from "../utils"
-import * as CANNON from 'cannon-es'
 import * as Ser from '../serialization'
 import { PhysX, PhysXT } from "../physx/physx"
 

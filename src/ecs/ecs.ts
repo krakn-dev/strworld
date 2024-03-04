@@ -279,7 +279,6 @@ export class System {
         }
     }
     run() {
-        let start = performance.now()
         for (let c of this.commands) {
             this.currentExecutingCommand.command = c.commandType
             c.run(this, this.resources)
@@ -288,7 +287,8 @@ export class System {
         this.updateCommands()
         this.commandChangesBuffer.clearChanges()
         this.resources.componentChanges.cycleChanges()
-        let end = performance.now()
-        console.log(end - start, "everything")
+        //let start = performance.now()
+        //let end = performance.now()
+        //console.log(end - start, "everything")
     }
 }

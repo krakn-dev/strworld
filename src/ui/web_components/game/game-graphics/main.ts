@@ -45,7 +45,6 @@ export class CustomElement extends HTMLElement {
         for (let aC of addedComponents) {
             let graphicEntity = this.graphicEntities.get(aC.entityUid)
             if (graphicEntity == undefined) {
-                console.log("fix")
                 continue
             };
 
@@ -80,10 +79,11 @@ export class CustomElement extends HTMLElement {
                             continue // remove
                         } break;
                         case Comps.ShapeTypes.Cylinder: {
-                            geometry = new THREE.BoxGeometry(
-                                shapeComponent!.size!.x,
-                                shapeComponent!.size!.y,
-                                shapeComponent!.size!.z);
+                            geometry = new THREE.CylinderGeometry(
+                                shapeComponent.radius! / 2,
+                                shapeComponent.radius! / 2,
+                                shapeComponent.height!,
+                                shapeComponent.sideNumber!);
                         } break;
                     }
                     const mesh = new THREE.Mesh(geometry, material);
@@ -139,10 +139,6 @@ export class CustomElement extends HTMLElement {
                 } break;
                 case Comps.ComponentTypes.ShapeColor: {
                     let shapeColorComponent = aC as Comps.ShapeColor
-                    if (graphicEntity.object == undefined) {
-                        console.log("fix")
-                        continue
-                    }
 
                     let newMaterial = new THREE.MeshPhongMaterial({
                         color: new THREE.Color(shapeColorComponent.color)
@@ -152,12 +148,8 @@ export class CustomElement extends HTMLElement {
 
                 } break;
                 case Comps.ComponentTypes.Rotation: {
-                    if (graphicEntity.object == undefined) {
-                        console.log("fix")
-                        continue
-                    }
                     let rotationComponent = aC as Comps.Rotation
-                    graphicEntity.object.setRotationFromQuaternion(
+                    graphicEntity.object!.setRotationFromQuaternion(
                         new THREE.Quaternion(
                             rotationComponent.x,
                             rotationComponent.y,
@@ -165,10 +157,6 @@ export class CustomElement extends HTMLElement {
                             rotationComponent.w))
                 } break;
                 case Comps.ComponentTypes.EntityState: {
-                    if (graphicEntity.object == undefined) {
-                        console.log("fix")
-                        continue
-                    }
                     let entityStateComponent = aC as Comps.EntityState
                     let animationToPlay = this.getAnimationToPlayByEntityStates(
                         entityStateComponent.states)
@@ -186,14 +174,10 @@ export class CustomElement extends HTMLElement {
                     }
                 } break;
                 case Comps.ComponentTypes.Position: {
-                    if (graphicEntity.object == undefined) {
-                        console.log("fix")
-                        continue
-                    }
                     let positionComponent = aC as Comps.Position
-                    graphicEntity.object.position.x = positionComponent.x
-                    graphicEntity.object.position.y = positionComponent.y
-                    graphicEntity.object.position.z = positionComponent.z
+                    graphicEntity.object!.position.x = positionComponent.x
+                    graphicEntity.object!.position.y = positionComponent.y
+                    graphicEntity.object!.position.z = positionComponent.z
                 } break;
             }
 
@@ -204,7 +188,6 @@ export class CustomElement extends HTMLElement {
                 graphicEntity == undefined ||
                 graphicEntity.object == undefined
             ) {
-                console.log("fix")
                 continue
             };
             this.graphicContextElement.addObject(
@@ -217,7 +200,6 @@ export class CustomElement extends HTMLElement {
         for (let rEU of removedEntitiesUid) {
             let graphicEntity = this.graphicEntities.get(rEU)
             if (graphicEntity == undefined) {
-                console.log("fix");
                 continue
             }
             if (graphicEntity.object == undefined) {
@@ -280,11 +262,7 @@ export class CustomElement extends HTMLElement {
                 } break;
                 case Comps.ComponentTypes.Rotation: {
                     let rotationComponent = cC as Comps.Rotation
-                    if (graphicEntity.object == undefined) {
-                        console.log("fix")
-                        continue
-                    }
-                    graphicEntity.object.setRotationFromQuaternion(
+                    graphicEntity.object!.setRotationFromQuaternion(
                         new THREE.Quaternion(
                             rotationComponent.x,
                             rotationComponent.y,
@@ -311,14 +289,10 @@ export class CustomElement extends HTMLElement {
                     }
                     break;
                 case Comps.ComponentTypes.Position:
-                    if (graphicEntity.object == undefined) {
-                        console.log("fix")
-                        continue
-                    }
                     let positionComponent = cC as Comps.Position
-                    graphicEntity.object.position.x = positionComponent.x
-                    graphicEntity.object.position.y = positionComponent.y
-                    graphicEntity.object.position.z = positionComponent.z
+                    graphicEntity.object!.position.x = positionComponent.x
+                    graphicEntity.object!.position.y = positionComponent.y
+                    graphicEntity.object!.position.z = positionComponent.z
                     break;
             }
         }

@@ -264,6 +264,7 @@ export class Shape implements ECS.Component {
     size: Utils.Vector3 | undefined
     height: number | undefined
     radius: number | undefined
+    sideNumber: number | undefined
     shapeType: ShapeTypes
     shape: PhysXT.PxShape | undefined
     materialType: MaterialTypes

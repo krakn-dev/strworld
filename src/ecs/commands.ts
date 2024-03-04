@@ -174,13 +174,13 @@ export class CreateScene implements ECS.Command {
         {
             let camera = Utils.newUid()
             let cameraComponent = new Comps.Camera(
-                80,
+                60,
                 0.1,
                 500,
                 resources.domState.windowWidth! / resources.domState.windowHeight!,
                 camera)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, 25, 25), camera)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, -0.7), camera)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 10, 10), camera)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, Utils.degreesToRadians(-45)), camera)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Camera, camera)
             system.addComponent(cameraComponent)
             system.addComponent(rotationComponent)
@@ -237,13 +237,16 @@ export class CreateRobot implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 10; i++) {
             let shape = Utils.newUid()
 
             let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, shape)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, shape)
+            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Cylinder, shape)
+            shapeComponent.radius = 1
+            shapeComponent.height = 1
+            shapeComponent.sideNumber = 8
             shapeComponent.size = new Utils.Vector3(1, 1, 1)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, i, 0), shape)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, i * 2, 0), shape)
             let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), shape)
             let linearVelocityComponent = new Comps.LinearVelocity(shape)
             let angularVelocityComponent = new Comps.AngularVelocity(shape)
@@ -543,13 +546,6 @@ export class SendGraphicComponentsToRender implements ECS.Command {
         graphicChanges.addedComponents.push(
             ...resources.componentChanges.addedComponents[Comps.ComponentTypes.ShapeColor])
 
-        //console.log(
-        //    graphicChanges.addedComponents.length, "length a",
-        //    graphicChanges.changedComponents.length, "length c")
-        //        console.log(
-        //            resources.componentChanges.addedComponents[Comps.ComponentTypes.Camera].length, "length a",
-        //            resources.componentChanges.changedComponents[Comps.ComponentTypes.Camera].length, "length c")
-
         // check for removed entities
         for (let rC of resources.componentChanges.removedComponents[Comps.ComponentTypes.EntityType]) {
             graphicChanges.removedEntitiesUid.push(rC.entityUid)
@@ -640,7 +636,10 @@ export class SyncPhysics implements ECS.Command {
                 } break;
                 case Comps.ShapeTypes.Cylinder: {
                     geometry = new PhysX.PxConvexMeshGeometry(
-                        resources.physics.customConvexShapes.createCylinder());
+                        resources.physics.customConvexShapes.createCylinder(
+                            shapeComponent.sideNumber!,
+                            shapeComponent.height!,
+                            shapeComponent.radius!));
                 } break;
             }
             let shape: PhysXT.PxShape

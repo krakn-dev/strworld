@@ -92,27 +92,37 @@ export class Materials {
 }
 export class CustomConvexShapes {
     physics: PhysXT.PxPhysics
-    cache: PhysXT.PxConvexMesh | undefined
+    meshCache: Map<string, PhysXT.PxConvexMesh>
     constructor(newPhysics: PhysXT.PxPhysics) {
         this.physics = newPhysics
+        this.meshCache = new Map()
     }
-    createCylinder(): PhysXT.PxConvexMesh {
-        if (this.cache != undefined) {
-            return this.cache
-        }
+    createCylinder(sideNumber: number, height: number, radius: number): PhysXT.PxConvexMesh {
+        //let cachedMesh = this.getCylinderCache(sideNumber, height, radius)
+        //if (cachedMesh != undefined) {
+        //    return cachedMesh
+        //}
 
-        let points = new PhysX.Vector_PxVec3(8);
+        let points = new PhysX.Vector_PxVec3(sideNumber * 2);
 
         let p;
-        p = points.at(0); p.x = 1; p.y = -1; p.z = -1;
-        p = points.at(1); p.x = 1; p.y = -1; p.z = 1;
-        p = points.at(2); p.x = -1; p.y = -1; p.z = 1;
-        p = points.at(3); p.x = -1; p.y = -1; p.z = -1;
-
-        p = points.at(4); p.x = 1; p.y = 1; p.z = -1;
-        p = points.at(5); p.x = 1; p.y = 1; p.z = 1;
-        p = points.at(6); p.x = -1; p.y = 1; p.z = 1;
-        p = points.at(7); p.x = -1; p.y = 1; p.z = -1;
+        let pointNumber = 0
+        // top
+        for (let n = 1; n <= sideNumber; n++) {
+            p = points.at(pointNumber);
+            p.x = Math.cos((2 * 3.14) * n / sideNumber) * 0.5 * radius; // mess with pi
+            p.y = (height / 2);
+            p.z = Math.sin((2 * 3.14) * n / sideNumber) * 0.5 * radius;
+            pointNumber += 1
+        }
+        // bottom
+        for (let n = 1; n <= sideNumber; n++) {
+            p = points.at(pointNumber);
+            p.x = Math.cos((2 * 3.14) * n / sideNumber) * 0.5 * radius;
+            p.y = -(height / 2);
+            p.z = Math.sin((2 * 3.14) * n / sideNumber) * 0.5 * radius;
+            pointNumber += 1
+        }
 
         let desc = new PhysX.PxConvexMeshDesc();
         desc.flags = new PhysX.PxConvexFlags((PhysX.PxConvexFlagEnum as any).eCOMPUTE_CONVEX)
@@ -124,9 +134,25 @@ export class CustomConvexShapes {
             .CreateConvexMesh(
                 this.physics.getPhysicsInsertionCallback(),
                 desc);
-        this.cache = mesh;
+        this.meshCache = mesh;
 
+        //this.addCylinderCache(sideNumber, height, radius, mesh)
         return mesh
+    }
+    private getCylinderCache(
+        sideNumber: number,
+        height: number,
+        radius: number
+    ) {
+        return this.meshCache.get("c" + "s" + sideNumber + "h" + height + "r" + radius);
+    }
+    private addCylinderCache(
+        sideNumber: number,
+        height: number,
+        radius: number,
+        mesh: PhysXT.PxConvexMesh
+    ) {
+        this.meshCache.set("c" + "s" + sideNumber + "h" + height + "r" + radius, mesh);
     }
 }
 export class PhysicsResource {

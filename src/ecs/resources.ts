@@ -92,8 +92,48 @@ export class Materials {
         this.wheel = physics.createMaterial(0.5, 0.8, 0.5)
     }
 }
+export class CustomConvexShapes {
+    physics: PhysXT.PxPhysics
+    cache: PhysXT.PxConvexMesh | undefined
+    constructor(newPhysics: PhysXT.PxPhysics) {
+        this.physics = newPhysics
+    }
+    createCylinder(): PhysXT.PxConvexMesh {
+        if (this.cache != undefined) {
+            return this.cache
+        }
+
+        let points = new PhysX.Vector_PxVec3(8);
+
+        let p;
+        p = points.at(0); p.x = 1; p.y = -1; p.z = -1;
+        p = points.at(1); p.x = 1; p.y = -1; p.z = 1;
+        p = points.at(2); p.x = -1; p.y = -1; p.z = 1;
+        p = points.at(3); p.x = -1; p.y = -1; p.z = -1;
+
+        p = points.at(4); p.x = 1; p.y = 1; p.z = -1;
+        p = points.at(5); p.x = 1; p.y = 1; p.z = 1;
+        p = points.at(6); p.x = -1; p.y = 1; p.z = 1;
+        p = points.at(7); p.x = -1; p.y = 1; p.z = -1;
+
+        let desc = new PhysX.PxConvexMeshDesc();
+        desc.flags = new PhysX.PxConvexFlags((PhysX.PxConvexFlagEnum as any).eCOMPUTE_CONVEX)
+        desc.points.count = points.size();
+        desc.points.stride = 12;     // sizeof(PxVec3);
+        desc.points.data = points.data();
+
+        let mesh = (PhysX.PxTopLevelFunctions.prototype as any)
+            .CreateConvexMesh(
+                this.physics.getPhysicsInsertionCallback(),
+                desc);
+        this.cache = mesh;
+
+        return mesh
+    }
+}
 export class PhysicsResource {
     materials: Materials
+    customConvexShapes: CustomConvexShapes
     scene: PhysXT.PxScene
     physics: PhysXT.PxPhysics
     rigidBodyPtrAndEntityUid: Map<number, number>
@@ -119,6 +159,7 @@ export class PhysicsResource {
         PhysX.destroy(tolerances)
         PhysX.destroy(sceneDesc)
 
+        this.customConvexShapes = new CustomConvexShapes(this.physics)
         this.materials = new Materials(this.physics)
         this.rigidBodyPtrAndEntityUid = new Map()
     }

@@ -107,6 +107,7 @@ export class System {
 
     // checks for changes in component properties
     // not nested ones
+    lastComponent: Component | undefined
     createProxy<T extends Component>(obj: T): T {
         let outer = this
         let handler = {
@@ -114,15 +115,24 @@ export class System {
                 let component = obj as Component
 
                 let isAlreadyChanged = false
-                for (
-                    let cC of outer.resources.componentChanges.changedComponentsBuffer[component.componentType]
+                if (
+                    outer.lastComponent != undefined &&
+                    outer.lastComponent!.componentUid == component.componentUid
                 ) {
-                    if (cC.componentUid == component.componentUid) {
-                        isAlreadyChanged = true
-                    }
+                    isAlreadyChanged = true
                 }
-                if (!isAlreadyChanged) {
-                    outer.resources.componentChanges.changedComponentsBuffer[component.componentType].push(component)
+                else {
+                    for (
+                        let cC of outer.resources.componentChanges.changedComponentsBuffer[component.componentType]
+                    ) {
+                        if (cC.componentUid == component.componentUid) {
+                            isAlreadyChanged = true
+                        }
+                    }
+                    if (!isAlreadyChanged) {
+                        outer.resources.componentChanges.changedComponentsBuffer[component.componentType].push(component)
+                    }
+                    outer.lastComponent = component
                 }
                 obj[prop] = value;
                 return true;
@@ -269,6 +279,7 @@ export class System {
         }
     }
     run() {
+        let start = performance.now()
         for (let c of this.commands) {
             this.currentExecutingCommand.command = c.commandType
             c.run(this, this.resources)
@@ -277,8 +288,7 @@ export class System {
         this.updateCommands()
         this.commandChangesBuffer.clearChanges()
         this.resources.componentChanges.cycleChanges()
-        //let start = performance.now()
-        //let end = performance.now()
-        //console.log(end - start, "everything")
+        let end = performance.now()
+        console.log(end - start, "everything")
     }
 }

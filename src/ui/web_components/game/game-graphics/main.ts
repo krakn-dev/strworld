@@ -210,6 +210,12 @@ export class CustomElement extends HTMLElement {
                             case Comps.ShapeTypes.Capsule: {
                                 continue
                             } break;
+                            case Comps.ShapeTypes.Cylinder: {
+                                geometry = new THREE.BoxGeometry(
+                                    shapeComponent!.size!.x,
+                                    shapeComponent!.size!.y,
+                                    shapeComponent!.size!.z);
+                            } break;
                         }
                         const mesh = new THREE.Mesh(geometry, material);
                         newGraphicObject = new GraphicObject(mesh, cBE[0])

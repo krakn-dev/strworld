@@ -88,7 +88,7 @@ export class TheFirst implements ECS.Command {
         system.addCommand(CommandTypes.SyncPhysics)
         // system.addCommand(CommandTypes.TorqueWheels)
         system.addCommand(CommandTypes.CreateRobot)
-        system.addCommand(CommandTypes.RunCode)
+        //        system.addCommand(CommandTypes.RunCode)
 
 
         system.removeCommand(this.commandType)
@@ -110,25 +110,21 @@ export class RunCode implements ECS.Command {
         ]);
         if (foundRigidbody[0].length == 0) return
 
-        let foundPosition = system.find([
-            ECS.Get.All,
-            [Comps.ComponentTypes.Position],
-            ECS.By.EntityUid,
-            foundRigidbody[0][0].entityUid
-        ]);
-        if (foundPosition[0].length == 0) return
-
-        let position = foundPosition[0][0] as Comps.Position
+        let rigidBodyA = foundRigidbody[0][0] as Comps.RigidBody
+        //       let rigidBodyB = foundRigidbody[0][2] as Comps.RigidBody
 
         let direction = Funs.getMovementDirection(resources)
         if (direction.x == 0 && direction.y == 0) return
 
-        let force = 10
-        let angularForceComponent = resources.entitiesCache.entities.get(position.entityUid)!.torque!
+        let force = 20
+        let angularForceComponentA = resources.entitiesCache.entities.get(rigidBodyA.entityUid)!.torque!
+        //        let angularForceComponentB = resources.entitiesCache.entities.get(rigidBodyB.entityUid)!.torque!
 
-        angularForceComponent.xToApply = direction.x * force
-        angularForceComponent.zToApply = -direction.y * force
+        angularForceComponentA.xToApply = direction.x * force
+        angularForceComponentA.zToApply = -direction.y * force
 
+        //      angularForceComponentB.xToApply = direction.x * force
+        //      angularForceComponentB.zToApply = -direction.y * force
         //for (let cpC of resources.componentChanges.changedComponents[Comps.ComponentTypes.Position]) {
         //    console.log(cpC)
         //}
@@ -175,13 +171,13 @@ export class CreateScene implements ECS.Command {
         {
             let camera = Utils.newUid()
             let cameraComponent = new Comps.Camera(
-                70,
+                80,
                 0.1,
                 500,
                 resources.domState.windowWidth! / resources.domState.windowHeight!,
                 camera)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, 3, 5), camera)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, -0.1), camera)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 25, 25), camera)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, -0.7), camera)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Camera, camera)
             system.addComponent(cameraComponent)
             system.addComponent(rotationComponent)
@@ -190,8 +186,8 @@ export class CreateScene implements ECS.Command {
         }
         {
             let pointLight = Utils.newUid()
-            let lightComponent = new Comps.Light(Comps.LightTypes.PointLight, 100, 0xffffff, 10, 0, pointLight)
-            let positionComponent = new Comps.Position(new Utils.Vector3(3, 10, 3), pointLight)
+            let lightComponent = new Comps.Light(Comps.LightTypes.PointLight, 200, 0xffffff, 10, 0, pointLight)
+            let positionComponent = new Comps.Position(new Utils.Vector3(3, 20, 3), pointLight)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Light, pointLight)
             system.addComponent(lightComponent)
             system.addComponent(positionComponent)
@@ -208,7 +204,7 @@ export class CreateScene implements ECS.Command {
             let floor = Utils.newUid()
             let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Static, floor)
             let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, floor)
-            shapeComponent.size = new Utils.Vector3(100, 100, 200)
+            shapeComponent.size = new Utils.Vector3(100, 100, 100)
             let positionComponent = new Comps.Position(new Utils.Vector3(0, -51, 0), floor)
             let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), floor)
             let shapeColorComponent = new Comps.ShapeColor(0xffffff, floor)
@@ -232,23 +228,24 @@ export class CreateRobot implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        for (let i = 0; i < 1; i++) {
-            let shape = Utils.newUid()
-            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, shape)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, shape)
-            shapeComponent.size = new Utils.Vector3(0.25, 0.25, 0.25)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, 5, 0), shape)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), shape)
-            let linearVelocityComponent = new Comps.LinearVelocity(shape)
-            let angularVelocityComponent = new Comps.AngularVelocity(shape)
-            let forceComponent = new Comps.Force(shape)
-            let angularForceComponent = new Comps.Torque(shape)
-            let massComponent = new Comps.Mass(1, shape)
-            let shapeColorComponent = new Comps.ShapeColor(0xffffff, shape)
-            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, shape)
+        for (let i = 0; i < 300; i++) {
+            let shape1 = Utils.newUid()
+
+            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, shape1)
+            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, shape1)
+            shapeComponent.size = new Utils.Vector3(1, 1, 1)
+            let positionComponent = new Comps.Position(new Utils.Vector3(Math.sin(i) * 10, i, Math.sin(i) * 10), shape1)
+            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), shape1)
+            let linearVelocityComponent = new Comps.LinearVelocity(shape1)
+            let angularVelocityComponent = new Comps.AngularVelocity(shape1)
+            let forceComponent = new Comps.Force(shape1)
+            let torqueComponent = new Comps.Torque(shape1)
+            let massComponent = new Comps.Mass(1, shape1)
+            let shapeColorComponent = new Comps.ShapeColor(0xffffff, shape1)
+            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, shape1)
 
             system.addComponent(forceComponent)
-            system.addComponent(angularForceComponent)
+            system.addComponent(torqueComponent)
             system.addComponent(angularVelocityComponent)
             system.addComponent(linearVelocityComponent)
             system.addComponent(rigidBodyComponent)
@@ -258,7 +255,6 @@ export class CreateRobot implements ECS.Command {
             system.addComponent(shapeComponent)
             system.addComponent(shapeColorComponent)
             system.addComponent(entityTypeComponent);
-
         }
         system.removeCommand(this.commandType)
     }
@@ -621,8 +617,11 @@ export class SyncPhysics implements ECS.Command {
                 case Comps.ShapeTypes.Capsule: {
                     geometry = new PhysX.PxCapsuleGeometry(
                         shapeComponent.radius!,
-                        shapeComponent.height! / 2,
-                    )
+                        shapeComponent.height! / 2);
+                } break;
+                case Comps.ShapeTypes.Cylinder: {
+                    geometry = new PhysX.PxConvexMeshGeometry(
+                        resources.physics.customConvexShapes.createCylinder());
                 } break;
             }
             let shape: PhysXT.PxShape
@@ -803,67 +802,44 @@ export class SyncPhysics implements ECS.Command {
             let rigidBodyB = rigidBodyBComponent.body!
 
             let constraint: PhysXT.PxJoint
+            let localFrameA = new PhysX.PxTransform(
+                new PhysX.PxVec3(
+                    constraintComponent.pivotA!.x,
+                    constraintComponent.pivotA!.y,
+                    constraintComponent.pivotA!.z),
+                new PhysX.PxQuat(
+                    constraintComponent.axisA!.x,
+                    constraintComponent.axisA!.y,
+                    constraintComponent.axisA!.z,
+                    constraintComponent.axisA!.w));
+
+            let localFrameB = new PhysX.PxTransform(
+                new PhysX.PxVec3(
+                    constraintComponent.pivotB!.x,
+                    constraintComponent.pivotB!.y,
+                    constraintComponent.pivotB!.z),
+                new PhysX.PxQuat(
+                    constraintComponent.axisB!.x,
+                    constraintComponent.axisB!.y,
+                    constraintComponent.axisB!.z,
+                    constraintComponent.axisB!.w));
+
             switch (constraintComponent.constraintType) {
                 case Comps.ConstraintTypes.Lock: {
-                    let localFrameA = new PhysX.PxTransform(
-                        new PhysX.PxVec3(
-                            constraintComponent.pivotA!.x,
-                            constraintComponent.pivotA!.y,
-                            constraintComponent.pivotA!.z),
-                        new PhysX.PxQuat(
-                            constraintComponent.axisA!.x,
-                            constraintComponent.axisA!.y,
-                            constraintComponent.axisA!.z,
-                            constraintComponent.axisA!.w));
-
-                    let localFrameB = new PhysX.PxTransform(
-                        new PhysX.PxVec3(
-                            constraintComponent.pivotB!.x,
-                            constraintComponent.pivotB!.y,
-                            constraintComponent.pivotB!.z),
-                        new PhysX.PxQuat(
-                            constraintComponent.axisB!.x,
-                            constraintComponent.axisB!.y,
-                            constraintComponent.axisB!.z,
-                            constraintComponent.axisB!.w));
-
-                    constraint = PhysX.PxTopLevelFunctions.FixedJointCreate(
+                    constraint = (PhysX.PxTopLevelFunctions.prototype as any).FixedJointCreate(
                         resources.physics.physics,
                         rigidBodyA,
                         localFrameA,
                         rigidBodyB,
                         localFrameB)
-                    continue
                 } break;
                 case Comps.ConstraintTypes.Distance: {
                     console.log("not yet")
-                    continue
+                    continue // remove
                 } break;
 
                 case Comps.ConstraintTypes.Hinge: {
-                    let localFrameA = new PhysX.PxTransform(
-                        new PhysX.PxVec3(
-                            constraintComponent.pivotA!.x,
-                            constraintComponent.pivotA!.y,
-                            constraintComponent.pivotA!.z),
-                        new PhysX.PxQuat(
-                            constraintComponent.axisA!.x,
-                            constraintComponent.axisA!.y,
-                            constraintComponent.axisA!.z,
-                            constraintComponent.axisA!.w));
-
-                    let localFrameB = new PhysX.PxTransform(
-                        new PhysX.PxVec3(
-                            constraintComponent.pivotB!.x,
-                            constraintComponent.pivotB!.y,
-                            constraintComponent.pivotB!.z),
-                        new PhysX.PxQuat(
-                            constraintComponent.axisB!.x,
-                            constraintComponent.axisB!.y,
-                            constraintComponent.axisB!.z,
-                            constraintComponent.axisB!.w));
-
-                    constraint = PhysX.PxTopLevelFunctions.RevoluteJointCreate(
+                    constraint = (PhysX.PxTopLevelFunctions.prototype as any).RevoluteJointCreate(
                         resources.physics.physics,
                         rigidBodyA,
                         localFrameA,

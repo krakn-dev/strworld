@@ -71,6 +71,7 @@ export enum LightTypes {
 export enum ShapeTypes {
     Box,
     Capsule,
+    Cylinder,
 }
 export enum ConstraintTypes {
     Lock,

@@ -114,17 +114,35 @@ export class RunCode implements ECS.Command {
 
         let direction = Funs.getMovementDirection(resources)
         if (direction.x == 0 && direction.y == 0) return
-        let positionComponent = resources.entitiesCache.entities.get(rigidBodyA.entityUid)!.position!
-        console.log(positionComponent.y)
-        let rigidBodyB = foundRigidbody[0][2] as Comps.RigidBody
+        let shape = Utils.newUid()
 
+        let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, shape)
+        let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Cylinder, shape)
+        shapeComponent.radius = 1
+        shapeComponent.height = 1
+        shapeComponent.sideNumber = 3
+        shapeComponent.size = new Utils.Vector3(1, 1, 1)
+        let positionComponent = new Comps.Position(new Utils.Vector3(0, 5, 0), shape)
+        let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), shape)
+        let linearVelocityComponent = new Comps.LinearVelocity(shape)
+        let angularVelocityComponent = new Comps.AngularVelocity(shape)
+        let forceComponent = new Comps.Force(shape)
+        let torqueComponent = new Comps.Torque(shape)
+        let massComponent = new Comps.Mass(1, shape)
+        let shapeColorComponent = new Comps.ShapeColor(0xff0000, shape)
+        let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, shape)
 
-        let force = 20
-        let angularForceComponentA = resources.entitiesCache.entities.get(rigidBodyA.entityUid)!.torque!
-        ////        let angularForceComponentB = resources.entitiesCache.entities.get(rigidBodyB.entityUid)!.torque!
-
-        angularForceComponentA.xToApply = direction.x * force
-        angularForceComponentA.zToApply = -direction.y * force
+        //system.addComponent(forceComponent)
+        //system.addComponent(torqueComponent)
+        //system.addComponent(angularVelocityComponent)
+        //system.addComponent(linearVelocityComponent)
+        system.addComponent(rigidBodyComponent)
+        system.addComponent(positionComponent)
+        system.addComponent(rotationComponent)
+        system.addComponent(massComponent)
+        system.addComponent(shapeComponent)
+        system.addComponent(shapeColorComponent)
+        system.addComponent(entityTypeComponent);
 
         ////      angularForceComponentB.xToApply = direction.x * force
         ////      angularForceComponentB.zToApply = -direction.y * force
@@ -172,14 +190,14 @@ export class CreateScene implements ECS.Command {
 
     run(system: ECS.System, resources: Res.Resources) {
         {
-            let camera = Utils.newUid()
+            let camera = system.createEntity()
             let cameraComponent = new Comps.Camera(
-                60,
+                80,
                 0.1,
                 500,
                 resources.domState.windowWidth! / resources.domState.windowHeight!,
                 camera)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, 10, 10), camera)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, 25, 25), camera)
             let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, Utils.degreesToRadians(-45)), camera)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Camera, camera)
             system.addComponent(cameraComponent)
@@ -188,7 +206,7 @@ export class CreateScene implements ECS.Command {
             system.addComponent(entityTypeComponent)
         }
         {
-            let pointLight = Utils.newUid()
+            let pointLight = system.createEntity()
             let lightComponent = new Comps.Light(Comps.LightTypes.PointLight, pointLight);
             lightComponent.intensity = 1
             lightComponent.color = 0xffffff
@@ -201,7 +219,7 @@ export class CreateScene implements ECS.Command {
             system.addComponent(entityTypeComponent)
         }
         {
-            let ambientLight = Utils.newUid()
+            let ambientLight = system.createEntity()
             let lightComponent = new Comps.Light(Comps.LightTypes.AmbientLight, ambientLight)
             lightComponent.intensity = 0.5
             lightComponent.color = 0xffffff
@@ -210,7 +228,7 @@ export class CreateScene implements ECS.Command {
             system.addComponent(entityTypeComponent)
         }
         {
-            let floor = Utils.newUid()
+            let floor = system.createEntity()
             let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Static, floor)
             let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, floor)
             shapeComponent.size = new Utils.Vector3(100, 100, 100)
@@ -238,15 +256,16 @@ export class CreateRobot implements ECS.Command {
 
     run(system: ECS.System, resources: Res.Resources) {
         for (let i = 0; i < 10; i++) {
-            let shape = Utils.newUid()
+            let shape = system.createEntity()
 
             let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, shape)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Cylinder, shape)
-            shapeComponent.radius = 1
-            shapeComponent.height = 1
-            shapeComponent.sideNumber = 8
+            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, shape)
             shapeComponent.size = new Utils.Vector3(1, 1, 1)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, i * 2, 0), shape)
+            //shapeComponent.radius = 0.5
+            //shapeComponent.height = 1
+            //shapeComponent.sideNumber = 10
+            //Funs.cacheShape(shapeComponent, resources)
+            let positionComponent = new Comps.Position(new Utils.Vector3(0, i, 0), shape)
             let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), shape)
             let linearVelocityComponent = new Comps.LinearVelocity(shape)
             let angularVelocityComponent = new Comps.AngularVelocity(shape)
@@ -375,7 +394,7 @@ export class CreateStickman implements ECS.Command {
     run(system: ECS.System, _: Res.Resources) {
         for (let x = 0; x < 1; x++) {
             for (let y = 0; y < 1; y++) {
-                let stickman = Utils.newUid()
+                let stickman = system.createEntity()
                 let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, 0), stickman)
                 let entityStateComponent = new Comps.EntityState([Comps.EntityStates.Idle], stickman)
                 let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Stickman, stickman)
@@ -610,9 +629,6 @@ export class SyncPhysics implements ECS.Command {
                 (rigidBody as any).ptr as number,
                 rigidBodyComponent.entityUid)
 
-            let entityCache = resources.entitiesCache.newEntity(rigidBodyComponent.entityUid)
-            entityCache.rigidbody = system.createProxy(rigidBodyComponent);
-
             PhysX.destroy(transform)
         }
         /////////////////
@@ -635,11 +651,10 @@ export class SyncPhysics implements ECS.Command {
                         shapeComponent.height! / 2);
                 } break;
                 case Comps.ShapeTypes.Cylinder: {
-                    geometry = new PhysX.PxConvexMeshGeometry(
-                        resources.physics.customConvexShapes.createCylinder(
-                            shapeComponent.sideNumber!,
-                            shapeComponent.height!,
-                            shapeComponent.radius!));
+                    geometry = resources.physics.customConvexShapes.createPrism(
+                        shapeComponent.sideNumber!,
+                        shapeComponent.height!,
+                        shapeComponent.radius!);
                 } break;
             }
             let shape: PhysXT.PxShape
@@ -678,10 +693,10 @@ export class SyncPhysics implements ECS.Command {
                 rigidbodyComponent.body!.attachShape(shape)
                 shapeComponent.shape = shape
             }
-            let entityCache = resources.entitiesCache.entities.get(shapeComponent.entityUid)
-            entityCache!.shape = system.createProxy(shapeComponent)
 
-            PhysX.destroy(geometry);
+            if (shapeComponent.shapeType == Comps.ShapeTypes.Box) {
+                PhysX.destroy(geometry);
+            }
         }
         /////////////////
         // added position
@@ -708,9 +723,6 @@ export class SyncPhysics implements ECS.Command {
                         positionComponent.z),
                     transform.q,
                 ))
-
-            let entityCache = resources.entitiesCache.entities.get(positionComponent.entityUid)
-            entityCache!.position = system.createProxy(positionComponent)
         }
         /////////////////
         // added rotation
@@ -738,8 +750,6 @@ export class SyncPhysics implements ECS.Command {
                         rotationComponent.z,
                         rotationComponent.w)))
 
-            let entityCache = resources.entitiesCache.entities.get(rotationComponent.entityUid)
-            entityCache!.rotation = system.createProxy(rotationComponent)
         }
         /////////////////
         // added mass
@@ -758,8 +768,6 @@ export class SyncPhysics implements ECS.Command {
             let massComponent = aMC as Comps.Mass
             (rigidBodyComponent.body as PhysXT.PxRigidBody).setMass(massComponent.mass)
 
-            let entityCache = resources.entitiesCache.entities.get(massComponent.entityUid)
-            entityCache!.mass = system.createProxy(massComponent)
         }
         /////////////////
         // added angular velocity
@@ -782,9 +790,6 @@ export class SyncPhysics implements ECS.Command {
                         angularVelocityComponent.x,
                         angularVelocityComponent.y,
                         angularVelocityComponent.z))
-
-            let entityCache = resources.entitiesCache.entities.get(angularVelocityComponent.entityUid)
-            entityCache!.angularVelocity = system.createProxy(angularVelocityComponent)
         }
         /////////////////
         // added constraint
@@ -866,8 +871,6 @@ export class SyncPhysics implements ECS.Command {
                 } break;
             }
             constraintComponent.constraint = constraint
-            let entityCache = resources.entitiesCache.entities.get(constraintComponent.entityUid)
-            entityCache!.constraint = system.createProxy(constraintComponent)
         }
         /////////////////
         // added linear velocity
@@ -891,8 +894,6 @@ export class SyncPhysics implements ECS.Command {
                         linearVelocityComponent.y,
                         linearVelocityComponent.z))
 
-            let entityCache = resources.entitiesCache.entities.get(linearVelocityComponent.entityUid)
-            entityCache!.linearVelocity = system.createProxy(linearVelocityComponent)
         }
         /////////////////
         // added angular force
@@ -920,9 +921,6 @@ export class SyncPhysics implements ECS.Command {
             torqueComponent.xToApply = 0
             torqueComponent.yToApply = 0
             torqueComponent.zToApply = 0
-
-            let entityCache = resources.entitiesCache.entities.get(torqueComponent.entityUid)
-            entityCache!.torque = system.createProxy(torqueComponent)
         }
         /////////////////
         // added force
@@ -950,9 +948,6 @@ export class SyncPhysics implements ECS.Command {
             forceComponent.xToApply = 0
             forceComponent.yToApply = 0
             forceComponent.zToApply = 0
-
-            let entityCache = resources.entitiesCache.entities.get(forceComponent.entityUid)
-            entityCache!.force = system.createProxy(forceComponent)
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////

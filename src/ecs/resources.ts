@@ -59,14 +59,21 @@ class EntityCache {
     health: Comps.Health | undefined
     camera: Comps.Camera | undefined
     robotComponent: Comps.RobotComponent | undefined
+    robotSuperComponent: Comps.RobotSuperComponent | undefined
     targetPosition: Comps.TargetPosition | undefined
     wheel: Comps.Wheel | undefined
+    robot: Comps.Robot | undefined
     light: Comps.Light | undefined
     entityState: Comps.EntityState | undefined
     shape: Comps.Shape | undefined
     force: Comps.Torque | undefined
     torque: Comps.Torque | undefined
     constraint: Comps.Constraint | undefined
+    code: Comps.Code | undefined
+    hardCodedId: Comps.HardCodedId | undefined
+    shapeColor: Comps.ShapeColor | undefined
+    timer: Comps.Timer | undefined
+    name: Comps.Name | undefined
     constructor(newEntityUid: number) {
         this.entityUid = newEntityUid
     }
@@ -76,10 +83,173 @@ export class EntitiesCache {
     constructor() {
         this.entities = new Map()
     }
-    newEntity(entityUid: number): EntityCache {
+    addEntity(entityUid: number) {
         let entityCache = new EntityCache(entityUid)
         this.entities.set(entityUid, entityCache)
-        return entityCache
+    }
+    removeEntity(entityUid: number) {
+        this.entities.delete(entityUid)
+    }
+    removeComponent(component: ECS.Component) {
+        let entityCache = this.entities.get(component.entityUid)!
+        switch (component.componentType) {
+            case Comps.ComponentTypes.Health:
+                entityCache.health = undefined
+                break;
+            case Comps.ComponentTypes.Camera:
+                entityCache.camera = undefined
+                break;
+            case Comps.ComponentTypes.Light:
+                entityCache.light = undefined
+                break;
+            case Comps.ComponentTypes.EntityState:
+                entityCache.entityState = undefined
+                break;
+            case Comps.ComponentTypes.Name:
+                entityCache.name = undefined
+                break;
+            case Comps.ComponentTypes.EntityType:
+                entityCache.entityType = undefined
+                break;
+            case Comps.ComponentTypes.TargetLocation:
+                entityCache.targetPosition = undefined
+                break;
+            case Comps.ComponentTypes.Timer:
+                entityCache.timer = undefined
+                break;
+            case Comps.ComponentTypes.Shape:
+                entityCache.shape = undefined
+                break;
+            case Comps.ComponentTypes.Mass:
+                entityCache.mass = undefined
+                break;
+            case Comps.ComponentTypes.ShapeColor:
+                entityCache.shapeColor = undefined
+                break;
+            case Comps.ComponentTypes.HardCodedId:
+                entityCache.hardCodedId = undefined
+                break;
+            case Comps.ComponentTypes.Code:
+                entityCache.code = undefined
+                break;
+            case Comps.ComponentTypes.RigidBody:
+                entityCache.rigidbody = undefined
+                break;
+            case Comps.ComponentTypes.Constraint:
+                entityCache.constraint = undefined
+                break;
+            case Comps.ComponentTypes.Wheel:
+                entityCache.wheel = undefined
+                break;
+            case Comps.ComponentTypes.RobotComponent:
+                entityCache.robotComponent = undefined
+                break;
+            case Comps.ComponentTypes.Robot:
+                entityCache.robot = undefined
+                break;
+            case Comps.ComponentTypes.RobotSuperComponent:
+                entityCache.robotSuperComponent = undefined
+                break;
+            case Comps.ComponentTypes.Force:
+                entityCache.force = undefined
+                break;
+            case Comps.ComponentTypes.Torque:
+                entityCache.torque = undefined
+                break;
+            case Comps.ComponentTypes.LinearVelocity:
+                entityCache.linearVelocity = undefined
+                break;
+            case Comps.ComponentTypes.AngularVelocity:
+                entityCache.angularVelocity = undefined
+                break;
+            case Comps.ComponentTypes.Position:
+                entityCache.position = undefined
+                break;
+            case Comps.ComponentTypes.Rotation:
+                entityCache.rotation = undefined
+                break;
+        }
+    }
+    addComponent(component: ECS.Component) {
+        let entityCache = this.entities.get(component.entityUid)!
+        let c = component as any
+        switch (component.componentType) {
+            case Comps.ComponentTypes.Health:
+                entityCache.health = c
+                break;
+            case Comps.ComponentTypes.Camera:
+                entityCache.camera = c
+                break;
+            case Comps.ComponentTypes.Light:
+                entityCache.light = c
+                break;
+            case Comps.ComponentTypes.EntityState:
+                entityCache.entityState = c
+                break;
+            case Comps.ComponentTypes.Name:
+                entityCache.name = c
+                break;
+            case Comps.ComponentTypes.EntityType:
+                entityCache.entityType = c
+                break;
+            case Comps.ComponentTypes.TargetLocation:
+                entityCache.targetPosition = c
+                break;
+            case Comps.ComponentTypes.Timer:
+                entityCache.timer = c
+                break;
+            case Comps.ComponentTypes.Shape:
+                entityCache.shape = c
+                break;
+            case Comps.ComponentTypes.Mass:
+                entityCache.mass = c
+                break;
+            case Comps.ComponentTypes.ShapeColor:
+                entityCache.shapeColor = c
+                break;
+            case Comps.ComponentTypes.HardCodedId:
+                entityCache.hardCodedId = c
+                break;
+            case Comps.ComponentTypes.Code:
+                entityCache.code = c
+                break;
+            case Comps.ComponentTypes.RigidBody:
+                entityCache.rigidbody = c
+                break;
+            case Comps.ComponentTypes.Constraint:
+                entityCache.constraint = c
+                break;
+            case Comps.ComponentTypes.Wheel:
+                entityCache.wheel = c
+                break;
+            case Comps.ComponentTypes.RobotComponent:
+                entityCache.robotComponent = c
+                break;
+            case Comps.ComponentTypes.Robot:
+                entityCache.robot = c
+                break;
+            case Comps.ComponentTypes.RobotSuperComponent:
+                entityCache.robotSuperComponent = c
+                break;
+            case Comps.ComponentTypes.Force:
+                entityCache.force = c
+                break;
+            case Comps.ComponentTypes.Torque:
+                entityCache.torque = c
+                break;
+            case Comps.ComponentTypes.LinearVelocity:
+                entityCache.linearVelocity = c
+                break;
+            case Comps.ComponentTypes.AngularVelocity:
+                entityCache.angularVelocity = c
+                break;
+            case Comps.ComponentTypes.Position:
+                entityCache.position = c
+                break;
+            case Comps.ComponentTypes.Rotation:
+                entityCache.rotation = c
+                break;
+        }
     }
 }
 export class Materials {
@@ -92,35 +262,33 @@ export class Materials {
 }
 export class CustomConvexShapes {
     physics: PhysXT.PxPhysics
-    meshCache: Map<string, PhysXT.PxConvexMesh>
+    cache: Map<string, PhysXT.PxGeometry>
     constructor(newPhysics: PhysXT.PxPhysics) {
         this.physics = newPhysics
-        this.meshCache = new Map()
+        this.cache = new Map()
     }
-    createCylinder(sideNumber: number, height: number, radius: number): PhysXT.PxConvexMesh {
-        //let cachedMesh = this.getCylinderCache(sideNumber, height, radius)
-        //if (cachedMesh != undefined) {
-        //    return cachedMesh
-        //}
-
+    createPrism(sideNumber: number, height: number, radius: number): PhysXT.PxGeometry {
+        let cachedGeometry = this.cache.get("p" + "s" + sideNumber + "h" + height + "r" + radius)
+        if (cachedGeometry != undefined) {
+            return cachedGeometry
+        }
         let points = new PhysX.Vector_PxVec3(sideNumber * 2);
-
         let p;
         let pointNumber = 0
         // top
         for (let n = 1; n <= sideNumber; n++) {
             p = points.at(pointNumber);
-            p.x = Math.cos((2 * 3.14) * n / sideNumber) * 0.5 * radius; // mess with pi
-            p.y = (height / 2);
-            p.z = Math.sin((2 * 3.14) * n / sideNumber) * 0.5 * radius;
+            p.x = Math.sin(((2 * Math.PI) * n) / sideNumber) * radius;
+            p.y = height / 2;
+            p.z = Math.cos(((2 * Math.PI) * n) / sideNumber) * radius;
             pointNumber += 1
         }
         // bottom
         for (let n = 1; n <= sideNumber; n++) {
             p = points.at(pointNumber);
-            p.x = Math.cos((2 * 3.14) * n / sideNumber) * 0.5 * radius;
-            p.y = -(height / 2);
-            p.z = Math.sin((2 * 3.14) * n / sideNumber) * 0.5 * radius;
+            p.x = Math.sin(((2 * Math.PI) * n) / sideNumber) * radius;
+            p.y = -height / 2;
+            p.z = Math.cos(((2 * Math.PI) * n) / sideNumber) * radius;
             pointNumber += 1
         }
 
@@ -130,29 +298,13 @@ export class CustomConvexShapes {
         desc.points.stride = 12;     // sizeof(PxVec3);
         desc.points.data = points.data();
 
-        let mesh = (PhysX.PxTopLevelFunctions.prototype as any)
-            .CreateConvexMesh(
-                this.physics.getPhysicsInsertionCallback(),
-                desc);
-        this.meshCache = mesh;
-
-        //this.addCylinderCache(sideNumber, height, radius, mesh)
-        return mesh
-    }
-    private getCylinderCache(
-        sideNumber: number,
-        height: number,
-        radius: number
-    ) {
-        return this.meshCache.get("c" + "s" + sideNumber + "h" + height + "r" + radius);
-    }
-    private addCylinderCache(
-        sideNumber: number,
-        height: number,
-        radius: number,
-        mesh: PhysXT.PxConvexMesh
-    ) {
-        this.meshCache.set("c" + "s" + sideNumber + "h" + height + "r" + radius, mesh);
+        let geometry = new PhysX.PxConvexMeshGeometry(
+            (PhysX.PxTopLevelFunctions.prototype as any)
+                .CreateConvexMesh(
+                    this.physics.getPhysicsInsertionCallback(),
+                    desc));
+        this.cache.set("p" + "s" + sideNumber + "h" + height + "r" + radius, geometry)
+        return geometry
     }
 }
 export class PhysicsResource {

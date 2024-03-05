@@ -44,3 +44,19 @@ export function getMovementDirection(resources: Res.Resources): Utils.Vector2 {
 
     return direction
 }
+export function cacheShape(shapeComponent: Comps.Shape, resources: Res.Resources) {
+    switch (shapeComponent.shapeType) {
+        case Comps.ShapeTypes.Box: {
+            console.log("no need to cache")
+        } break;
+        case Comps.ShapeTypes.Capsule: {
+            console.log("no need to cache")
+        } break;
+        case Comps.ShapeTypes.Cylinder: {
+            resources.physics.customConvexShapes.createPrism(
+                shapeComponent.sideNumber!,
+                shapeComponent.height!,
+                shapeComponent.radius!)
+        } break;
+    }
+}

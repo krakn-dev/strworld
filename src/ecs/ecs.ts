@@ -66,6 +66,7 @@ export class System {
     constructor(newResources: Res.Resources, newCurrentExecutingCommand: CurrentExecutingCommand) {
         this.resources = newResources
         this.currentExecutingCommand = newCurrentExecutingCommand
+        this.changedComponents = new Map()
 
         this.commandChangesBuffer = new CommandChanges()
         this.commands = []
@@ -76,6 +77,14 @@ export class System {
         }
     }
 
+    createEntity(): number {
+        let entityUid = Utils.newUid()
+        this.resources.entitiesCache.addEntity(entityUid)
+        return entityUid
+    }
+    removeEntity(entityUid: number) {
+        console.log("IMPLEMENT")
+    }
     removeCommand(command: Cmds.CommandTypes) {
         this.commandChangesBuffer.removedCommands.push(command)
     }
@@ -83,13 +92,14 @@ export class System {
         this.commandChangesBuffer.addedCommands.push(command)
     }
     addComponent(component: Component) {
-        this.components[component.componentType].push(
-            this.createProxy(component))
+        let proxyComponent = this.createProxy(component)
+        this.components[component.componentType].push(proxyComponent)
         this
             .resources
             .componentChanges
             .addedComponentsBuffer[component.componentType]
             .push(component)
+        this.resources.entitiesCache.addComponent(proxyComponent)
     }
     removeComponent(component: Component) {
         for (let [cI, c] of this.components[component.componentType].entries()) {
@@ -99,41 +109,40 @@ export class System {
                     .componentChanges
                     .removedComponentsBuffer[component.componentType]
                     .push(component)
-
                 this.components.splice(cI, 1)
+                this.resources.entitiesCache.removeComponent(component)
             }
         }
+
     }
 
     // checks for changes in component properties
     // not nested ones
-    lastComponent: Component | undefined
-    createProxy<T extends Component>(obj: T): T {
+    private lastComponent: Component | undefined
+    private changedComponents: Map<number, boolean>
+    private createProxy<T extends Component>(obj: T): T {
         let outer = this
         let handler = {
             set(obj: { [key: string]: any }, prop: string, value: any) {
                 let component = obj as Component
 
                 let isAlreadyChanged = false
+
                 if (
                     outer.lastComponent != undefined &&
-                    outer.lastComponent!.componentUid == component.componentUid
+                    outer.lastComponent.componentUid == component.componentUid
                 ) {
                     isAlreadyChanged = true
+                } else {
+                    let isChanged = outer.changedComponents.get(component.componentUid)
+                    if (isChanged) isAlreadyChanged = true
                 }
-                else {
-                    for (
-                        let cC of outer.resources.componentChanges.changedComponentsBuffer[component.componentType]
-                    ) {
-                        if (cC.componentUid == component.componentUid) {
-                            isAlreadyChanged = true
-                        }
-                    }
-                    if (!isAlreadyChanged) {
-                        outer.resources.componentChanges.changedComponentsBuffer[component.componentType].push(component)
-                    }
-                    outer.lastComponent = component
+
+                if (!isAlreadyChanged) {
+                    outer.resources.componentChanges.changedComponentsBuffer[component.componentType].push(component)
+                    outer.changedComponents.set(component.componentUid, true)
                 }
+
                 obj[prop] = value;
                 return true;
             },
@@ -287,6 +296,7 @@ export class System {
         this.updateCommands()
         this.commandChangesBuffer.clearChanges()
         this.resources.componentChanges.cycleChanges()
+        this.changedComponents.clear()
         //let start = performance.now()
         //let end = performance.now()
         //console.log(end - start, "everything")

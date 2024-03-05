@@ -7,12 +7,10 @@ export enum ComponentTypes {
     Camera,
     Light,
     EntityState,
-    Name,
     EntityType,
     TargetLocation,
     Timer,
     Shape,
-    ComposedShape,
     Mass,
     ShapeColor,
     HardCodedId,
@@ -23,7 +21,7 @@ export enum ComponentTypes {
     RobotComponent,
     Robot,
     RobotSuperComponent,
-
+    Name,
     Force,
     Torque,
     LinearVelocity,
@@ -93,6 +91,18 @@ export enum RobotComponentTypes {
     WoodenStick,
 }
 
+export class Robot implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    constructor(
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Robot
+    }
+}
 export class RobotSuperComponent implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -109,21 +119,6 @@ export class RobotSuperComponent implements ECS.Component {
         this.componentType = ComponentTypes.RobotSuperComponent
         this.robotComponentsEntityUid = newRobotComponentsEntityUid
         this.robotEntityUidAttachedTo = newRobotEntityUidAttachedTo
-    }
-}
-export class ComposedShape implements ECS.Component {
-    entityUid: number
-    componentUid: number
-    componentType: ComponentTypes
-    shapesEntityUid: number[]
-    constructor(
-        newShapesEntityUid: number[],
-        newEntityUid: number,
-    ) {
-        this.componentUid = Utils.newUid()
-        this.entityUid = newEntityUid
-        this.componentType = ComponentTypes.ComposedShape
-        this.shapesEntityUid = newShapesEntityUid
     }
 }
 export class RobotComponent implements ECS.Component {
@@ -481,6 +476,18 @@ export class Mass implements ECS.Component {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Mass
+    }
+}
+export class Name implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    name: string
+    constructor(newName: string, newEntityUid: number) {
+        this.name = newName
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Name
     }
 }
 export class Rotation implements ECS.Component {

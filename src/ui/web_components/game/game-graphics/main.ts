@@ -80,8 +80,8 @@ export class CustomElement extends HTMLElement {
                         } break;
                         case Comps.ShapeTypes.Cylinder: {
                             geometry = new THREE.CylinderGeometry(
-                                shapeComponent.radius! / 2,
-                                shapeComponent.radius! / 2,
+                                shapeComponent.radius!,
+                                shapeComponent.radius!,
                                 shapeComponent.height!,
                                 shapeComponent.sideNumber!);
                         } break;

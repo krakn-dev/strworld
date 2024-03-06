@@ -75,7 +75,9 @@ export class CustomElement extends HTMLElement {
                                 shapeComponent!.size!.z);
                         } break;
                         case Comps.ShapeTypes.Capsule: {
-                            continue // remove
+                            geometry = new THREE.CapsuleGeometry(
+                                shapeComponent!.radius,
+                                shapeComponent.height);
                         } break;
                         case Comps.ShapeTypes.Cylinder: {
                             geometry = new THREE.CylinderGeometry(
@@ -84,6 +86,7 @@ export class CustomElement extends HTMLElement {
                                 shapeComponent.height!,
                                 shapeComponent.sideNumber!);
                         } break;
+                        case Comps.ShapeTypes.Composed: continue;
                     }
                     const mesh = new THREE.Mesh(geometry, material);
                     graphicEntity.object = mesh
@@ -137,18 +140,21 @@ export class CustomElement extends HTMLElement {
                     }
                 } break;
                 case Comps.ComponentTypes.ShapeColor: {
-                    let shapeColorComponent = aC as Comps.ShapeColor
+                    if (graphicEntity.object == undefined) continue
+                    let rotationComponent = aC as Comps.Rotation
 
+                    let shapeColorComponent = aC as Comps.ShapeColor
                     let newMaterial = new THREE.MeshPhongMaterial({
                         color: new THREE.Color(shapeColorComponent.color)
                     });
-
                     (graphicEntity.object as THREE.Mesh).material = newMaterial
 
                 } break;
                 case Comps.ComponentTypes.Rotation: {
+                    if (graphicEntity.object == undefined) continue
                     let rotationComponent = aC as Comps.Rotation
-                    graphicEntity.object!.setRotationFromQuaternion(
+
+                    graphicEntity.object.setRotationFromQuaternion(
                         new THREE.Quaternion(
                             rotationComponent.x,
                             rotationComponent.y,
@@ -156,6 +162,7 @@ export class CustomElement extends HTMLElement {
                             rotationComponent.w))
                 } break;
                 case Comps.ComponentTypes.EntityState: {
+                    if (graphicEntity.object == undefined) continue
                     let entityStateComponent = aC as Comps.EntityState
                     let animationToPlay = this.getAnimationToPlayByEntityStates(
                         entityStateComponent.states)
@@ -173,6 +180,7 @@ export class CustomElement extends HTMLElement {
                     }
                 } break;
                 case Comps.ComponentTypes.Position: {
+                    if (graphicEntity.object == undefined) continue
                     let positionComponent = aC as Comps.Position
                     graphicEntity.object!.position.x = positionComponent.x
                     graphicEntity.object!.position.y = positionComponent.y
@@ -260,6 +268,7 @@ export class CustomElement extends HTMLElement {
                     (graphicEntity.object as THREE.Mesh).material = newMaterial
                 } break;
                 case Comps.ComponentTypes.Rotation: {
+                    if (graphicEntity.object == undefined) continue
                     let rotationComponent = cC as Comps.Rotation
                     graphicEntity.object!.setRotationFromQuaternion(
                         new THREE.Quaternion(
@@ -270,6 +279,7 @@ export class CustomElement extends HTMLElement {
 
                 } break;
                 case Comps.ComponentTypes.EntityState:
+                    if (graphicEntity.object == undefined) continue
                     let entityStateComponent = cC as Comps.EntityState
                     let animationToPlay = this.getAnimationToPlayByEntityStates(
                         entityStateComponent.states)
@@ -288,6 +298,7 @@ export class CustomElement extends HTMLElement {
                     }
                     break;
                 case Comps.ComponentTypes.Position:
+                    if (graphicEntity.object == undefined) continue
                     let positionComponent = cC as Comps.Position
                     graphicEntity.object!.position.x = positionComponent.x
                     graphicEntity.object!.position.y = positionComponent.y

@@ -316,6 +316,7 @@ export class PhysicsResource {
     scene: PhysXT.PxScene
     physics: PhysXT.PxPhysics
     rigidBodyPtrAndEntityUid: Map<number, number>
+    shapePtrAndEntityUid: Map<number, number>
     constructor() {
         let version = (PhysX as any).PHYSICS_VERSION;
         let allocator = new PhysX.PxDefaultAllocator()
@@ -341,6 +342,7 @@ export class PhysicsResource {
         this.customConvexShapes = new CustomConvexShapes(this.physics)
         this.materials = new Materials(this.physics)
         this.rigidBodyPtrAndEntityUid = new Map()
+        this.shapePtrAndEntityUid = new Map()
     }
 }
 class LastTimeCommandWasRun {

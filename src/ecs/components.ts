@@ -71,6 +71,7 @@ export enum ShapeTypes {
     Box,
     Capsule,
     Cylinder,
+    Composed
 }
 export enum ConstraintTypes {
     Lock,
@@ -96,29 +97,30 @@ export class Robot implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
+    isOn: boolean
+    code: string
     constructor(
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Robot
+        this.code = `console.log("i'm on")`
+        this.isOn = false
     }
 }
 export class RobotSuperComponent implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    robotComponentsEntityUid: number[]
     robotEntityUidAttachedTo: number
     constructor(
-        newRobotComponentsEntityUid: number[],
         newRobotEntityUidAttachedTo: number,
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.RobotSuperComponent
-        this.robotComponentsEntityUid = newRobotComponentsEntityUid
         this.robotEntityUidAttachedTo = newRobotEntityUidAttachedTo
     }
 }
@@ -264,6 +266,7 @@ export class Shape implements ECS.Component {
     shapeType: ShapeTypes
     shape: PhysXT.PxShape | undefined
     materialType: MaterialTypes
+    shapesEntityUid: number[]
     constructor(
         newShapeType: ShapeTypes,
         newEntityUid: number,
@@ -273,6 +276,7 @@ export class Shape implements ECS.Component {
         this.componentType = ComponentTypes.Shape
         this.shapeType = newShapeType
         this.materialType = MaterialTypes.Default
+        this.shapesEntityUid = []
     }
 }
 export class Light implements ECS.Component {

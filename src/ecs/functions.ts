@@ -4,21 +4,9 @@ import * as ECS from "./ecs"
 import * as Res from "./resources"
 import * as Ser from "../serialization"
 
-export function isEntityType(entityType: Comps.EntityTypes, entityUid: number, system: ECS.System): boolean {
-    let foundEntityType = system.find([
-        ECS.Get.One,
-        [Comps.ComponentTypes.EntityType],
-        ECS.By.EntityUid,
-        entityUid
-    ])
-    if (foundEntityType[0].length == 0) {
-        throw "no EntityType component"
-    }
-    let entityTypeComponent = foundEntityType[0][0] as Comps.EntityType
-    if (entityTypeComponent.entityType == entityType) {
-        return true
-    }
-    return false
+export function isEntityType(entityType: Comps.EntityTypes, entityUid: number, resources: Res.Resources): boolean {
+    let entityCache = resources.entitiesCache.get(entityUid)!
+    return entityCache.entityType!.entityType == entityType
 }
 
 export function getMovementDirection(resources: Res.Resources): Math.Vector2 {

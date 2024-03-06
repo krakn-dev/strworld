@@ -1,4 +1,5 @@
 import * as ECS from "./ecs"
+import * as Math from "../math"
 import * as Utils from "../utils"
 import { PhysXT } from "../physx/physx"
 
@@ -126,8 +127,8 @@ export class RobotComponent implements ECS.Component {
     componentUid: number
     componentType: ComponentTypes
     robotComponentType: RobotComponentTypes
-    positionOffset: Utils.Vector3 | undefined
-    rotationOffset: Utils.Quaternion | undefined
+    positionOffset: Math.Vector3 | undefined
+    rotationOffset: Math.Quaternion | undefined
     robotEntityUidAttachedTo: number
     constructor(
         newRobotComponentType: RobotComponentTypes,
@@ -186,10 +187,10 @@ export class Constraint implements ECS.Component {
     entityUidConstrainedTo: number
     constraintType: ConstraintTypes
     distance: number | undefined
-    pivotA: Utils.Vector3 | undefined
-    pivotB: Utils.Vector3 | undefined
-    axisA: Utils.Quaternion | undefined
-    axisB: Utils.Quaternion | undefined
+    pivotA: Math.Vector3 | undefined
+    pivotB: Math.Vector3 | undefined
+    axisA: Math.Quaternion | undefined
+    axisB: Math.Quaternion | undefined
 
     constraint: PhysXT.PxJoint | undefined
     constructor(
@@ -256,7 +257,7 @@ export class Shape implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    size: Utils.Vector3 | undefined
+    size: Math.Vector3 | undefined
     height: number | undefined
     radius: number | undefined
     sideNumber: number | undefined
@@ -328,7 +329,7 @@ export class TargetPosition implements ECS.Component {
     y: number
     z: number
 
-    constructor(newLocation: Utils.Vector3, newEntityUid: number) {
+    constructor(newLocation: Math.Vector3, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.TargetLocation
@@ -371,7 +372,7 @@ export class Position implements ECS.Component {
     y: number
     z: number
 
-    constructor(newPosition: Utils.Vector3, newEntityUid: number) {
+    constructor(newPosition: Math.Vector3, newEntityUid: number) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Position
@@ -498,12 +499,12 @@ export class Rotation implements ECS.Component {
     y: number
     z: number
     w: number
-    constructor(newRotation: Utils.Vector3, newEntityUid: number) {
-        let quaternion = Utils.eulerToQuaternion(
-            new Utils.Vector3(
-                Utils.degreesToRadians(newRotation.x),
-                Utils.degreesToRadians(newRotation.y),
-                Utils.degreesToRadians(newRotation.z)));
+    constructor(newRotation: Math.Vector3, newEntityUid: number) {
+        let quaternion = Math.eulerToQuaternion(
+            new Math.Vector3(
+                Math.deg2rad(newRotation.x),
+                Math.deg2rad(newRotation.y),
+                Math.deg2rad(newRotation.z)));
         this.x = quaternion.x
         this.y = quaternion.y
         this.z = quaternion.z

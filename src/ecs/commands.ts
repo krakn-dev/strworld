@@ -1,6 +1,6 @@
 import * as ECS from "./ecs"
 import * as Res from "./resources"
-import * as Utils from "../utils"
+import * as Math from "../math"
 import * as Comps from "./components"
 import * as Funs from "./functions"
 import * as Ser from "../serialization"
@@ -128,7 +128,7 @@ export class CameraFollowGeometry implements ECS.Command {
             let cameraPositionComponent = foundCameraComponent[0][0] as Comps.Position
             let geometryPositionComponent = cPC as Comps.Position
 
-            let offset = new Utils.Vector3(0, 13, 13)
+            let offset = new Math.Vector3(0, 13, 13)
             cameraPositionComponent.x = geometryPositionComponent.x + offset.x
             cameraPositionComponent.y = geometryPositionComponent.y + offset.y
             cameraPositionComponent.z = geometryPositionComponent.z + offset.z
@@ -151,8 +151,8 @@ export class CreateScene implements ECS.Command {
                 500,
                 resources.domState.windowWidth! / resources.domState.windowHeight!,
                 camera)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, 40, 40), camera)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(-45, 0, 0), camera)
+            let positionComponent = new Comps.Position(new Math.Vector3(0, 40, 40), camera)
+            let rotationComponent = new Comps.Rotation(new Math.Vector3(-45, 0, 0), camera)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Camera, camera)
             system.addComponent(cameraComponent)
             system.addComponent(rotationComponent)
@@ -166,7 +166,7 @@ export class CreateScene implements ECS.Command {
             lightComponent.color = 0xffffff
             lightComponent.distance = 200
             lightComponent.decay = 0
-            let positionComponent = new Comps.Position(new Utils.Vector3(3, 10, 3), pointLight)
+            let positionComponent = new Comps.Position(new Math.Vector3(3, 10, 3), pointLight)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Light, pointLight)
             system.addComponent(lightComponent)
             system.addComponent(positionComponent)
@@ -185,9 +185,9 @@ export class CreateScene implements ECS.Command {
             let floor = system.createEntity()
             let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Static, floor)
             let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, floor)
-            shapeComponent.size = new Utils.Vector3(500, 0.5, 500)
-            let positionComponent = new Comps.Position(new Utils.Vector3(0, -5, 0), floor)
-            let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), floor)
+            shapeComponent.size = new Math.Vector3(500, 0.5, 500)
+            let positionComponent = new Comps.Position(new Math.Vector3(0, -5, 0), floor)
+            let rotationComponent = new Comps.Rotation(new Math.Vector3(0, 0, 0), floor)
             let shapeColorComponent = new Comps.ShapeColor(0xffffff, floor)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, floor)
 
@@ -214,13 +214,13 @@ export class CreateRobot implements ECS.Command {
             {
                 let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, chassis)
                 let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, chassis)
-                shapeComponent.size = new Utils.Vector3(1, 0.5, 2)
+                shapeComponent.size = new Math.Vector3(1, 0.5, 2)
                 //shapeComponent.radius = 0.5
                 //shapeComponent.height = 1
                 //shapeComponent.sideNumber = 10
                 //Funs.cacheShape(shapeComponent, resources)
-                let positionComponent = new Comps.Position(new Utils.Vector3(0, i, 0), chassis)
-                let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, 0), chassis)
+                let positionComponent = new Comps.Position(new Math.Vector3(0, i, 0), chassis)
+                let rotationComponent = new Comps.Rotation(new Math.Vector3(0, 0, 0), chassis)
                 let linearVelocityComponent = new Comps.LinearVelocity(chassis)
                 let angularVelocityComponent = new Comps.AngularVelocity(chassis)
                 let forceComponent = new Comps.Force(chassis)
@@ -248,8 +248,8 @@ export class CreateRobot implements ECS.Command {
                 shapeComponent.radius = 0.5
                 shapeComponent.height = 0.5
                 shapeComponent.sideNumber = 8
-                let positionComponent = new Comps.Position(new Utils.Vector3(1, i, 1), wheel)
-                let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, -90), wheel)
+                let positionComponent = new Comps.Position(new Math.Vector3(1, i, 1), wheel)
+                let rotationComponent = new Comps.Rotation(new Math.Vector3(0, 0, -90), wheel)
                 let forceComponent = new Comps.Force(wheel)
                 let massComponent = new Comps.Mass(1, wheel)
                 let shapeColorComponent = new Comps.ShapeColor(0x0000ff, wheel)
@@ -257,18 +257,18 @@ export class CreateRobot implements ECS.Command {
                 let wheelComponent = new Comps.Wheel(wheel)
                 let robotComponent = new Comps.RobotComponent(Comps.RobotComponentTypes.Wheel, chassis, wheel)
                 let constraint = new Comps.Constraint(Comps.ConstraintTypes.Hinge, chassis, wheel)
-                constraint.axisA = Utils.eulerToQuaternion(
-                    new Utils.Vector3(
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(90)))
-                constraint.axisB = Utils.eulerToQuaternion(
-                    new Utils.Vector3(
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0)))
-                constraint.pivotA = new Utils.Vector3(0, -1, 0)
-                constraint.pivotB = new Utils.Vector3(0, 0, -1)
+                constraint.axisA = Math.eulerToQuaternion(
+                    new Math.Vector3(
+                        Math.deg2rad(0),
+                        Math.deg2rad(0),
+                        Math.deg2rad(90)))
+                constraint.axisB = Math.eulerToQuaternion(
+                    new Math.Vector3(
+                        Math.deg2rad(0),
+                        Math.deg2rad(0),
+                        Math.deg2rad(0)))
+                constraint.pivotA = new Math.Vector3(0, -1, 0)
+                constraint.pivotB = new Math.Vector3(0, 0, -1)
 
                 system.addComponent(constraint)
                 system.addComponent(robotComponent)
@@ -290,8 +290,8 @@ export class CreateRobot implements ECS.Command {
                 shapeComponent.radius = 0.5
                 shapeComponent.height = 0.5
                 shapeComponent.sideNumber = 8
-                let positionComponent = new Comps.Position(new Utils.Vector3(-1, i, 1), wheel)
-                let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, -90), wheel)
+                let positionComponent = new Comps.Position(new Math.Vector3(-1, i, 1), wheel)
+                let rotationComponent = new Comps.Rotation(new Math.Vector3(0, 0, -90), wheel)
                 let forceComponent = new Comps.Force(wheel)
                 let massComponent = new Comps.Mass(1, wheel)
                 let shapeColorComponent = new Comps.ShapeColor(0x00ffff, wheel)
@@ -299,18 +299,18 @@ export class CreateRobot implements ECS.Command {
                 let wheelComponent = new Comps.Wheel(wheel)
                 let robotComponent = new Comps.RobotComponent(Comps.RobotComponentTypes.Wheel, chassis, wheel)
                 let constraint = new Comps.Constraint(Comps.ConstraintTypes.Hinge, chassis, wheel)
-                constraint.axisA = Utils.eulerToQuaternion(
-                    new Utils.Vector3(
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(90)))
-                constraint.axisB = Utils.eulerToQuaternion(
-                    new Utils.Vector3(
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0)))
-                constraint.pivotA = new Utils.Vector3(0, 1, 0)
-                constraint.pivotB = new Utils.Vector3(0, 0, -1)
+                constraint.axisA = Math.eulerToQuaternion(
+                    new Math.Vector3(
+                        Math.deg2rad(0),
+                        Math.deg2rad(0),
+                        Math.deg2rad(90)))
+                constraint.axisB = Math.eulerToQuaternion(
+                    new Math.Vector3(
+                        Math.deg2rad(0),
+                        Math.deg2rad(0),
+                        Math.deg2rad(0)))
+                constraint.pivotA = new Math.Vector3(0, 1, 0)
+                constraint.pivotB = new Math.Vector3(0, 0, -1)
 
                 system.addComponent(constraint)
                 system.addComponent(robotComponent)
@@ -331,8 +331,8 @@ export class CreateRobot implements ECS.Command {
                 shapeComponent.radius = 0.5
                 shapeComponent.height = 0.5
                 shapeComponent.sideNumber = 8
-                let positionComponent = new Comps.Position(new Utils.Vector3(1, i, -1), wheel)
-                let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, -90), wheel)
+                let positionComponent = new Comps.Position(new Math.Vector3(1, i, -1), wheel)
+                let rotationComponent = new Comps.Rotation(new Math.Vector3(0, 0, -90), wheel)
                 let forceComponent = new Comps.Force(wheel)
                 let massComponent = new Comps.Mass(1, wheel)
                 let shapeColorComponent = new Comps.ShapeColor(0x0000ff, wheel)
@@ -340,18 +340,18 @@ export class CreateRobot implements ECS.Command {
                 let wheelComponent = new Comps.Wheel(wheel)
                 let robotComponent = new Comps.RobotComponent(Comps.RobotComponentTypes.Wheel, chassis, wheel)
                 let constraint = new Comps.Constraint(Comps.ConstraintTypes.Hinge, chassis, wheel)
-                constraint.axisA = Utils.eulerToQuaternion(
-                    new Utils.Vector3(
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(90)))
-                constraint.axisB = Utils.eulerToQuaternion(
-                    new Utils.Vector3(
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0)))
-                constraint.pivotA = new Utils.Vector3(0, -1, 0)
-                constraint.pivotB = new Utils.Vector3(0, 0, 1)
+                constraint.axisA = Math.eulerToQuaternion(
+                    new Math.Vector3(
+                        Math.deg2rad(0),
+                        Math.deg2rad(0),
+                        Math.deg2rad(90)))
+                constraint.axisB = Math.eulerToQuaternion(
+                    new Math.Vector3(
+                        Math.deg2rad(0),
+                        Math.deg2rad(0),
+                        Math.deg2rad(0)))
+                constraint.pivotA = new Math.Vector3(0, -1, 0)
+                constraint.pivotB = new Math.Vector3(0, 0, 1)
 
                 system.addComponent(constraint)
                 system.addComponent(robotComponent)
@@ -372,8 +372,8 @@ export class CreateRobot implements ECS.Command {
                 shapeComponent.radius = 0.5
                 shapeComponent.height = 0.5
                 shapeComponent.sideNumber = 8
-                let positionComponent = new Comps.Position(new Utils.Vector3(-1, i, -1), wheel)
-                let rotationComponent = new Comps.Rotation(new Utils.Vector3(0, 0, -90), wheel)
+                let positionComponent = new Comps.Position(new Math.Vector3(-1, i, -1), wheel)
+                let rotationComponent = new Comps.Rotation(new Math.Vector3(0, 0, -90), wheel)
                 let forceComponent = new Comps.Force(wheel)
                 let massComponent = new Comps.Mass(1, wheel)
                 let shapeColorComponent = new Comps.ShapeColor(0x0000ff, wheel)
@@ -381,18 +381,18 @@ export class CreateRobot implements ECS.Command {
                 let wheelComponent = new Comps.Wheel(wheel)
                 let robotComponent = new Comps.RobotComponent(Comps.RobotComponentTypes.Wheel, chassis, wheel)
                 let constraint = new Comps.Constraint(Comps.ConstraintTypes.Hinge, chassis, wheel)
-                constraint.axisA = Utils.eulerToQuaternion(
-                    new Utils.Vector3(
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(90)))
-                constraint.axisB = Utils.eulerToQuaternion(
-                    new Utils.Vector3(
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0),
-                        Utils.degreesToRadians(0)))
-                constraint.pivotA = new Utils.Vector3(0, 1, 0)
-                constraint.pivotB = new Utils.Vector3(0, 0, 1)
+                constraint.axisA = Math.eulerToQuaternion(
+                    new Math.Vector3(
+                        Math.deg2rad(0),
+                        Math.deg2rad(0),
+                        Math.deg2rad(90)))
+                constraint.axisB = Math.eulerToQuaternion(
+                    new Math.Vector3(
+                        Math.deg2rad(0),
+                        Math.deg2rad(0),
+                        Math.deg2rad(0)))
+                constraint.pivotA = new Math.Vector3(0, 1, 0)
+                constraint.pivotB = new Math.Vector3(0, 0, 1)
 
                 system.addComponent(constraint)
                 system.addComponent(robotComponent)
@@ -472,13 +472,13 @@ export class CreateStickman implements ECS.Command {
         for (let x = 0; x < 1; x++) {
             for (let y = 0; y < 1; y++) {
                 let stickman = system.createEntity()
-                let positionComponent = new Comps.Position(new Utils.Vector3(0, 0, 0), stickman)
+                let positionComponent = new Comps.Position(new Math.Vector3(0, 0, 0), stickman)
                 let entityStateComponent = new Comps.EntityState([Comps.EntityStates.Idle], stickman)
                 let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Stickman, stickman)
                 let healthComponent = new Comps.Health(10, stickman)
                 let massComponent = new Comps.Mass(4, stickman)
                 let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, stickman)
-                shapeComponent.size = new Utils.Vector3(40, 90, 30)
+                shapeComponent.size = new Math.Vector3(40, 90, 30)
 
                 system.addComponent(massComponent)
                 system.addComponent(shapeComponent)

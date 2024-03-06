@@ -26,7 +26,7 @@ export class CustomElement extends HTMLElement {
     private addInitialElements() {
         this._addGameGraphicsElement()
         this._addGameInputElement()
-        //this._addRobotMenuElement()
+        this._addRobotMenuElement()
         //this._addComponentEditorElement()
     }
 
@@ -35,6 +35,7 @@ export class CustomElement extends HTMLElement {
         this._addRobotMenuElement()
         this._addGameGraphicsElement()
         this.componentEditorElement?.remove()
+        this.worker?.postMessage(new Ser.Message(Ser.Messages.RefreshGraphics))
     }
     private _onCloseCodeEditor() {
         this._addGameInputElement()

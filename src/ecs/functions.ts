@@ -1,9 +1,8 @@
-import * as CANNON from "cannon-es"
 import * as Comps from "./components"
-import * as Utils from "../utils"
+import * as Math from "../math"
 import * as ECS from "./ecs"
 import * as Res from "./resources"
-import { Keys } from "../serialization"
+import * as Ser from "../serialization"
 
 export function isEntityType(entityType: Comps.EntityTypes, entityUid: number, system: ECS.System): boolean {
     let foundEntityType = system.find([
@@ -22,20 +21,20 @@ export function isEntityType(entityType: Comps.EntityTypes, entityUid: number, s
     return false
 }
 
-export function getMovementDirection(resources: Res.Resources): Utils.Vector2 {
-    let direction = new Utils.Vector2(0, 0)
+export function getMovementDirection(resources: Res.Resources): Math.Vector2 {
+    let direction = new Math.Vector2(0, 0)
 
-    let isUpPressed = resources.input.isKeyDown(Keys.Up)
-    let isWPressed = resources.input.isKeyDown(Keys.W)
+    let isUpPressed = resources.input.isKeyDown(Ser.Keys.Up)
+    let isWPressed = resources.input.isKeyDown(Ser.Keys.W)
 
-    let isLeftPressed = resources.input.isKeyDown(Keys.Left)
-    let isAPressed = resources.input.isKeyDown(Keys.A)
+    let isLeftPressed = resources.input.isKeyDown(Ser.Keys.Left)
+    let isAPressed = resources.input.isKeyDown(Ser.Keys.A)
 
-    let isDownPressed = resources.input.isKeyDown(Keys.Down)
-    let isSPressed = resources.input.isKeyDown(Keys.S)
+    let isDownPressed = resources.input.isKeyDown(Ser.Keys.Down)
+    let isSPressed = resources.input.isKeyDown(Ser.Keys.S)
 
-    let isRightPressed = resources.input.isKeyDown(Keys.Right)
-    let isDPressed = resources.input.isKeyDown(Keys.D)
+    let isRightPressed = resources.input.isKeyDown(Ser.Keys.Right)
+    let isDPressed = resources.input.isKeyDown(Ser.Keys.D)
 
     if (isUpPressed || isWPressed) direction.y++
     if (isDownPressed || isSPressed) direction.y--

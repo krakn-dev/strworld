@@ -5,7 +5,7 @@ import * as CoolButton from "../shared/cool-button/main"
 import * as Comps from '../../../ecs/components';
 import * as ComponentSelector from "./component-selector/main"
 import * as Ser from "../../../serialization"
-import * as Utils from '../../../utils';
+import * as Math from '../../../math';
 import * as HelpMenu from "./help-menu/main"
 import * as QuitMenu from "./quit-menu/main"
 import * as ConfirmPlacementMenu from "./confirm-placement-menu/main"
@@ -59,11 +59,11 @@ export class CustomElement extends HTMLElement {
         for (let rC of robotComponents) {
             let robotComponent = new Comps.RobotComponent(rC.robotComponentType, 0, 0)
 
-            robotComponent.positionOffset = new Utils.Vector3(
+            robotComponent.positionOffset = new Math.Vector3(
                 rC.object.position.x,
                 rC.object.position.y,
                 rC.object.position.z);
-            robotComponent.rotationOffset = new Utils.Quaternion(
+            robotComponent.rotationOffset = new Math.Quaternion(
                 rC.object.quaternion.x,
                 rC.object.quaternion.y,
                 rC.object.quaternion.z,

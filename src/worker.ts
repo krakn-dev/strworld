@@ -38,30 +38,30 @@ async function initialize() {
             } break;
             case Ser.Messages.RefreshGraphics: {
                 let graphicChanges = new Ser.GraphicChanges()
-                let foundComponents = system.find(
+                let foundComponents = system.find([
+                    ECS.Get.All,
                     [
-                        ECS.Get.All,
-                        [
-                            Comps.ComponentTypes.EntityType,
-                            Comps.ComponentTypes.Camera,
-                            Comps.ComponentTypes.Light,
-                            Comps.ComponentTypes.Position,
-                            Comps.ComponentTypes.EntityState,
-                            Comps.ComponentTypes.Rotation,
-                            Comps.ComponentTypes.Shape,
-                            Comps.ComponentTypes.ShapeColor,
-                        ],
-                        ECS.By.Any,
-                        null
-                    ])
-                graphicChanges.changedComponents.push(...foundComponents[0])
-                graphicChanges.changedComponents.push(...foundComponents[1])
-                graphicChanges.changedComponents.push(...foundComponents[2])
-                graphicChanges.changedComponents.push(...foundComponents[3])
-                graphicChanges.changedComponents.push(...foundComponents[4])
-                graphicChanges.changedComponents.push(...foundComponents[5])
-                graphicChanges.changedComponents.push(...foundComponents[6])
-                graphicChanges.changedComponents.push(...foundComponents[7])
+                        Comps.ComponentTypes.EntityType,
+                        Comps.ComponentTypes.Shape,
+                        Comps.ComponentTypes.Camera,
+                        Comps.ComponentTypes.Light,
+                        Comps.ComponentTypes.EntityState,
+                        Comps.ComponentTypes.Rotation,
+                        Comps.ComponentTypes.ShapeColor,
+                        Comps.ComponentTypes.Position,
+                    ],
+                    ECS.By.Any,
+                    null
+                ])
+                //order is important
+                graphicChanges.addedComponents.push(...foundComponents[0])
+                graphicChanges.addedComponents.push(...foundComponents[1])
+                graphicChanges.addedComponents.push(...foundComponents[2])
+                graphicChanges.addedComponents.push(...foundComponents[3])
+                graphicChanges.addedComponents.push(...foundComponents[4])
+                graphicChanges.addedComponents.push(...foundComponents[5])
+                graphicChanges.addedComponents.push(...foundComponents[6])
+                graphicChanges.addedComponents.push(...foundComponents[7])
                 for (let eTC of foundComponents[0]) {
                     graphicChanges.addedEntitiesUid.push(eTC.entityUid)
                 }

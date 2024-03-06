@@ -36,7 +36,6 @@ export class CustomElement extends HTMLElement {
     }
     addWorker(newWorker: Worker) {
         this.worker = newWorker
-        //this.worker.postMessage(new Ser.Message(Ser.Messages.RefreshGraphics))
     }
     private async createGraphicEntities(addedEntitiesUid: number[], addedComponents: ECS.Component[]) {
         for (let aEUid of addedEntitiesUid) {

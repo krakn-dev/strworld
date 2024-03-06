@@ -126,20 +126,18 @@ export class RobotComponent implements ECS.Component {
     componentUid: number
     componentType: ComponentTypes
     robotComponentType: RobotComponentTypes
-    positionOffset: Utils.Vector3
-    rotationOffset: Utils.Quaternion
+    positionOffset: Utils.Vector3 | undefined
+    rotationOffset: Utils.Quaternion | undefined
     robotEntityUidAttachedTo: number
     constructor(
         newRobotComponentType: RobotComponentTypes,
-        newPositionOffset: Utils.Vector3,
-        newRotationOffset: Utils.Quaternion,
         newRobotEntityUidAttachedTo: number,
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.positionOffset = newPositionOffset
-        this.rotationOffset = newRotationOffset
+        this.positionOffset = undefined
+        this.rotationOffset = undefined
         this.componentType = ComponentTypes.RobotComponent
         this.robotComponentType = newRobotComponentType
         this.robotEntityUidAttachedTo = newRobotEntityUidAttachedTo
@@ -151,6 +149,7 @@ export class Wheel implements ECS.Component {
     componentType: ComponentTypes
     velocity: number
     isOn: boolean
+    brake: boolean
     constructor(
         newEntityUid: number
     ) {
@@ -159,6 +158,7 @@ export class Wheel implements ECS.Component {
         this.componentType = ComponentTypes.Wheel
         this.velocity = 0
         this.isOn = false
+        this.brake = false
     }
 }
 
@@ -499,7 +499,11 @@ export class Rotation implements ECS.Component {
     z: number
     w: number
     constructor(newRotation: Utils.Vector3, newEntityUid: number) {
-        let quaternion = Utils.eulerToQuaternion(newRotation)
+        let quaternion = Utils.eulerToQuaternion(
+            new Utils.Vector3(
+                Utils.degreesToRadians(newRotation.x),
+                Utils.degreesToRadians(newRotation.y),
+                Utils.degreesToRadians(newRotation.z)));
         this.x = quaternion.x
         this.y = quaternion.y
         this.z = quaternion.z

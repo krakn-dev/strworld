@@ -79,9 +79,12 @@ class EntityCache {
     }
 }
 export class EntitiesCache {
-    entities: Map<number, EntityCache>
+    private entities: Map<number, EntityCache>
     constructor() {
         this.entities = new Map()
+    }
+    get(entityUid: number): EntityCache | undefined {
+        return this.entities.get(entityUid)
     }
     addEntity(entityUid: number) {
         let entityCache = new EntityCache(entityUid)
@@ -381,35 +384,29 @@ export class DeltaTimeResource {
 export class CommandStateResource {
     private currentExecutingCommand: ECS.CurrentExecutingCommand
 
-    private state: Map<[string, Cmds.CommandTypes], [Cmds.CommandTypes, any]>
+    private state: Map<string, any>
 
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
         this.currentExecutingCommand = newCurrentExecutingCommand
         this.state = new Map()
     }
     removeCommandStates(command: Cmds.CommandTypes) {
-        for (let [k, _] of this.state) {
-            if (k[1] == command) {
-                this.state.delete(k)
-            }
-        }
+        //        for (let [k, _] of this.state) {
+        //            if (k[1] == command) {
+        //                this.state.delete(k)
+        //            }
+        //        }
     }
     set(key: string, value: any) {
         this.state.set(
-            [key, this.currentExecutingCommand.command!],
+            key,
             value
         )
     }
 
     get(key: string): any {
-        console.log(this.state)
-        let value = this.state.get([key, this.currentExecutingCommand.command!])
-        if (value == undefined) {
-            return undefined
-        }
-        else {
-            return value[1]
-        }
+        let value = this.state.get(key)
+        return value
     }
 }
 

@@ -57,19 +57,18 @@ export class CustomElement extends HTMLElement {
     private serializeAndSendRobotComponents(robotComponents: RobotVisualizer.RobotComponent[]) {
         let serializedComponents: Comps.RobotComponent[] = []
         for (let rC of robotComponents) {
-            serializedComponents.push(
-                new Comps.RobotComponent(
-                    rC.robotComponentType,
-                    new Utils.Vector3(
-                        rC.object.position.x,
-                        rC.object.position.y,
-                        rC.object.position.z),
-                    new Utils.Quaternion(
-                        rC.object.quaternion.x,
-                        rC.object.quaternion.y,
-                        rC.object.quaternion.z,
-                        rC.object.quaternion.w),
-                    0, 0))
+            let robotComponent = new Comps.RobotComponent(rC.robotComponentType, 0, 0)
+
+            robotComponent.positionOffset = new Utils.Vector3(
+                rC.object.position.x,
+                rC.object.position.y,
+                rC.object.position.z);
+            robotComponent.rotationOffset = new Utils.Quaternion(
+                rC.object.quaternion.x,
+                rC.object.quaternion.y,
+                rC.object.quaternion.z,
+                rC.object.quaternion.w);
+            serializedComponents.push(robotComponent)
         }
         this.worker!.postMessage(
             new Ser.Message(Ser.Messages.RobotComponents, serializedComponents))

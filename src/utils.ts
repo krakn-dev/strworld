@@ -63,10 +63,10 @@ export class Quaternion {
 
 export function eulerToQuaternion(vector: Vector3): Quaternion {
     return new Quaternion(
-        (Math.sin(vector.z / 2) * Math.cos(vector.y / 2) * Math.cos(vector.x / 2)) - (Math.cos(vector.z / 2) * Math.sin(vector.y / 2) * Math.sin(vector.x / 2)),
-        (Math.cos(vector.z / 2) * Math.sin(vector.y / 2) * Math.cos(vector.x / 2)) + (Math.sin(vector.z / 2) * Math.cos(vector.y / 2) * Math.sin(vector.x / 2)),
-        (Math.cos(vector.z / 2) * Math.cos(vector.y / 2) * Math.sin(vector.x / 2)) - (Math.sin(vector.z / 2) * Math.sin(vector.y / 2) * Math.cos(vector.x / 2)),
-        (Math.cos(vector.z / 2) * Math.cos(vector.y / 2) * Math.cos(vector.x / 2)) + (Math.sin(vector.z / 2) * Math.sin(vector.y / 2) * Math.sin(vector.x / 2)),
+        (Math.sin(vector.x / 2) * Math.cos(vector.y / 2) * Math.cos(vector.z / 2)) - (Math.cos(vector.x / 2) * Math.sin(vector.y / 2) * Math.sin(vector.z / 2)),
+        (Math.cos(vector.x / 2) * Math.sin(vector.y / 2) * Math.cos(vector.z / 2)) + (Math.sin(vector.x / 2) * Math.cos(vector.y / 2) * Math.sin(vector.z / 2)),
+        (Math.cos(vector.x / 2) * Math.cos(vector.y / 2) * Math.sin(vector.z / 2)) - (Math.sin(vector.x / 2) * Math.sin(vector.y / 2) * Math.cos(vector.z / 2)),
+        (Math.cos(vector.x / 2) * Math.cos(vector.y / 2) * Math.cos(vector.z / 2)) + (Math.sin(vector.x / 2) * Math.sin(vector.y / 2) * Math.sin(vector.z / 2)),
     )
 }
 export function addVector3(vectorA: Vector3, vectorB: Vector3): Vector3 {

@@ -54,7 +54,7 @@ module.exports = (env, argv) => {
         const app = express();
         app.use(express.static("dist"));
         app.listen(8080, "localhost");
-        //app.listen(8080, "192.168.1.7")
+        //app.listen(8080, "192.168.1.4")
     }
 
     return config;

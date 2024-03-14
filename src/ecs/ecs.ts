@@ -99,7 +99,9 @@ export class System {
             .componentChanges
             .addedComponentsBuffer[component.componentType]
             .push(component)
-        this.resources.entitiesCache.addComponent(proxyComponent)
+
+        this.resources.entitiesCache.get(component.entityUid)!
+            .components[component.componentType].push(proxyComponent)
     }
     removeComponent(component: Component) {
         for (let [cI, c] of this.components[component.componentType].entries()) {
@@ -110,7 +112,9 @@ export class System {
                     .removedComponentsBuffer[component.componentType]
                     .push(component)
                 this.components.splice(cI, 1)
-                this.resources.entitiesCache.removeComponent(component)
+
+                this.resources.entitiesCache.get(component.entityUid)!
+                    .components[component.componentType] = []
             }
         }
 

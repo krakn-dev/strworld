@@ -86,7 +86,7 @@ export class CustomElement extends HTMLElement {
                                 shapeComponent.height!,
                                 shapeComponent.sideNumber!);
                         } break;
-                        case Comps.ShapeTypes.Composed: continue;
+                        case Comps.ShapeTypes.Compound: continue;
                     }
                     const mesh = new THREE.Mesh(geometry, material);
                     graphicEntity.object = mesh

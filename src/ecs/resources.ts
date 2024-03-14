@@ -3,6 +3,7 @@ import * as Cmds from "./commands"
 import * as Comps from "./components"
 import * as Ser from '../serialization'
 import { PhysX, PhysXT } from "../physx/physx"
+import * as Mat from "../math"
 
 
 export class Resources {
@@ -17,7 +18,8 @@ export class Resources {
     physics: PhysicsResource
     availableRobotComponents: AvailableRobotComponentsResource
     newRobot: NewRobotResource
-    entitiesCache: EntitiesCache
+    entitiesCache: EntitiesCacheResource
+    robotsCache: RobotsCacheResource
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
         this.domState = new DOMStateResource()
         this.deltaTime = new DeltaTimeResource(newCurrentExecutingCommand)
@@ -30,7 +32,8 @@ export class Resources {
         this.physics = new PhysicsResource()
         this.availableRobotComponents = new AvailableRobotComponentsResource()
         this.newRobot = new NewRobotResource()
-        this.entitiesCache = new EntitiesCache()
+        this.entitiesCache = new EntitiesCacheResource()
+        this.robotsCache = new RobotsCacheResource()
     }
 }
 export class NewRobotResource {
@@ -47,38 +50,57 @@ export class AvailableRobotComponentsResource {
         this.quantity = [200, 4, 1]
     }
 }
-class EntityCache {
-    entityUid: number
-    position: Comps.Position | undefined
-    rotation: Comps.Rotation | undefined
-    mass: Comps.Mass | undefined
-    rigidbody: Comps.RigidBody | undefined
-    angularVelocity: Comps.AngularVelocity | undefined
-    linearVelocity: Comps.LinearVelocity | undefined
-    entityType: Comps.EntityType | undefined
-    health: Comps.Health | undefined
-    camera: Comps.Camera | undefined
-    robotComponent: Comps.RobotComponent | undefined
-    robotSuperComponent: Comps.RobotSuperComponent | undefined
-    targetPosition: Comps.TargetPosition | undefined
-    wheel: Comps.Wheel | undefined
-    robot: Comps.Robot | undefined
-    light: Comps.Light | undefined
-    entityState: Comps.EntityState | undefined
-    shape: Comps.Shape | undefined
-    force: Comps.Torque | undefined
-    torque: Comps.Torque | undefined
-    constraint: Comps.Constraint | undefined
-    code: Comps.Code | undefined
-    hardCodedId: Comps.HardCodedId | undefined
-    shapeColor: Comps.ShapeColor | undefined
-    timer: Comps.Timer | undefined
-    name: Comps.Name | undefined
+export class SuperComponent {
+    robotSuperComponentEntityUid: number
+    subComponentsEntityUid: number[]
     constructor(newEntityUid: number) {
-        this.entityUid = newEntityUid
+        this.robotSuperComponentEntityUid = newEntityUid
+        this.subComponentsEntityUid = []
     }
 }
-export class EntitiesCache {
+class RobotCache {
+    entityUid: number
+    componentsEntityUid: number[]
+    superComponents: SuperComponent[]
+    constructor(newEntityUid: number) {
+        this.entityUid = newEntityUid
+        this.componentsEntityUid = []
+        this.superComponents = []
+    }
+    addSuperComponent(entityUid: number): SuperComponent {
+        return new SuperComponent(entityUid)
+    }
+    addComponent(entityUid: number) {
+        this.componentsEntityUid.push(entityUid)
+    }
+}
+export class RobotsCacheResource {
+    private robots: Map<number, RobotCache>
+    constructor() {
+        this.robots = new Map()
+    }
+    get(entityUid: number): RobotCache | undefined {
+        return this.robots.get(entityUid)
+    }
+    addRobot(entityUid: number): RobotCache {
+        let robotCache = new RobotCache(entityUid)
+        this.robots.set(entityUid, robotCache)
+
+        return robotCache
+    }
+}
+class EntityCache {
+    entityUid: number
+    components: ECS.Component[][]
+    constructor(newEntityUid: number) {
+        this.entityUid = newEntityUid
+        this.components = []
+        for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
+            this.components.push([])
+        }
+    }
+}
+export class EntitiesCacheResource {
     private entities: Map<number, EntityCache>
     constructor() {
         this.entities = new Map()
@@ -92,167 +114,6 @@ export class EntitiesCache {
     }
     removeEntity(entityUid: number) {
         this.entities.delete(entityUid)
-    }
-    removeComponent(component: ECS.Component) {
-        let entityCache = this.entities.get(component.entityUid)!
-        switch (component.componentType) {
-            case Comps.ComponentTypes.Health:
-                entityCache.health = undefined
-                break;
-            case Comps.ComponentTypes.Camera:
-                entityCache.camera = undefined
-                break;
-            case Comps.ComponentTypes.Light:
-                entityCache.light = undefined
-                break;
-            case Comps.ComponentTypes.EntityState:
-                entityCache.entityState = undefined
-                break;
-            case Comps.ComponentTypes.Name:
-                entityCache.name = undefined
-                break;
-            case Comps.ComponentTypes.EntityType:
-                entityCache.entityType = undefined
-                break;
-            case Comps.ComponentTypes.TargetLocation:
-                entityCache.targetPosition = undefined
-                break;
-            case Comps.ComponentTypes.Timer:
-                entityCache.timer = undefined
-                break;
-            case Comps.ComponentTypes.Shape:
-                entityCache.shape = undefined
-                break;
-            case Comps.ComponentTypes.Mass:
-                entityCache.mass = undefined
-                break;
-            case Comps.ComponentTypes.ShapeColor:
-                entityCache.shapeColor = undefined
-                break;
-            case Comps.ComponentTypes.HardCodedId:
-                entityCache.hardCodedId = undefined
-                break;
-            case Comps.ComponentTypes.Code:
-                entityCache.code = undefined
-                break;
-            case Comps.ComponentTypes.RigidBody:
-                entityCache.rigidbody = undefined
-                break;
-            case Comps.ComponentTypes.Constraint:
-                entityCache.constraint = undefined
-                break;
-            case Comps.ComponentTypes.Wheel:
-                entityCache.wheel = undefined
-                break;
-            case Comps.ComponentTypes.RobotComponent:
-                entityCache.robotComponent = undefined
-                break;
-            case Comps.ComponentTypes.Robot:
-                entityCache.robot = undefined
-                break;
-            case Comps.ComponentTypes.RobotSuperComponent:
-                entityCache.robotSuperComponent = undefined
-                break;
-            case Comps.ComponentTypes.Force:
-                entityCache.force = undefined
-                break;
-            case Comps.ComponentTypes.Torque:
-                entityCache.torque = undefined
-                break;
-            case Comps.ComponentTypes.LinearVelocity:
-                entityCache.linearVelocity = undefined
-                break;
-            case Comps.ComponentTypes.AngularVelocity:
-                entityCache.angularVelocity = undefined
-                break;
-            case Comps.ComponentTypes.Position:
-                entityCache.position = undefined
-                break;
-            case Comps.ComponentTypes.Rotation:
-                entityCache.rotation = undefined
-                break;
-        }
-    }
-    addComponent(component: ECS.Component) {
-        let entityCache = this.entities.get(component.entityUid)!
-        let c = component as any
-        switch (component.componentType) {
-            case Comps.ComponentTypes.Health:
-                entityCache.health = c
-                break;
-            case Comps.ComponentTypes.Camera:
-                entityCache.camera = c
-                break;
-            case Comps.ComponentTypes.Light:
-                entityCache.light = c
-                break;
-            case Comps.ComponentTypes.EntityState:
-                entityCache.entityState = c
-                break;
-            case Comps.ComponentTypes.Name:
-                entityCache.name = c
-                break;
-            case Comps.ComponentTypes.EntityType:
-                entityCache.entityType = c
-                break;
-            case Comps.ComponentTypes.TargetLocation:
-                entityCache.targetPosition = c
-                break;
-            case Comps.ComponentTypes.Timer:
-                entityCache.timer = c
-                break;
-            case Comps.ComponentTypes.Shape:
-                entityCache.shape = c
-                break;
-            case Comps.ComponentTypes.Mass:
-                entityCache.mass = c
-                break;
-            case Comps.ComponentTypes.ShapeColor:
-                entityCache.shapeColor = c
-                break;
-            case Comps.ComponentTypes.HardCodedId:
-                entityCache.hardCodedId = c
-                break;
-            case Comps.ComponentTypes.Code:
-                entityCache.code = c
-                break;
-            case Comps.ComponentTypes.RigidBody:
-                entityCache.rigidbody = c
-                break;
-            case Comps.ComponentTypes.Constraint:
-                entityCache.constraint = c
-                break;
-            case Comps.ComponentTypes.Wheel:
-                entityCache.wheel = c
-                break;
-            case Comps.ComponentTypes.RobotComponent:
-                entityCache.robotComponent = c
-                break;
-            case Comps.ComponentTypes.Robot:
-                entityCache.robot = c
-                break;
-            case Comps.ComponentTypes.RobotSuperComponent:
-                entityCache.robotSuperComponent = c
-                break;
-            case Comps.ComponentTypes.Force:
-                entityCache.force = c
-                break;
-            case Comps.ComponentTypes.Torque:
-                entityCache.torque = c
-                break;
-            case Comps.ComponentTypes.LinearVelocity:
-                entityCache.linearVelocity = c
-                break;
-            case Comps.ComponentTypes.AngularVelocity:
-                entityCache.angularVelocity = c
-                break;
-            case Comps.ComponentTypes.Position:
-                entityCache.position = c
-                break;
-            case Comps.ComponentTypes.Rotation:
-                entityCache.rotation = c
-                break;
-        }
     }
 }
 export class Materials {
@@ -310,13 +171,40 @@ export class CustomConvexShapes {
         return geometry
     }
 }
+class ShapeContact {
+    shapeUid: number
+    impulse: Mat.Vector3
+    constructor(newShapeUid: number, newImpulse: Mat.Vector3) {
+        this.shapeUid = newShapeUid
+        this.impulse = newImpulse
+    }
+}
+class Contact {
+    rigidBodyAUid: number
+    rigidBodyBUid: number
+    shapesContactA: ShapeContact[]
+    shapesContactB: ShapeContact[]
+    constructor(
+        newRigidBodyAUid: number,
+        newRigidBodyBUid: number,
+        newShapesContactA: ShapeContact[],
+        newShapesContactB: ShapeContact[]
+    ) {
+        this.rigidBodyAUid = newRigidBodyAUid
+        this.rigidBodyBUid = newRigidBodyBUid
+        this.shapesContactA = newShapesContactA
+        this.shapesContactB = newShapesContactB
+    }
+}
 export class PhysicsResource {
     materials: Materials
     customConvexShapes: CustomConvexShapes
     scene: PhysXT.PxScene
     physics: PhysXT.PxPhysics
-    rigidBodyPtrAndEntityUid: Map<number, number>
-    shapePtrAndEntityUid: Map<number, number>
+    rigidBodyPtrToEntityUid: Map<number, number>
+    shapePtrToEntityUid: Map<number, number>
+    instantContacts: Contact[]
+
     constructor() {
         let version = (PhysX as any).PHYSICS_VERSION;
         let allocator = new PhysX.PxDefaultAllocator()
@@ -325,15 +213,16 @@ export class PhysicsResource {
         let tolerances = new PhysX.PxTolerancesScale()
         this.physics = (PhysX as any).CreatePhysics(version, foundation, tolerances) as PhysXT.PxPhysics
         let gravityVector = new PhysX.PxVec3(0, -9.81, 0)
-        let sceneDesc = new PhysX.PxSceneDesc(tolerances);
+        let simulationEventCallback = new PhysX.PxSimulationEventCallbackImpl();
 
+        (simulationEventCallback as any).onContact = this.contactEvent.bind(this)
+        let sceneDesc = new PhysX.PxSceneDesc(tolerances);
         (sceneDesc as any).set_gravity(gravityVector);
         (sceneDesc as any).set_cpuDispatcher((PhysX as any).DefaultCpuDispatcherCreate(0));
         (sceneDesc as any).set_filterShader((PhysX as any).DefaultFilterShader());
-
         this.scene = this.physics.createScene(sceneDesc)
         this.scene.setFlag((PhysX.PxSceneFlagEnum as any).eENABLE_ACTIVE_ACTORS, true)
-
+        this.scene.setSimulationEventCallback(simulationEventCallback);
 
         PhysX.destroy(gravityVector)
         PhysX.destroy(tolerances)
@@ -341,8 +230,50 @@ export class PhysicsResource {
 
         this.customConvexShapes = new CustomConvexShapes(this.physics)
         this.materials = new Materials(this.physics)
-        this.rigidBodyPtrAndEntityUid = new Map()
-        this.shapePtrAndEntityUid = new Map()
+        this.rigidBodyPtrToEntityUid = new Map()
+        this.shapePtrToEntityUid = new Map()
+        this.instantContacts = []
+    }
+    private contactEvent(
+        pairHeader: PhysXT.PxContactPairHeader,
+        pairs: PhysXT.PxContactPair,
+        nbPairs: number
+    ) {
+        // get rigid bodies
+        let shapesContactA = []
+        let shapesContactB = []
+
+        let contacts = new PhysX.Vector_PxContactPairPoint(64);
+        for (let i = 0; i < nbPairs; i++) {
+            let pair = (PhysX.NativeArrayHelpers.prototype as any).getContactPairAt(pairs, i) as PhysXT.PxContactPair;
+            //if (pair.events.isSet((PhysX.PxPairFlagEnum as any).eNOTIFY_TOUCH_LOST)) {
+            //    continue
+            //}
+
+            // get impulses
+            let numberOfContacts = pair.extractContacts(contacts.data(), contacts.size())
+            let impulseSum = new Mat.Vector3(0, 0, 0)
+            for (let j = 0; j < numberOfContacts; j++) {
+                let point = contacts.at(j)
+                impulseSum.x += point.impulse.x
+                impulseSum.y += point.impulse.y
+                impulseSum.z += point.impulse.z
+            }
+
+            // get shapes
+            let shapeA = this.shapePtrToEntityUid.get((pair as any).get_shapes(0).ptr)!;
+            let shapeB = this.shapePtrToEntityUid.get((pair as any).get_shapes(1).ptr)!;
+            shapesContactA.push(new ShapeContact(shapeA, impulseSum))
+            shapesContactB.push(new ShapeContact(shapeB, impulseSum))
+        }
+
+        let head = (PhysX.NativeArrayHelpers.prototype as any).getContactPairHeaderAt(pairHeader);
+
+        let rigidBodyA = this.rigidBodyPtrToEntityUid.get(head.get_actors(0).ptr)!;
+        let rigidBodyB = this.rigidBodyPtrToEntityUid.get(head.get_actors(1).ptr)!;
+
+        this.instantContacts.push(new Contact(rigidBodyA, rigidBodyB, shapesContactA, shapesContactB))
+        PhysX.destroy(contacts)
     }
 }
 class LastTimeCommandWasRun {
@@ -353,7 +284,6 @@ class LastTimeCommandWasRun {
         this.command = newCommand
     }
 }
-
 export class DeltaTimeResource {
     private currentExecutingCommand: ECS.CurrentExecutingCommand
 
@@ -382,7 +312,6 @@ export class DeltaTimeResource {
         return null
     }
 }
-
 export class CommandStateResource {
     private currentExecutingCommand: ECS.CurrentExecutingCommand
 
@@ -411,7 +340,6 @@ export class CommandStateResource {
         return value
     }
 }
-
 export class IsFirstTimeResource {
     private currentExecutingCommand: ECS.CurrentExecutingCommand
 
@@ -433,7 +361,6 @@ export class IsFirstTimeResource {
         return true
     }
 }
-
 export class OptionsResource {
     isShadowsEnabled: boolean | undefined
     isSetNight: boolean | undefined
@@ -476,7 +403,6 @@ export class InputResource {
         return isDown
     }
 }
-
 export class ComponentChangesResource {
     changedComponents: ECS.Component[][]
     removedComponents: ECS.Component[][]

@@ -11,6 +11,8 @@ export enum ComponentTypes {
     EntityType,
     TargetLocation,
     Timer,
+    Aggregate,
+    RigidBodyGraph,
     Shape,
     Mass,
     ShapeColor,
@@ -71,7 +73,7 @@ export enum ShapeTypes {
     Box,
     Capsule,
     Cylinder,
-    Composed
+    Compound
 }
 export enum ConstraintTypes {
     Lock,
@@ -105,7 +107,7 @@ export class Robot implements ECS.Component {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Robot
-        this.code = `console.log("i'm on")`
+        this.code = `console.log("i'm on");`
         this.isOn = false
     }
 }
@@ -124,13 +126,39 @@ export class RobotSuperComponent implements ECS.Component {
         this.robotEntityUidAttachedTo = newRobotEntityUidAttachedTo
     }
 }
+export class RigidBodyGraph implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    graph: Utils.Graph | undefined
+    constructor(
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.RigidBodyGraph
+    }
+}
+export class Aggregate implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    aggregate: PhysXT.PxAggregate | undefined
+    rigidBodiesEntityUid: number[]
+    constructor(
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Aggregate
+        this.rigidBodiesEntityUid = []
+    }
+}
 export class RobotComponent implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
     robotComponentType: RobotComponentTypes
-    positionOffset: Math.Vector3 | undefined
-    rotationOffset: Math.Quaternion | undefined
     robotEntityUidAttachedTo: number
     constructor(
         newRobotComponentType: RobotComponentTypes,
@@ -139,8 +167,6 @@ export class RobotComponent implements ECS.Component {
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.positionOffset = undefined
-        this.rotationOffset = undefined
         this.componentType = ComponentTypes.RobotComponent
         this.robotComponentType = newRobotComponentType
         this.robotEntityUidAttachedTo = newRobotEntityUidAttachedTo
@@ -213,7 +239,6 @@ export class RigidBody implements ECS.Component {
     componentType: ComponentTypes
     body: PhysXT.PxRigidActor | undefined
     bodyType: BodyTypes
-    disableCollisions: boolean
     constructor(
         newBodyType: BodyTypes,
         newEntityUid: number,
@@ -221,7 +246,6 @@ export class RigidBody implements ECS.Component {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.RigidBody
-        this.disableCollisions = false
         this.bodyType = newBodyType
     }
 }
@@ -267,6 +291,8 @@ export class Shape implements ECS.Component {
     shape: PhysXT.PxShape | undefined
     materialType: MaterialTypes
     shapesEntityUid: number[]
+    positionOffset: Math.Vector3 | undefined
+    rotationOffset: Math.Quaternion | undefined
     constructor(
         newShapeType: ShapeTypes,
         newEntityUid: number,
@@ -475,9 +501,11 @@ export class Mass implements ECS.Component {
     componentUid: number
     componentType: ComponentTypes
     mass: number
+    centerOfMass: Math.Vector3
 
     constructor(newMass: number, newEntityUid: number) {
         this.mass = newMass
+        this.centerOfMass = new Math.Vector3(0, 0, 0)
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Mass

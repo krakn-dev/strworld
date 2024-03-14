@@ -66,7 +66,7 @@ export function copyVector2(vector: Vector2): Vector2 {
         vector.x,
         vector.y)
 }
-export function addVector2(vectorA: Vector2, vectorB: Vector2): Vector2 {
+export function sumVector2(vectorA: Vector2, vectorB: Vector2): Vector2 {
     return new Vector2(
         vectorA.x + vectorB.x,
         vectorA.y + vectorB.y)
@@ -80,6 +80,11 @@ export function multiplyVector2(vectorA: Vector2, vectorB: Vector2): Vector2 {
     return new Vector2(
         vectorA.x - vectorB.x,
         vectorA.y - vectorB.y)
+}
+export function divideVector2(vectorA: Vector2, vectorB: Vector2): Vector2 {
+    return new Vector2(
+        vectorA.x / vectorB.x,
+        vectorA.y / vectorB.y)
 }
 export function normalizeVector2(vector: Vector2): Vector2 {
     let magnitude = Math.hypot(vector.x, vector.y)
@@ -96,7 +101,7 @@ export function copyVector3(vector: Vector3): Vector3 {
         vector.y,
         vector.z)
 }
-export function addVector3(vectorA: Vector3, vectorB: Vector3): Vector3 {
+export function sumVector3(vectorA: Vector3, vectorB: Vector3): Vector3 {
     return new Vector3(
         vectorA.x + vectorB.x,
         vectorA.y + vectorB.y,
@@ -114,6 +119,12 @@ export function multiplyVector3(vectorA: Vector3, vectorB: Vector3): Vector3 {
         vectorA.y - vectorB.y,
         vectorA.z - vectorB.z)
 }
+export function divideVector3(vectorA: Vector3, vectorB: Vector3): Vector3 {
+    return new Vector3(
+        vectorA.x / vectorB.x,
+        vectorA.y / vectorB.y,
+        vectorA.z / vectorB.z)
+}
 export function normalizeVector3(vector: Vector3): Vector3 {
     let magnitude = Math.hypot(vector.x, vector.y, vector.z)
     return new Vector3(
@@ -121,6 +132,9 @@ export function normalizeVector3(vector: Vector3): Vector3 {
         vector.y / magnitude,
         vector.z / magnitude)
 }
+//////////////
+// Misc
+//////////////
 export function crossProduct(vectorA: Vector3, vectorB: Vector3): Vector3 {
     return new Vector3(
         (vectorA.y * vectorB.z) - (vectorA.z * vectorB.y),
@@ -137,6 +151,41 @@ export function eulerToQuaternion(vector: Vector3): Quaternion {
         (Math.cos(x) * Math.cos(y) * Math.sin(z)) - (Math.sin(x) * Math.sin(y) * Math.cos(z)),
         (Math.cos(x) * Math.cos(y) * Math.cos(z)) + (Math.sin(x) * Math.sin(y) * Math.sin(z)))
 }
+export function rotatePoint(vector: Vector3, point: Vector3) {
+    var cosa = Math.cos(vector.y);
+    var sina = Math.sin(vector.y);
+
+    var cosb = Math.cos(vector.x);
+    var sinb = Math.sin(vector.x);
+
+    var cosc = Math.cos(vector.z);
+    var sinc = Math.sin(vector.z);
+
+    var Axx = cosa * cosb;
+    var Axy = cosa * sinb * sinc - sina * cosc;
+    var Axz = cosa * sinb * cosc + sina * sinc;
+
+    var Ayx = sina * cosb;
+    var Ayy = sina * sinb * sinc + cosa * cosc;
+    var Ayz = sina * sinb * cosc - cosa * sinc;
+
+    var Azx = -sinb;
+    var Azy = cosb * sinc;
+    var Azz = cosb * cosc;
+
+    var px = point.x;
+    var py = point.y;
+    var pz = point.z;
+
+    return new Vector3(
+        Axx * px + Axy * py + Axz * pz,
+        Ayx * px + Ayy * py + Ayz * pz,
+        Azx * px + Azy * py + Azz * pz);
+}
 export function deg2rad(degrees: number): number {
     return degrees * (3.1416 / 180)
+}
+export function getRandomNumberInclusive(min: number, max: number) {
+    const minCeiled = Math.ceil(min);
+    return Math.floor(Math.random() * (Math.floor(max) - minCeiled + 1) + minCeiled);
 }

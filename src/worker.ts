@@ -16,7 +16,7 @@ async function initialize() {
     let systemInterval: any | undefined = undefined
     function startInterval() {
         if (systemInterval != undefined) return
-        systemInterval = setInterval(system.run.bind(system), 15)
+        systemInterval = setInterval(system.run.bind(system), 16)
     }
     onmessage = (data) => {
         let msg = data.data as Ser.Message
@@ -25,7 +25,7 @@ async function initialize() {
                 let newData = msg.data as Ser.DOMData
                 resources.domState.windowHeight = newData.windowHeight
                 resources.domState.windowWidth = newData.windowWidth
-                system.addCommand(Cmds.CommandTypes.TheFirst)
+                system.addCommand(new Cmds.TheFirst())
                 startInterval()
             } break;
             case Ser.Messages.Input: {
@@ -38,34 +38,23 @@ async function initialize() {
             } break;
             case Ser.Messages.RefreshGraphics: {
                 let graphicChanges = new Ser.GraphicChanges()
-                let foundComponents = system.find([
-                    ECS.Get.All,
-                    [
-                        Comps.ComponentTypes.EntityType,
-                        Comps.ComponentTypes.Shape,
-                        Comps.ComponentTypes.Camera,
-                        Comps.ComponentTypes.Light,
-                        Comps.ComponentTypes.EntityState,
-                        Comps.ComponentTypes.Rotation,
-                        Comps.ComponentTypes.ShapeColor,
-                        Comps.ComponentTypes.Position,
-                    ],
-                    ECS.By.Any,
-                    null
-                ])
+
                 //order is important
-                graphicChanges.addedComponents.push(...foundComponents[0])
-                graphicChanges.addedComponents.push(...foundComponents[1])
-                graphicChanges.addedComponents.push(...foundComponents[2])
-                graphicChanges.addedComponents.push(...foundComponents[3])
-                graphicChanges.addedComponents.push(...foundComponents[4])
-                graphicChanges.addedComponents.push(...foundComponents[5])
-                graphicChanges.addedComponents.push(...foundComponents[6])
-                graphicChanges.addedComponents.push(...foundComponents[7])
-                for (let eTC of foundComponents[0]) {
+                graphicChanges.addedComponents.push(...system.proxyFreeComponents[Comps.ComponentTypes.EntityType])
+                graphicChanges.addedComponents.push(...system.proxyFreeComponents[Comps.ComponentTypes.Shape])
+                graphicChanges.addedComponents.push(...system.proxyFreeComponents[Comps.ComponentTypes.Camera])
+                graphicChanges.addedComponents.push(...system.proxyFreeComponents[Comps.ComponentTypes.Light])
+                graphicChanges.addedComponents.push(...system.proxyFreeComponents[Comps.ComponentTypes.EntityState])
+                graphicChanges.addedComponents.push(...system.proxyFreeComponents[Comps.ComponentTypes.Rotation])
+                graphicChanges.addedComponents.push(...system.proxyFreeComponents[Comps.ComponentTypes.ShapeColor])
+                graphicChanges.addedComponents.push(...system.proxyFreeComponents[Comps.ComponentTypes.Position])
+                for (let eTC of system.proxyFreeComponents[Comps.ComponentTypes.EntityType]) {
                     graphicChanges.addedEntitiesUid.push(eTC.entityUid)
                 }
-                postMessage(new Ser.Message(Ser.Messages.GraphicChanges, JSON.parse(JSON.stringify(graphicChanges))))
+                postMessage(
+                    new Ser.Message(
+                        Ser.Messages.GraphicChanges,
+                        JSON.parse(JSON.stringify(graphicChanges))))
             } break;
             case Ser.Messages.Stop: {
                 clearInterval(systemInterval)

@@ -32,9 +32,9 @@ export class GraphElement {
     }
 }
 export class Graph {
-    private elements: GraphElement[]
-
+    elements: GraphElement[]
     islands: number[][]
+
     private alreadyVisitedElements: number[]
     private currentIsland: number[]
 
@@ -73,7 +73,7 @@ export class Graph {
         }
         targetElement.siblingElements.push(siblingElement)
     }
-    newElement(elementId: number) {
+    createElement(elementId: number) {
         this.elements.push(new GraphElement(elementId))
     }
     removeElement(elementId: number) {
@@ -89,7 +89,7 @@ export class Graph {
             }
         }
     }
-    recursiveSearch(element: GraphElement) {
+    private recursiveSearch(element: GraphElement) {
         for (let aVE of this.alreadyVisitedElements) {
             if (aVE == element.id) {
                 return
@@ -102,7 +102,9 @@ export class Graph {
         }
     }
     updateIslands() {
+        this.alreadyVisitedElements = []
         this.islands = []
+
         for (let e of this.elements) {
             this.currentIsland = []
             this.recursiveSearch(e)
@@ -110,6 +112,5 @@ export class Graph {
                 this.islands.push(this.currentIsland)
             }
         }
-        this.alreadyVisitedElements = []
     }
 }

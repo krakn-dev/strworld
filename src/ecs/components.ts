@@ -4,7 +4,6 @@ import * as Utils from "../utils"
 import { PhysXT } from "../physx/physx"
 
 export enum ComponentTypes {
-    Health = 0,
     Camera,
     Light,
     EntityState,
@@ -12,7 +11,7 @@ export enum ComponentTypes {
     TargetLocation,
     Timer,
     Aggregate,
-    RigidBodyGraph,
+    Switch,
     Shape,
     Mass,
     ShapeColor,
@@ -95,20 +94,32 @@ export enum RobotComponentTypes {
     WoodenStick,
 }
 
-export class Robot implements ECS.Component {
+export class Switch implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
     isOn: boolean
-    code: string
+    constructor(
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Switch
+        this.isOn = false
+    }
+}
+export class Robot implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    graph: Utils.Graph
     constructor(
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Robot
-        this.code = `console.log("i'm on");`
-        this.isOn = false
+        this.graph = new Utils.Graph()
     }
 }
 export class RobotSuperComponent implements ECS.Component {
@@ -126,25 +137,13 @@ export class RobotSuperComponent implements ECS.Component {
         this.robotEntityUidAttachedTo = newRobotEntityUidAttachedTo
     }
 }
-export class RigidBodyGraph implements ECS.Component {
-    entityUid: number
-    componentUid: number
-    componentType: ComponentTypes
-    graph: Utils.Graph | undefined
-    constructor(
-        newEntityUid: number
-    ) {
-        this.componentUid = Utils.newUid()
-        this.entityUid = newEntityUid
-        this.componentType = ComponentTypes.RigidBodyGraph
-    }
-}
 export class Aggregate implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
     aggregate: PhysXT.PxAggregate | undefined
     rigidBodiesEntityUid: number[]
+    graph: Utils.Graph | undefined
     constructor(
         newEntityUid: number
     ) {
@@ -190,7 +189,6 @@ export class Wheel implements ECS.Component {
         this.brake = false
     }
 }
-
 export class Code implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -206,7 +204,6 @@ export class Code implements ECS.Component {
         this.code = newCode
     }
 }
-
 export class Constraint implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -350,7 +347,6 @@ export class Camera implements ECS.Component {
         this.aspect = newAspect
     }
 }
-
 export class TargetPosition implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -410,20 +406,6 @@ export class Position implements ECS.Component {
         this.x = newPosition.x
         this.y = newPosition.y
         this.z = newPosition.z
-    }
-}
-
-export class Health implements ECS.Component {
-    entityUid: number
-    componentUid: number
-    componentType: ComponentTypes
-    health: number
-
-    constructor(newHealth: number, newEntityUid: number) {
-        this.componentUid = Utils.newUid()
-        this.entityUid = newEntityUid
-        this.componentType = ComponentTypes.Health
-        this.health = newHealth
     }
 }
 export class AngularVelocity implements ECS.Component {

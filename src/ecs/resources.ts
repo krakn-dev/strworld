@@ -2,8 +2,8 @@ import * as ECS from "./ecs"
 import * as Cmds from "./commands"
 import * as Comps from "./components"
 import * as Ser from '../serialization'
-import { PhysX, PhysXT } from "../physx/physx"
 import * as Mat from "../math"
+import { PhysX, PhysXT } from "../physx/physx"
 
 
 export class Resources {
@@ -18,8 +18,9 @@ export class Resources {
     physics: PhysicsResource
     availableRobotComponents: AvailableRobotComponentsResource
     newRobot: NewRobotResource
-    entitiesCache: EntitiesCacheResource
-    robotsCache: RobotsCacheResource
+    robots: RobotsResource
+    cameraViewEntities: CameraViewEntitiesResource
+
     constructor(newCurrentExecutingCommand: ECS.CurrentExecutingCommand) {
         this.domState = new DOMStateResource()
         this.deltaTime = new DeltaTimeResource(newCurrentExecutingCommand)
@@ -32,17 +33,17 @@ export class Resources {
         this.physics = new PhysicsResource()
         this.availableRobotComponents = new AvailableRobotComponentsResource()
         this.newRobot = new NewRobotResource()
-        this.entitiesCache = new EntitiesCacheResource()
-        this.robotsCache = new RobotsCacheResource()
+        this.robots = new RobotsResource()
+        this.cameraViewEntities = new CameraViewEntitiesResource()
     }
 }
-export class NewRobotResource {
+class NewRobotResource {
     components: Comps.RobotComponent[]
     constructor() {
         this.components = []
     }
 }
-export class AvailableRobotComponentsResource {
+class AvailableRobotComponentsResource {
     robotComponentTypes: Comps.RobotComponentTypes[]
     quantity: number[]
     constructor() {
@@ -50,7 +51,7 @@ export class AvailableRobotComponentsResource {
         this.quantity = [200, 4, 1]
     }
 }
-export class SuperComponent {
+class SuperComponent {
     robotSuperComponentEntityUid: number
     subComponentsEntityUid: number[]
     constructor(newEntityUid: number) {
@@ -58,7 +59,7 @@ export class SuperComponent {
         this.subComponentsEntityUid = []
     }
 }
-class RobotCache {
+class RobotComponents {
     entityUid: number
     componentsEntityUid: number[]
     superComponents: SuperComponent[]
@@ -68,55 +69,27 @@ class RobotCache {
         this.superComponents = []
     }
     addSuperComponent(entityUid: number): SuperComponent {
-        return new SuperComponent(entityUid)
+        let superComponent = new SuperComponent(entityUid)
+        this.superComponents.push(superComponent)
+        return superComponent
     }
     addComponent(entityUid: number) {
         this.componentsEntityUid.push(entityUid)
     }
 }
-export class RobotsCacheResource {
-    private robots: Map<number, RobotCache>
+class RobotsResource {
+    robots: Map<number, RobotComponents>
     constructor() {
         this.robots = new Map()
     }
-    get(entityUid: number): RobotCache | undefined {
-        return this.robots.get(entityUid)
-    }
-    addRobot(entityUid: number): RobotCache {
-        let robotCache = new RobotCache(entityUid)
+    addRobot(entityUid: number): RobotComponents {
+        let robotCache = new RobotComponents(entityUid)
         this.robots.set(entityUid, robotCache)
 
         return robotCache
     }
 }
-class EntityCache {
-    entityUid: number
-    components: ECS.Component[][]
-    constructor(newEntityUid: number) {
-        this.entityUid = newEntityUid
-        this.components = []
-        for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
-            this.components.push([])
-        }
-    }
-}
-export class EntitiesCacheResource {
-    private entities: Map<number, EntityCache>
-    constructor() {
-        this.entities = new Map()
-    }
-    get(entityUid: number): EntityCache | undefined {
-        return this.entities.get(entityUid)
-    }
-    addEntity(entityUid: number) {
-        let entityCache = new EntityCache(entityUid)
-        this.entities.set(entityUid, entityCache)
-    }
-    removeEntity(entityUid: number) {
-        this.entities.delete(entityUid)
-    }
-}
-export class Materials {
+class Materials {
     wheel: PhysXT.PxMaterial
     default: PhysXT.PxMaterial
     constructor(physics: PhysXT.PxPhysics) {
@@ -124,7 +97,7 @@ export class Materials {
         this.wheel = physics.createMaterial(0.5, 0.8, 0.5)
     }
 }
-export class CustomConvexShapes {
+class CustomConvexShapes {
     physics: PhysXT.PxPhysics
     cache: Map<string, PhysXT.PxGeometry>
     constructor(newPhysics: PhysXT.PxPhysics) {
@@ -172,31 +145,31 @@ export class CustomConvexShapes {
     }
 }
 class ShapeContact {
-    shapeUid: number
+    shapeEntityUid: number
     impulse: Mat.Vector3
-    constructor(newShapeUid: number, newImpulse: Mat.Vector3) {
-        this.shapeUid = newShapeUid
+    constructor(newShapeEntityUid: number, newImpulse: Mat.Vector3) {
+        this.shapeEntityUid = newShapeEntityUid
         this.impulse = newImpulse
     }
 }
 class Contact {
-    rigidBodyAUid: number
-    rigidBodyBUid: number
+    rigidBodyAEntityUid: number
+    rigidBodyBEntityUid: number
     shapesContactA: ShapeContact[]
     shapesContactB: ShapeContact[]
     constructor(
-        newRigidBodyAUid: number,
-        newRigidBodyBUid: number,
+        newRigidBodyAEntityUid: number,
+        newRigidBodyBEntityUid: number,
         newShapesContactA: ShapeContact[],
         newShapesContactB: ShapeContact[]
     ) {
-        this.rigidBodyAUid = newRigidBodyAUid
-        this.rigidBodyBUid = newRigidBodyBUid
+        this.rigidBodyAEntityUid = newRigidBodyAEntityUid
+        this.rigidBodyBEntityUid = newRigidBodyBEntityUid
         this.shapesContactA = newShapesContactA
         this.shapesContactB = newShapesContactB
     }
 }
-export class PhysicsResource {
+class PhysicsResource {
     materials: Materials
     customConvexShapes: CustomConvexShapes
     scene: PhysXT.PxScene
@@ -284,7 +257,78 @@ class LastTimeCommandWasRun {
         this.command = newCommand
     }
 }
-export class DeltaTimeResource {
+class CameraViewEntitiesResource {
+    entities: number[]
+    private cameraPositionComponent: Comps.Position | undefined
+    private cameraRotationComponent: Comps.Rotation | undefined
+    private cameraComponent: Comps.Camera | undefined
+    constructor() {
+        this.entities = []
+    }
+    updateEntity(positionComponent: Comps.Position) {
+        if (
+            this.cameraComponent == undefined ||
+            this.cameraPositionComponent == undefined ||
+            this.cameraRotationComponent == undefined
+        ) return;
+
+        if (this.isEntityInsideCameraRadius(positionComponent)) {
+            if (!this.isEntityAlreadyInView(positionComponent.entityUid)) {
+                this.entities.push(positionComponent.entityUid)
+            }
+        }
+        else {
+            if (this.isEntityAlreadyInView(positionComponent.entityUid)) {
+                this.removeEntityFromView(positionComponent.entityUid)
+            }
+        }
+    }
+    updateCameraPosition(newCameraPositionComponent: Comps.Position) {
+        this.cameraPositionComponent = newCameraPositionComponent
+    }
+    updateCameraRotation(newCameraRotationComponent: Comps.Rotation) {
+        this.cameraRotationComponent = newCameraRotationComponent
+    }
+    updateCameraComponent(newCameraComponent: Comps.Camera) {
+        this.cameraComponent = newCameraComponent
+    }
+    private isEntityInsideCameraRadius(positionComponent: Comps.Position): boolean {
+        let radiusSize = 10
+        let circlePosition = new Mat.Vector2(0, 0)
+        circlePosition.x = this.cameraPositionComponent!.x;
+        circlePosition.y = this.cameraPositionComponent!.z;
+        circlePosition.x += 0
+        circlePosition.y -= 30
+
+        if (
+            (positionComponent.x - circlePosition.x) *
+            (positionComponent.x - circlePosition.x) +
+            (positionComponent.z - circlePosition.y) *
+            (positionComponent.z - circlePosition.y) <=
+            radiusSize * radiusSize
+        ) {
+            return true
+        }
+        return false
+    }
+    private removeEntityFromView(entityUid: number) {
+        for (let [i, eUid] of this.entities.entries()) {
+            if (eUid == entityUid) {
+                this.entities.splice(i, 1)
+                return
+            }
+        }
+    }
+    private isEntityAlreadyInView(entityUid: number): boolean {
+        for (let eUid of this.entities) {
+            if (eUid == entityUid) {
+                return true
+            }
+        }
+        return false
+    }
+}
+class DeltaTimeResource {
     private currentExecutingCommand: ECS.CurrentExecutingCommand
 
     private lastTimeCommandsWereRun: LastTimeCommandWasRun[]
@@ -312,7 +356,7 @@ export class DeltaTimeResource {
         return null
     }
 }
-export class CommandStateResource {
+class CommandStateResource {
     private currentExecutingCommand: ECS.CurrentExecutingCommand
 
     private state: Map<string, any>
@@ -340,7 +384,7 @@ export class CommandStateResource {
         return value
     }
 }
-export class IsFirstTimeResource {
+class IsFirstTimeResource {
     private currentExecutingCommand: ECS.CurrentExecutingCommand
 
     private commandsCheckedFirstTime: number[]
@@ -361,7 +405,7 @@ export class IsFirstTimeResource {
         return true
     }
 }
-export class OptionsResource {
+class OptionsResource {
     isShadowsEnabled: boolean | undefined
     isSetNight: boolean | undefined
     isEnablePhysics: boolean | undefined
@@ -373,7 +417,7 @@ export class OptionsResource {
         this.isEnableFreeCamera = undefined
     }
 }
-export class DOMStateResource {
+class DOMStateResource {
     windowWidth: number | undefined
     windowHeight: number | undefined
     constructor() {
@@ -381,7 +425,7 @@ export class DOMStateResource {
         this.windowHeight = undefined
     }
 }
-export class InputResource {
+class InputResource {
     keys: Map<Ser.Keys, boolean>
     constructor() {
         this.keys = new Map()
@@ -403,14 +447,21 @@ export class InputResource {
         return isDown
     }
 }
-export class ComponentChangesResource {
+class ComponentChangesResource {
     changedComponents: ECS.Component[][]
-    removedComponents: ECS.Component[][]
     addedComponents: ECS.Component[][]
 
     changedComponentsBuffer: ECS.Component[][]
-    removedComponentsBuffer: ECS.Component[][]
     addedComponentsBuffer: ECS.Component[][]
+
+    // proxy free
+    proxyFreeChangedComponents: ECS.Component[][]
+    proxyFreeRemovedComponents: ECS.Component[][]
+    proxyFreeAddedComponents: ECS.Component[][]
+
+    proxyFreeChangedComponentsBuffer: ECS.Component[][]
+    proxyFreeRemovedComponentsBuffer: ECS.Component[][]
+    proxyFreeAddedComponentsBuffer: ECS.Component[][]
 
     private baseStructure: ECS.Component[][]
 
@@ -419,26 +470,41 @@ export class ComponentChangesResource {
         for (let i = 0; i < Comps.NUMBER_OF_COMPONENTS; i++) {
             this.baseStructure.push([])
         }
+        this.changedComponents = []
+        this.addedComponents = []
 
+        this.proxyFreeChangedComponents = []
+        this.proxyFreeRemovedComponents = []
+        this.proxyFreeAddedComponents = []
+
+        // proxy free
         this.changedComponentsBuffer = structuredClone(this.baseStructure)
-        this.removedComponentsBuffer = structuredClone(this.baseStructure)
         this.addedComponentsBuffer = structuredClone(this.baseStructure)
 
-        this.changedComponents = []
-        this.removedComponents = []
-        this.addedComponents = []
+        this.proxyFreeChangedComponentsBuffer = structuredClone(this.baseStructure)
+        this.proxyFreeRemovedComponentsBuffer = structuredClone(this.baseStructure)
+        this.proxyFreeAddedComponentsBuffer = structuredClone(this.baseStructure)
+
     }
     cycleChanges() {
         this.changedComponents = this.changedComponentsBuffer
-        this.removedComponents = this.removedComponentsBuffer
         this.addedComponents = this.addedComponentsBuffer
 
         this.changedComponentsBuffer = structuredClone(this.baseStructure)
-        this.removedComponentsBuffer = structuredClone(this.baseStructure)
         this.addedComponentsBuffer = structuredClone(this.baseStructure)
+
+        // proxy free
+        this.proxyFreeChangedComponents = this.proxyFreeChangedComponentsBuffer
+        this.proxyFreeRemovedComponents = this.proxyFreeRemovedComponentsBuffer
+        this.proxyFreeAddedComponents = this.proxyFreeAddedComponentsBuffer
+
+        this.proxyFreeChangedComponentsBuffer = structuredClone(this.baseStructure)
+        this.proxyFreeRemovedComponentsBuffer = structuredClone(this.baseStructure)
+        this.proxyFreeAddedComponentsBuffer = structuredClone(this.baseStructure)
+
     }
 }
-export class PositionGridResource {
+class PositionGridResource {
     constructor() {
     }
 }

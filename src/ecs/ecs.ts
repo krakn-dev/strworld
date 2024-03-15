@@ -9,36 +9,14 @@ export interface Component {
     componentType: Comps.ComponentTypes
 }
 
-export enum Get {
-    One,
-    All
-}
-
-export enum By {
-    EntityUid,
-    EntityType,
-    componentUid,
-    Any,
-}
-
 export interface Command {
     commandType: Cmds.CommandTypes
     run(system: System, resources: Res.Resources): void
 }
 
-export class EntityComponents {
-    components: Component[]
-    entityUid: number
-
-    constructor(newEntityUid: number) {
-        this.components = []
-        this.entityUid = newEntityUid
-    }
-}
-
 class CommandChanges {
     removedCommands: Cmds.CommandTypes[]
-    addedCommands: Cmds.CommandTypes[]
+    addedCommands: Command[]
     constructor() {
         this.removedCommands = []
         this.addedCommands = []
@@ -56,10 +34,24 @@ export class CurrentExecutingCommand {
     }
 }
 
+class EntityComponents {
+    entityUid: number
+    components: Component[][]
+    constructor(newEntityUid: number) {
+        this.entityUid = newEntityUid
+        this.components = []
+        for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
+            this.components.push([])
+        }
+    }
+}
 export class System {
+    components: Component[][]
+    proxyFreeComponents: Component[][]
+    entities: Map<number, EntityComponents>
+
     private commands: Command[]
     private commandChangesBuffer: CommandChanges
-    private components: Component[][]
     private resources: Res.Resources
     private currentExecutingCommand: CurrentExecutingCommand
 
@@ -67,194 +59,151 @@ export class System {
         this.resources = newResources
         this.currentExecutingCommand = newCurrentExecutingCommand
         this.changedComponents = new Map()
+        this.entities = new Map()
 
         this.commandChangesBuffer = new CommandChanges()
         this.commands = []
 
         this.components = []
+        this.proxyFreeComponents = []
         for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
             this.components.push([])
+            this.proxyFreeComponents.push([])
         }
-    }
-
-    createEntity(): number {
-        let entityUid = Utils.newUid()
-        this.resources.entitiesCache.addEntity(entityUid)
-        return entityUid
-    }
-    removeEntity(entityUid: number) {
-        console.log("IMPLEMENT")
     }
     removeCommand(command: Cmds.CommandTypes) {
         this.commandChangesBuffer.removedCommands.push(command)
     }
-    addCommand(command: Cmds.CommandTypes) {
+    addCommand(command: Command) {
         this.commandChangesBuffer.addedCommands.push(command)
+    }
+
+    createEntity(): number {
+        let entityUid = Utils.newUid()
+
+        // add entity to entities map
+        let entityComponents = new EntityComponents(entityUid)
+        this.entities.set(entityUid, entityComponents)
+
+        return entityUid
+    }
+    removeEntity(entityUid: number) {
+        let entityComponents = this.entities.get(entityUid)!
+        for (let cT = 0; cT < this.components.length; cT++) {
+            for (let cI = this.components[cT].length - 1; cI >= 0; cI--) {
+                let component = this.components[cT][cI];
+                if (component.entityUid != entityUid) continue;
+
+                // add component to proxy free removed components buffer
+                this
+                    .resources
+                    .componentChanges
+                    .proxyFreeRemovedComponentsBuffer[component.componentType]
+                    .push(this.proxyFreeComponents[cT][cI]);
+
+                // remove component from entity-component
+                entityComponents.components[component.componentType] = []
+
+                // remove component from component lists
+                this.components[cT].splice(cI, 1);
+                this.proxyFreeComponents[cT].splice(cI, 1);
+                break;
+            }
+        }
+        // remove entity-component
+        this.entities.delete(entityUid)
     }
     addComponent(component: Component) {
         let proxyComponent = this.createProxy(component)
+
+        // push component to component lists
         this.components[component.componentType].push(proxyComponent)
+        this.proxyFreeComponents[component.componentType].push(component)
+
+        // push component to added components lists
         this
             .resources
             .componentChanges
             .addedComponentsBuffer[component.componentType]
+            .push(proxyComponent)
+        this
+            .resources
+            .componentChanges
+            .proxyFreeAddedComponentsBuffer[component.componentType]
             .push(component)
 
-        this.resources.entitiesCache.get(component.entityUid)!
+        // add component to entity-component
+        this.entities.get(component.entityUid)!
             .components[component.componentType].push(proxyComponent)
     }
     removeComponent(component: Component) {
         for (let [cI, c] of this.components[component.componentType].entries()) {
             if (c.componentUid == component.componentUid) {
+                // add component to proxy free removed components buffer
                 this
                     .resources
                     .componentChanges
-                    .removedComponentsBuffer[component.componentType]
-                    .push(component)
-                this.components.splice(cI, 1)
+                    .proxyFreeRemovedComponentsBuffer[component.componentType]
+                    .push(this.proxyFreeComponents[component.componentType][cI])
 
-                this.resources.entitiesCache.get(component.entityUid)!
-                    .components[component.componentType] = []
+                // remove component from entity-component
+                let entityComponents = this.entities.get(component.entityUid)!
+                entityComponents.components[component.componentType] = []
+
+                // remove component from component lists
+                this.components[component.componentType].splice(cI, 1)
+                this.proxyFreeComponents[component.componentType].splice(cI, 1)
+
+                return;
             }
         }
-
     }
 
     // checks for changes in component properties
-    // not nested ones
-    private lastComponent: Component | undefined
-    private changedComponents: Map<number, boolean>
+    // not nested properties
+    private lastChangedComponent: Component | undefined
+    private changedComponents: Map<number, undefined>
     private createProxy<T extends Component>(obj: T): T {
         let outer = this
         let handler = {
             set(obj: { [key: string]: any }, prop: string, value: any) {
                 let component = obj as Component
 
+                // check if component is already in changed list
                 let isAlreadyChanged = false
-
                 if (
-                    outer.lastComponent != undefined &&
-                    outer.lastComponent.componentUid == component.componentUid
+                    outer.lastChangedComponent != undefined &&
+                    outer.lastChangedComponent.componentUid == component.componentUid
                 ) {
                     isAlreadyChanged = true
                 } else {
-                    let isChanged = outer.changedComponents.get(component.componentUid)
+                    let isChanged = outer.changedComponents.has(component.componentUid)
                     if (isChanged) isAlreadyChanged = true
                 }
 
+                // add to change components hashmap 
                 if (!isAlreadyChanged) {
-                    outer.resources.componentChanges.changedComponentsBuffer[component.componentType].push(component)
-                    outer.changedComponents.set(component.componentUid, true)
+                    outer.resources.componentChanges.changedComponentsBuffer[component.componentType].push(outer.createProxy(component))
+                    outer.resources.componentChanges.proxyFreeChangedComponentsBuffer[component.componentType].push(component)
+                    outer.changedComponents.set(component.componentUid, undefined)
                 }
+
+                outer.lastChangedComponent = component
 
                 obj[prop] = value;
                 return true;
-            },
-            get(obj: { [key: string]: any }, prop: string) {
-                return obj[prop];
             },
         };
 
         return new Proxy<T>(obj, handler);
     }
-
-    find(query: [Get, Comps.ComponentTypes[], By, Comps.EntityTypes | number | null]): Component[][] {
-        // Comment on production !TODO
-        if (query[1].length == 0) {
-            console.log("no components expecified")
-            return []
-        }
-        if (query[2] == By.EntityType && (query[3] as Comps.EntityTypes) == undefined ||
-            query[2] == By.componentUid && typeof query[3] != "number" ||
-            query[2] == By.EntityUid && typeof query[3] != "number") {
-            console.log('argument does not match "By" enum')
-            return []
-        }
-
-        if (query[0] == Get.All && query[2] == By.componentUid) {
-            console.log('cannot get all by component id')
-            return []
-        }
-
-        if (query[0] == Get.One && query[2] == By.EntityType) {
-            console.log("query Get.One By.EntityType is not supported yet")
-            return []
-        }
-
-        if (query[0] == Get.One && query[2] == By.Any) {
-            console.log("query Get.One By.Any is not supported yet")
-            return []
-        }
-        // Comment on production !TODO
-
-        let collected: Component[][] = []
-        for (let i = 0; i < query[1].length; i++) {
-            collected.push([])
-        }
-
-
-        for (let [qci, qc] of query[1].entries()) {
-            if (query[0] == Get.One) {
-                if (query[2] == By.componentUid) {
-                    for (let c of this.components[qc]) {
-                        if (query[3] == c.componentUid) {
-                            collected[qci].push(c)
-                            break;
-                        }
-                    }
-                    continue;
-                }
-                else if (query[2] == By.EntityUid) {
-                    for (let c of this.components[qc]) {
-                        if (query[3] == c.entityUid) {
-                            collected[qci].push(c)
-                            break;
-                        }
-                    }
-                    continue;
-                }
-            }
-            else if (query[0] == Get.All) {
-                if (query[2] == By.EntityUid) {
-                    for (let c of this.components[qc]) {
-                        if (query[3] == c.entityUid) {
-                            collected[qci].push(c)
-                        }
-                    }
-                    continue;
-                }
-                else if (query[2] == By.Any) {
-                    for (let c of this.components[qc]) {
-                        collected[qci].push(c)
-                    }
-                    continue;
-                }
-
-                else if (query[2] == By.EntityType) {
-                    for (let e of this.components[Comps.ComponentTypes.EntityType]) {
-                        let entityTypeComponent = e as Comps.EntityType
-                        if (query[3] == entityTypeComponent.entityType) {
-                            for (let c of this.components[qc]) {
-                                if (e.entityUid == c.entityUid) {
-                                    collected[qci].push(c)
-                                }
-                            }
-                            break;
-                        }
-                    }
-                    continue;
-                }
-
-            }
-        }
-        return collected
-    }
-
     private updateCommands() {
         for (let aC of this.commandChangesBuffer.addedCommands) {
+
+            // check if command is already inserted
             let isFound = false
             for (let c of this.commands) {
-                if (aC == c.commandType) {
+                if (aC.commandType == c.commandType) {
                     console.log("$ command already exists")
                     isFound = true
                 }
@@ -263,20 +212,22 @@ export class System {
                 continue
             }
 
-            let command = Cmds.getInstanceFromEnum(aC)
+            // insert in CommandTypes order
             let isInserted = false
             for (let [cI, c] of this.commands.entries()) {
-                if (aC < c.commandType) {
+                if (aC.commandType < c.commandType) {
                     isInserted = true
-                    this.commands.splice(cI, 0, command)
+                    this.commands.splice(cI, 0, aC)
                     break
                 }
             }
             if (!isInserted) {
-                this.commands.push(command)
+                this.commands.push(aC)
             }
         }
         for (let rC of this.commandChangesBuffer.removedCommands) {
+
+            // loop over and remove command
             let isFound = false
             for (let cI = this.commands.length - 1; cI >= 0; cI--) {
                 if (rC == this.commands[cI].commandType) {
@@ -292,17 +243,16 @@ export class System {
         }
     }
     run() {
+        let start = performance.now()
         for (let c of this.commands) {
             this.currentExecutingCommand.command = c.commandType
             c.run(this, this.resources)
         }
-
         this.updateCommands()
         this.commandChangesBuffer.clearChanges()
         this.resources.componentChanges.cycleChanges()
         this.changedComponents.clear()
-        //let start = performance.now()
-        //let end = performance.now()
-        //console.log(end - start, "all")
+        let end = performance.now()
+        console.log(end - start)
     }
 }

@@ -8,12 +8,10 @@ export interface Component {
     componentUid: number
     componentType: Comps.ComponentTypes
 }
-
 export interface Command {
     commandType: Cmds.CommandTypes
     run(system: System, resources: Res.Resources): void
 }
-
 class CommandChanges {
     removedCommands: Cmds.CommandTypes[]
     addedCommands: Command[]
@@ -26,29 +24,16 @@ class CommandChanges {
         this.addedCommands = []
     }
 }
-
 export class CurrentExecutingCommand {
     command: Cmds.CommandTypes | null
     constructor() {
         this.command = null
     }
 }
-
-class EntityComponents {
-    entityUid: number
-    components: Component[][]
-    constructor(newEntityUid: number) {
-        this.entityUid = newEntityUid
-        this.components = []
-        for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
-            this.components.push([])
-        }
-    }
-}
 export class System {
     components: Component[][]
     proxyFreeComponents: Component[][]
-    entities: Map<number, EntityComponents>
+    entities: Map<number, (Component | undefined)[]>
 
     private commands: Command[]
     private commandChangesBuffer: CommandChanges
@@ -81,9 +66,12 @@ export class System {
     createEntity(): number {
         let entityUid = Utils.newUid()
 
+        let components: Component | undefined[] = []
+        for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
+            this.components.push([])
+        }
         // add entity to entities map
-        let entityComponents = new EntityComponents(entityUid)
-        this.entities.set(entityUid, entityComponents)
+        this.entities.set(entityUid, components)
 
         return entityUid
     }
@@ -102,7 +90,7 @@ export class System {
                     .push(this.proxyFreeComponents[cT][cI]);
 
                 // remove component from entity-component
-                entityComponents.components[component.componentType] = []
+                entityComponents[component.componentType] = undefined
 
                 // remove component from component lists
                 this.components[cT].splice(cI, 1);
@@ -133,8 +121,7 @@ export class System {
             .push(component)
 
         // add component to entity-component
-        this.entities.get(component.entityUid)!
-            .components[component.componentType].push(proxyComponent)
+        this.entities.get(component.entityUid)![component.componentType] = proxyComponent
     }
     removeComponent(component: Component) {
         for (let [cI, c] of this.components[component.componentType].entries()) {
@@ -148,7 +135,7 @@ export class System {
 
                 // remove component from entity-component
                 let entityComponents = this.entities.get(component.entityUid)!
-                entityComponents.components[component.componentType] = []
+                entityComponents[component.componentType] = undefined
 
                 // remove component from component lists
                 this.components[component.componentType].splice(cI, 1)
@@ -243,7 +230,6 @@ export class System {
         }
     }
     run() {
-        let start = performance.now()
         for (let c of this.commands) {
             this.currentExecutingCommand.command = c.commandType
             c.run(this, this.resources)
@@ -252,7 +238,5 @@ export class System {
         this.commandChangesBuffer.clearChanges()
         this.resources.componentChanges.cycleChanges()
         this.changedComponents.clear()
-        let end = performance.now()
-        console.log(end - start)
     }
 }

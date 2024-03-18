@@ -78,9 +78,12 @@ class RobotComponents {
     }
 }
 class RobotsResource {
-    robots: Map<number, RobotComponents>
+    private robots: Map<number, RobotComponents>
     constructor() {
         this.robots = new Map()
+    }
+    get(entityUid: number): RobotComponents | undefined {
+        return this.robots.get(entityUid)
     }
     addRobot(entityUid: number): RobotComponents {
         let robotCache = new RobotComponents(entityUid)

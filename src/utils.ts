@@ -23,20 +23,50 @@ export class AssetFetchCache {
         return asset
     }
 }
-export class GraphElement {
+
+class Island {
+    id: number
+    elements: GraphElement[]
+    siblingIslands: Island[]
+    constructor(newId: number) {
+        this.id = newId
+        this.elements = []
+        this.siblingIslands = []
+    }
+
+}
+class GraphElement {
     id: number
     siblingElements: GraphElement[]
+    stop: boolean
     constructor(newId: number) {
         this.id = newId
         this.siblingElements = []
+        this.stop = false
+    }
+}
+class IslandConnection {
+    islandA: Island
+    islandB: Island
+    elementA: GraphElement
+    elementB: GraphElement
+    constructor(
+        newIslandA: Island,
+        newIslandB: Island,
+        newElementA: GraphElement,
+        newElementB: GraphElement
+    ) {
+        this.islandA = newIslandA
+        this.islandB = newIslandB
+        this.elementA = newElementA
+        this.elementB = newElementB
     }
 }
 export class Graph {
     elements: GraphElement[]
-    islands: number[][]
-
-    private alreadyVisitedElements: number[]
-    private currentIsland: number[]
+    islands: GraphElement[][]
+    private alreadyVisitedElements: GraphElement[]
+    private currentIsland: GraphElement[]
 
     constructor() {
         this.elements = []
@@ -44,61 +74,76 @@ export class Graph {
         this.alreadyVisitedElements = []
         this.currentIsland = []
     }
-    removeElementSibling(elementId: number, siblingId: number) {
+    removeSiblings(elementIdA: number, elementIdB: number) {
         for (let e of this.elements) {
-            if (e.id == elementId) {
-                for (let [sEI, sE] of e.siblingElements.entries()) {
-                    if (sE.id == siblingId) {
-                        e.siblingElements.splice(sEI, 1)
+            if (e.id == elementIdA) {
+                for (let [i, sE] of e.siblingElements.entries()) {
+                    if (sE.id == elementIdB) {
+                        e.siblingElements.splice(i, 1)
+                        break;
+                    }
+                }
+            }
+            if (e.id == elementIdB) {
+                for (let [i, s] of e.siblingElements.entries()) {
+                    if (s.id == elementIdA) {
+                        e.siblingElements.splice(i, 1)
+                        break;
                     }
                 }
             }
         }
     }
-    addElementSibling(elementId: number, siblingId: number) {
-        let siblingElement: GraphElement | undefined = undefined
-        let targetElement: GraphElement | undefined = undefined
+    addSiblings(elementIdA: number, elementIdB: number) {
+        let elementA: GraphElement | undefined
+        let elementB: GraphElement | undefined
 
         for (let e of this.elements) {
-            if (e.id == elementId) {
-                targetElement = e
+            if (e.id == elementIdA) {
+                elementA = e
             }
-            if (e.id == siblingId) {
-                siblingElement = e
+            if (e.id == elementIdB) {
+                elementB = e
             }
         }
-        if (siblingElement == undefined || targetElement == undefined) {
-            console.log("???????????")
+        if (elementA == undefined || elementB == undefined) {
+            console.log("element does not exist")
             return
         }
-        targetElement.siblingElements.push(siblingElement)
+        elementA.siblingElements.push(elementB)
+        elementB.siblingElements.push(elementA)
     }
     createElement(elementId: number) {
         this.elements.push(new GraphElement(elementId))
     }
-    removeElement(elementId: number) {
-        for (let [eI, e] of this.elements.entries()) {
-            for (let [sI, s] of e.siblingElements.entries()) {
-                if (s.id == elementId) {
-                    e.siblingElements.splice(sI, 1)
-                    break;
-                }
-            }
+    setStopElement(isStopElement: boolean, elementId: number) {
+        for (let e of this.elements) {
             if (e.id == elementId) {
-                this.elements.splice(eI, 1)
+                e.stop = isStopElement;
             }
         }
     }
-    private recursiveSearch(element: GraphElement) {
-        for (let aVE of this.alreadyVisitedElements) {
-            if (aVE == element.id) {
-                return
+    removeElement(elementId: number) {
+        for (let [i0, e] of this.elements.entries()) {
+            if (e.id != elementId) continue
+
+            // siblings of target element
+            for (let s0 of e.siblingElements) {
+
+                // siblings of sibling
+                for (let [i1, s1] of s0.siblingElements.entries()) {
+
+                    // remove target element from siblings
+                    if (s1.id == elementId) {
+                        s0.siblingElements.splice(i1, 1)
+                        break;
+                    }
+                }
             }
-        }
-        this.alreadyVisitedElements.push(element.id)
-        this.currentIsland.push(element.id)
-        for (let s of element.siblingElements) {
-            this.recursiveSearch(s)
+
+            // remove element from list
+            this.elements.splice(i0, 1)
+            break;
         }
     }
     updateIslands() {
@@ -111,6 +156,22 @@ export class Graph {
             if (this.currentIsland.length > 0) {
                 this.islands.push(this.currentIsland)
             }
+        }
+    }
+    private recursiveSearch(element: GraphElement) {
+        for (let e of this.alreadyVisitedElements) {
+            if (e.id == element.id) {
+                return
+            }
+        }
+        this.alreadyVisitedElements.push(element)
+        if (element.stop) {
+            this.islands.push([element])
+            return
+        }
+        this.currentIsland.push(element)
+        for (let s of element.siblingElements) {
+            this.recursiveSearch(s)
         }
     }
 }

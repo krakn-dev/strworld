@@ -11,6 +11,7 @@ export enum ComponentTypes {
     TargetLocation,
     Timer,
     Aggregate,
+    EntityGraph,
     Switch,
     Shape,
     Mass,
@@ -112,14 +113,12 @@ export class Robot implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    graph: Utils.Graph
     constructor(
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.Robot
-        this.graph = new Utils.Graph()
     }
 }
 export class RobotSuperComponent implements ECS.Component {
@@ -137,13 +136,26 @@ export class RobotSuperComponent implements ECS.Component {
         this.robotEntityUidAttachedTo = newRobotEntityUidAttachedTo
     }
 }
+export class EntityGraph implements ECS.Component {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    graph: Utils.Graph
+    constructor(
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.EntityGraph
+        this.graph = new Utils.Graph()
+    }
+}
 export class Aggregate implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
     aggregate: PhysXT.PxAggregate | undefined
     rigidBodiesEntityUid: number[]
-    graph: Utils.Graph | undefined
     constructor(
         newEntityUid: number
     ) {

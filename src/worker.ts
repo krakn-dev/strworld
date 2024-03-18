@@ -16,7 +16,7 @@ async function initialize() {
     let systemInterval: any | undefined = undefined
     function startInterval() {
         if (systemInterval != undefined) return
-        systemInterval = setInterval(system.run.bind(system), 16)
+        systemInterval = setInterval(system.run.bind(system), 20)
     }
     onmessage = (data) => {
         let msg = data.data as Ser.Message

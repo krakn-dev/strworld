@@ -6,7 +6,6 @@ import * as Funs from "./functions"
 import * as Ser from "../serialization"
 import * as Utils from "../utils"
 import { PhysX, PhysXT } from "../physx/physx"
-import { Vector3 } from "three"
 
 // order in which they get executed
 export enum CommandTypes {
@@ -56,7 +55,7 @@ export class RunCode implements ECS.Command {
         if (resources.input.isKeyDown(Ser.Keys.A)) {
             if (resources.isFirstTime.get()) {
                 let entityGraphComponent = system.components[Comps.ComponentTypes.EntityGraph][0] as Comps.EntityGraph;
-                let entityUid = entityGraphComponent.graph.elements[10].id
+                let entityUid = entityGraphComponent.graph.elements[1].id
                 system.removeEntity(entityUid)
                 entityGraphComponent.graph.removeElement(entityUid)
                 Funs.triggerComponentChange(entityGraphComponent)
@@ -146,7 +145,7 @@ export class CreateScene implements ECS.Command {
             let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Static, floor)
             let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, floor)
             shapeComponent.size = new Mat.Vector3(50, 10, 50)
-            let positionComponent = new Comps.Position(new Mat.Vector3(0, -6, 0), floor)
+            let positionComponent = new Comps.Position(new Mat.Vector3(0, -10, 0), floor)
             let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), floor)
             let shapeColorComponent = new Comps.ShapeColor(0xffffff, floor)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, floor)
@@ -207,50 +206,172 @@ export class CreateRobot implements ECS.Command {
 
 
         let subEntsEntityUid = []
-        for (let i = 0; i < 20; i++) {
-            let subEnt = system.createEntity()
-            subEntsEntityUid.push(subEnt)
-
-            let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), subEnt)
-            let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), subEnt)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, subEnt)
-            shapeComponent.size = new Mat.Vector3(1, 1, 1)
-            shapeComponent.positionOffset = new Mat.Vector3(i, i, 0)
-            shapeComponent.rotationOffset = new Mat.Quaternion(0, 0, 0, 1)
-            let shapeColorComponent = new Comps.ShapeColor(0x000ff, subEnt)
-            let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, subEnt)
-
-            system.addComponent(positionComponent)
-            system.addComponent(rotationComponent)
-            system.addComponent(shapeComponent)
-            system.addComponent(shapeColorComponent)
-            system.addComponent(entityTypeComponent)
-        }
+        let constrainedEnt;
         {
-            let ent = system.createEntity()
+            for (let i = 0; i < 3; i++) {
+                let subEnt = system.createEntity()
+                subEntsEntityUid.push(subEnt)
 
-            let positionComponent = new Comps.Position(new Mat.Vector3(-10, 10, 0), ent)
-            let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), ent)
-            let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, ent)
-            let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Compound, ent)
-            let linearVelocityComponent = new Comps.LinearVelocity(ent)
-            let angularVelocityComponent = new Comps.AngularVelocity(ent)
-            angularVelocityComponent.z = 5
-            shapeComponent.shapesEntityUid = subEntsEntityUid
-            let massComponent = new Comps.Mass(subEntsEntityUid.length, ent)
+                let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), subEnt)
+                let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), subEnt)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, subEnt)
+                shapeComponent.size = new Mat.Vector3(1, 1, 1)
+                shapeComponent.positionOffset = new Mat.Vector3(i, i, 0)
+                shapeComponent.rotationOffset = new Mat.Quaternion(0, 0, 0, 1)
+                let shapeColorComponent = new Comps.ShapeColor(0x000ff, subEnt)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, subEnt)
 
-            system.addComponent(angularVelocityComponent)
-            system.addComponent(massComponent)
-            system.addComponent(linearVelocityComponent)
-            system.addComponent(positionComponent)
-            system.addComponent(rotationComponent)
-            system.addComponent(rigidBodyComponent)
-            system.addComponent(shapeComponent)
+                system.addComponent(positionComponent)
+                system.addComponent(rotationComponent)
+                system.addComponent(shapeComponent)
+                system.addComponent(shapeColorComponent)
+                system.addComponent(entityTypeComponent)
+            }
+            {
+
+                let subEnt = system.createEntity()
+                subEntsEntityUid.push(subEnt)
+
+                let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), subEnt)
+                let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), subEnt)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, subEnt)
+                shapeComponent.size = new Mat.Vector3(1, 1, 1)
+                shapeComponent.positionOffset = new Mat.Vector3(2, 2, -1)
+                shapeComponent.rotationOffset = new Mat.Quaternion(0, 0, 0, 1)
+                let shapeColorComponent = new Comps.ShapeColor(0x000ff, subEnt)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, subEnt)
+
+                system.addComponent(positionComponent)
+                system.addComponent(rotationComponent)
+                system.addComponent(shapeComponent)
+                system.addComponent(shapeColorComponent)
+                system.addComponent(entityTypeComponent)
+            }
+            {
+                constrainedEnt = system.createEntity()
+
+                let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), constrainedEnt)
+                let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), constrainedEnt)
+                let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, constrainedEnt)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Compound, constrainedEnt)
+                let linearVelocityComponent = new Comps.LinearVelocity(constrainedEnt)
+                let angularVelocityComponent = new Comps.AngularVelocity(constrainedEnt)
+                shapeComponent.shapesEntityUid = subEntsEntityUid
+                let massComponent = new Comps.Mass(subEntsEntityUid.length, constrainedEnt)
+
+                system.addComponent(angularVelocityComponent)
+                system.addComponent(massComponent)
+                system.addComponent(linearVelocityComponent)
+                system.addComponent(positionComponent)
+                system.addComponent(rotationComponent)
+                system.addComponent(rigidBodyComponent)
+                system.addComponent(shapeComponent)
+            }
+
+        }
+        let constraintSubEnt0;
+        {
+            {
+                constraintSubEnt0 = system.createEntity()
+
+                let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), constraintSubEnt0)
+                let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), constraintSubEnt0)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, constraintSubEnt0)
+                shapeComponent.size = new Mat.Vector3(1, 1, 1)
+                shapeComponent.positionOffset = new Mat.Vector3(0, 0, 0)
+                shapeComponent.rotationOffset = new Mat.Quaternion(0, 0, 0, 1)
+                let shapeColorComponent = new Comps.ShapeColor(0x000ff, constraintSubEnt0)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, constraintSubEnt0)
+
+                system.addComponent(positionComponent)
+                system.addComponent(rotationComponent)
+                system.addComponent(shapeComponent)
+                system.addComponent(shapeColorComponent)
+                system.addComponent(entityTypeComponent)
+            }
+            {
+                let ent = system.createEntity()
+
+                let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), ent)
+                let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), ent)
+                let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, ent)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Compound, ent)
+                shapeComponent.shapesEntityUid = [constraintSubEnt0]
+                let linearVelocityComponent = new Comps.LinearVelocity(ent)
+                let angularVelocityComponent = new Comps.AngularVelocity(ent)
+                let constraintComponent = new Comps.Constraints(ent)
+                let constraint = new Comps.Constraint(Comps.ConstraintTypes.Lock, constrainedEnt)
+                constraint.axisA = new Mat.Quaternion(0, 0, 0, 1)
+                constraint.axisB = new Mat.Quaternion(0, 0, 0, 1)
+                constraint.pivotA = new Mat.Vector3(-4, 0, 0)
+                constraint.pivotB = new Mat.Vector3(0, 4, 0)
+                constraintComponent.constraints.push(constraint)
+                let massComponent = new Comps.Mass(1, ent)
+
+                system.addComponent(constraintComponent)
+                system.addComponent(angularVelocityComponent)
+                system.addComponent(massComponent)
+                system.addComponent(linearVelocityComponent)
+                system.addComponent(positionComponent)
+                system.addComponent(rotationComponent)
+                system.addComponent(rigidBodyComponent)
+                system.addComponent(shapeComponent)
+            }
+        }
+        let constraintSubEnt1;
+        {
+            {
+                constraintSubEnt1 = system.createEntity()
+
+                let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), constraintSubEnt1)
+                let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), constraintSubEnt1)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, constraintSubEnt1)
+                shapeComponent.size = new Mat.Vector3(1, 1, 1)
+                shapeComponent.positionOffset = new Mat.Vector3(0, 0, 0)
+                shapeComponent.rotationOffset = new Mat.Quaternion(0, 0, 0, 1)
+                let shapeColorComponent = new Comps.ShapeColor(0x000ff, constraintSubEnt1)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.GeometricShape, constraintSubEnt1)
+
+                system.addComponent(positionComponent)
+                system.addComponent(rotationComponent)
+                system.addComponent(shapeComponent)
+                system.addComponent(shapeColorComponent)
+                system.addComponent(entityTypeComponent)
+            }
+            {
+                let ent = system.createEntity()
+
+                let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), ent)
+                let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), ent)
+                let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, ent)
+                let massComponent = new Comps.Mass(1, ent)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Compound, ent)
+                shapeComponent.shapesEntityUid = [constraintSubEnt1]
+                let linearVelocityComponent = new Comps.LinearVelocity(ent)
+                let angularVelocityComponent = new Comps.AngularVelocity(ent)
+                let constraintComponent = new Comps.Constraints(ent)
+                let constraint = new Comps.Constraint(Comps.ConstraintTypes.Lock, constrainedEnt)
+                constraint.axisA = new Mat.Quaternion(0, 0, 0, 1)
+                constraint.axisB = new Mat.Quaternion(0, 0, 0, 1)
+                constraint.pivotA = new Mat.Vector3(-2, 0, 0)
+                constraint.pivotB = new Mat.Vector3(0, 2, 1)
+                constraintComponent.constraints.push(constraint)
+
+                system.addComponent(constraintComponent)
+                system.addComponent(angularVelocityComponent)
+                system.addComponent(massComponent)
+                system.addComponent(linearVelocityComponent)
+                system.addComponent(positionComponent)
+                system.addComponent(rotationComponent)
+                system.addComponent(rigidBodyComponent)
+                system.addComponent(shapeComponent)
+            }
         }
         {
             let superEnt = system.createEntity()
 
             let entityGraphComponent = new Comps.EntityGraph(superEnt)
+
             for (let i = 0; i < subEntsEntityUid.length; i++) {
                 entityGraphComponent.graph.createElement(
                     subEntsEntityUid[i])
@@ -262,13 +383,16 @@ export class CreateRobot implements ECS.Command {
                     subEntsEntityUid[i + 1])
             }
 
+            entityGraphComponent.graph.createElement(constraintSubEnt0)
+            entityGraphComponent.graph.addSiblings(constraintSubEnt0, subEntsEntityUid[2])
+            entityGraphComponent.graph.setStopElement(true, constraintSubEnt0)
+
+            entityGraphComponent.graph.createElement(constraintSubEnt1)
+            entityGraphComponent.graph.addSiblings(constraintSubEnt1, subEntsEntityUid[2])
+            entityGraphComponent.graph.setStopElement(true, constraintSubEnt1)
+
             system.addComponent(entityGraphComponent)
         }
-
-        //////
-        /// constraints
-        //////
-
         system.removeCommand(this.commandType)
     }
 }
@@ -288,23 +412,23 @@ export class TorqueWheels implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        for (let cWC of resources.componentChanges.changedComponents[Comps.ComponentTypes.Wheel]) {
-            let wheelComponent = cWC as Comps.Wheel
-            let entityComponents = system.entities.get(wheelComponent.entityUid)
+        //    for (let cWC of resources.componentChanges.changedComponents[Comps.ComponentTypes.Wheel]) {
+        //        let wheelComponent = cWC as Comps.Wheel
+        //        let entityComponents = system.entities.get(wheelComponent.entityUid)
 
-            if (
-                entityComponents == undefined ||
-                entityComponents[Comps.ComponentTypes.Constraint] == undefined
-            ) {
-                continue
-            }
+        //        if (
+        //            entityComponents == undefined ||
+        //            entityComponents[Comps.ComponentTypes.Constraint] == undefined
+        //        ) {
+        //            continue
+        //        }
 
-            let constraintComponent = entityComponents[Comps.ComponentTypes.Constraint] as Comps.Constraint;
-            if (constraintComponent.constraint == undefined) continue
+        //        let constraintComponent = entityComponents[Comps.ComponentTypes.Constraint] as Comps.Constraint;
+        //        if (constraintComponent.constraint == undefined) continue
 
-            let hinge = constraintComponent.constraint as PhysXT.PxRevoluteJoint
-            hinge.setDriveVelocity(wheelComponent.velocity)
-        }
+        //        let hinge = constraintComponent.constraint as PhysXT.PxRevoluteJoint
+        //        hinge.setDriveVelocity(wheelComponent.velocity)
+        //    }
     }
 }
 export class MoveVehicle implements ECS.Command {
@@ -365,7 +489,6 @@ export class CreateStickman implements ECS.Command {
         system.removeCommand(this.commandType)
     }
 }
-//// movement
 export class MovePlayer implements ECS.Command {
     readonly commandType: CommandTypes
     constructor() {
@@ -469,7 +592,6 @@ export class MovePlayer implements ECS.Command {
         //    }
     }
 }
-//// render
 export class SendGraphicComponentsToRender implements ECS.Command {
     readonly commandType: CommandTypes
     constructor() {
@@ -528,80 +650,265 @@ export class SyncPhysics implements ECS.Command {
         /////////////////
         for (let cEGC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.EntityGraph]) {
             let entityGraphComponent = cEGC as Comps.EntityGraph
+            let oldConnections = entityGraphComponent.graph.islandConnections
+            let oldIslands = entityGraphComponent.graph.islands
             entityGraphComponent.graph.updateIslands()
+            entityGraphComponent.graph.updateIslandConnections()
 
-            let islands = entityGraphComponent.graph.islands
+            // handle removed constraints 
+            let removedIslandConnections = []
+            for (let c0 of oldConnections) {
+                let isRemoved = true
+                for (let c1 of entityGraphComponent.graph.islandConnections) {
+                    if (
+                        (c1.elementA.id == c0.elementA.id && c1.elementB.id == c0.elementB.id) ||
+                        (c1.elementA.id == c0.elementB.id && c1.elementB.id == c0.elementA.id)
+                    ) {
+                        isRemoved = false
+                        break;
+                    }
+                }
+                if (isRemoved) {
+                    removedIslandConnections.push(c0)
+                }
+            }
+            // remove constraint
+            for (let rC of removedIslandConnections) {
+                for (let cC of system.components[Comps.ComponentTypes.Constraints]) {
+                    let constraintComponent = cC as Comps.Constraints
+                    let entityComponents = system.entities.get(cC.entityUid)!
+                    let shapeComponent = entityComponents[Comps.ComponentTypes.Shape] as Comps.Shape
+                    if (shapeComponent.shapeType != Comps.ShapeTypes.Compound) continue
 
-            let rigidBodiesEntityUidToRemove = []
-            for (let island of islands) {
+                    let foundFirstElement = false
+                    for (let eUid of shapeComponent.shapesEntityUid) {
+                        if (eUid == rC.elementA.id || eUid == rC.elementB.id) {
+                            foundFirstElement = true
+                            break;
+                        }
+                    }
+                    if (!foundFirstElement) {
+                        continue
+                    }
 
-                // remove old rigid body
-                let childEntityComponents = system.entities.get(island[0].id)!
-                let childShapeComponent = childEntityComponents[Comps.ComponentTypes.Shape]! as Comps.Shape
-                let oldRigidBody = childShapeComponent.shape!.getActor()
-                let parentEntityUid = resources.physics.rigidBodyPtrToEntityUid.get((oldRigidBody as any).ptr)
-                if (parentEntityUid != undefined) {
-                    rigidBodiesEntityUidToRemove.push(parentEntityUid)
-                    let parentEntityComponents = system.entities.get(parentEntityUid)
-                    if (parentEntityComponents != undefined) {
-                        let parentPositionComponent = parentEntityComponents[Comps.ComponentTypes.Position] as Comps.Position
-                        let parentRotationComponent = parentEntityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
-                        let parentLinearVelocityComponent = parentEntityComponents[Comps.ComponentTypes.LinearVelocity] as Comps.LinearVelocity
-                        let parentAngularVelocityComponent = parentEntityComponents[Comps.ComponentTypes.AngularVelocity] as Comps.AngularVelocity
+                    // get constraint
+                    let foundSecondElement = false;
+                    for (let constraint of constraintComponent.constraints) {
+                        let entityComponents = system.entities.get(constraint.entityUidConstrainedTo)!
+                        let shapeComponent = entityComponents[Comps.ComponentTypes.Shape] as Comps.Shape
+                        for (let eUid of shapeComponent.shapesEntityUid) {
+                            if (eUid == rC.elementA.id || eUid == rC.elementB.id) {
+                                foundSecondElement = true
+                                break;
+                            }
+                        }
+                        if (foundSecondElement) {
+                            constraint.changeType = Comps.ChangeTypes.Remove
+                            break;
+                        }
+                    }
+                    if (foundSecondElement) break;
+                }
+            }
 
-                        let superComp = system.createEntity()
+            // get split islands
+            //                 old           new
+            let splitIslands: [Utils.Island, Utils.Island[]][] = []
+            for (let i0 of oldIslands) {
+                for (let i1 of entityGraphComponent.graph.islands) {
 
-                        let positionComponent = new Comps.Position(Mat.copyVector3(parentPositionComponent), superComp)
-                        let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), superComp)
-                        rotationComponent.x = parentRotationComponent.x;
-                        rotationComponent.y = parentRotationComponent.y;
-                        rotationComponent.z = parentRotationComponent.z;
-                        rotationComponent.w = parentRotationComponent.w;
-                        let linearVelocityComponent = new Comps.LinearVelocity(superComp)
-                        linearVelocityComponent.x = parentLinearVelocityComponent.x
-                        linearVelocityComponent.y = parentLinearVelocityComponent.y
-                        linearVelocityComponent.z = parentLinearVelocityComponent.z
-                        let angularVelocityComponent = new Comps.AngularVelocity(superComp)
-                        angularVelocityComponent.x = parentAngularVelocityComponent.x
-                        angularVelocityComponent.y = parentAngularVelocityComponent.y
-                        angularVelocityComponent.z = parentAngularVelocityComponent.z
-                        let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, superComp)
-                        let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Compound, superComp)
-                        shapeComponent.shapesEntityUid = island.map(e => e.id)
-                        let massComponent = new Comps.Mass(island.length, superComp)
+                    // get matching islands
+                    // if elements match, the new island is part ot the original island
+                    let isMatch = false
+                    for (let e0 of i0.elements) {
+                        for (let e1 of i1.elements) {
+                            if (e0.id == e1.id) {
+                                isMatch = true
+                                break;
+                            }
+                        }
+                        if (isMatch) {
+                            break;
+                        }
+                    }
 
-                        system.addComponent(angularVelocityComponent)
-                        system.addComponent(linearVelocityComponent)
-                        system.addComponent(massComponent)
-                        system.addComponent(positionComponent)
-                        system.addComponent(rotationComponent)
-                        system.addComponent(rigidBodyComponent)
-                        system.addComponent(shapeComponent)
-
+                    // if the matching island is less than the original, it's a split island
+                    if (isMatch && (i1.elements.length < i0.elements.length)) {
+                        let isIslandPushed = false
+                        for (let sI of splitIslands) {
+                            if (sI[0].id == i0.id) {
+                                isIslandPushed = true
+                                sI[1].push(i1)
+                            }
+                        }
+                        if (!isIslandPushed) {
+                            splitIslands.push([i0, [i1]])
+                        }
+                        continue
                     }
                 }
             }
-            for (let eUid of rigidBodiesEntityUidToRemove) {
+
+            // handle split rigid bodies
+            let oldEntities = []
+            let newEntities = []
+            for (let splitIsland of splitIslands) {
+
+                // remove old rigid body
+                let childEntityComponents = system.entities.get(splitIsland[1][0].elements[0].id)!
+                let childShapeComponent = childEntityComponents[Comps.ComponentTypes.Shape]! as Comps.Shape
+                let parentRigidBody = childShapeComponent.shape!.getActor() as PhysXT.PxRigidDynamic
+                let parentEntityUid = resources.physics.rigidBodyPtrToEntityUid.get((parentRigidBody as any).ptr)
+                if (parentEntityUid == undefined) continue
+                oldEntities.push(parentEntityUid)
+                let parentEntityComponents = system.entities.get(parentEntityUid)
+                if (parentEntityComponents == undefined) continue
+
+                let parentPosition = parentEntityComponents[Comps.ComponentTypes.Position] as Comps.Position
+                let parentRotation = parentEntityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
+                let parentLinearVelocity = parentEntityComponents[Comps.ComponentTypes.LinearVelocity] as Comps.LinearVelocity
+                let parentAngularVelocity = parentEntityComponents[Comps.ComponentTypes.AngularVelocity] as Comps.AngularVelocity
+
+                // create rigidbodies for new islands
+                for (let island of splitIsland[1]) {
+
+                    let superComp = system.createEntity()
+                    newEntities.push(superComp)
+
+                    let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), superComp)
+                    positionComponent.x = parentPosition.x
+                    positionComponent.y = parentPosition.y
+                    positionComponent.z = parentPosition.z
+                    let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), superComp)
+                    rotationComponent.x = parentRotation.x;
+                    rotationComponent.y = parentRotation.y;
+                    rotationComponent.z = parentRotation.z;
+                    rotationComponent.w = parentRotation.w;
+                    let linearVelocityComponent = new Comps.LinearVelocity(superComp)
+                    linearVelocityComponent.x = parentLinearVelocity.x;
+                    linearVelocityComponent.y = parentLinearVelocity.y;
+                    linearVelocityComponent.z = parentLinearVelocity.z;
+                    let angularVelocityComponent = new Comps.AngularVelocity(superComp)
+                    angularVelocityComponent.x = parentAngularVelocity.x;
+                    angularVelocityComponent.y = parentAngularVelocity.y;
+                    angularVelocityComponent.z = parentAngularVelocity.z;
+                    let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, superComp)
+                    let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Compound, superComp)
+                    shapeComponent.shapesEntityUid = island.elements.map(e => e.id)
+                    let massComponent = new Comps.Mass(island.elements.length, superComp)
+
+                    system.addComponent(angularVelocityComponent)
+                    system.addComponent(linearVelocityComponent)
+                    system.addComponent(massComponent)
+                    system.addComponent(positionComponent)
+                    system.addComponent(rotationComponent)
+                    system.addComponent(rigidBodyComponent)
+                    system.addComponent(shapeComponent)
+                }
+            }
+            // add constraints to new islands
+            for (let splitIsland of splitIslands) {
+
+                // find split islands connnections
+                for (let island of splitIsland[1]) {
+                    for (let iC of entityGraphComponent.graph.islandConnections) {
+                        if (iC.islandA.id == island.id || iC.islandB.id == island.id) {
+
+                            let isBAttachedToA = false
+                            let oldParentUid: number | undefined
+                            let matchConstraint: Comps.Constraint | undefined;
+
+                            // find old constraint involving these connections 
+                            for (let cC of system.components[Comps.ComponentTypes.Constraints]) {
+                                let constraintComponent = cC as Comps.Constraints
+                                let entityComponents = system.entities.get(cC.entityUid)!
+                                let shapeComponent = entityComponents[Comps.ComponentTypes.Shape] as Comps.Shape
+                                if (shapeComponent.shapeType != Comps.ShapeTypes.Compound) continue
+
+                                let foundFirstElement = false
+                                for (let eUid of shapeComponent.shapesEntityUid) {
+                                    if (eUid == iC.elementA.id) {
+                                        foundFirstElement = true
+                                        isBAttachedToA = false
+                                        break;
+                                    }
+                                    if (eUid == iC.elementB.id) {
+                                        foundFirstElement = true
+                                        isBAttachedToA = true
+                                        break;
+                                    }
+                                }
+                                if (!foundFirstElement) {
+                                    continue
+                                }
+                                // verify that the other entity has the other element
+                                for (let constraint of constraintComponent.constraints) {
+                                    let entityComponents = system.entities.get(constraint.entityUidConstrainedTo)!
+                                    let shapeComponent = entityComponents[Comps.ComponentTypes.Shape] as Comps.Shape
+                                    for (let eUid of shapeComponent.shapesEntityUid) {
+                                        if (eUid == iC.elementA.id || eUid == iC.elementB.id) {
+                                            matchConstraint = constraint
+                                            oldParentUid = constraintComponent.entityUid
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (matchConstraint == undefined || oldParentUid == undefined) continue;
+
+                            // get new parents to attach the matched constraint
+
+                            // check if element A island was split
+                            let elementAParentUid: number | undefined
+                            let elementBParentUid: number | undefined
+
+                            for (let eUid of newEntities) {
+                                let entityComponents = system.entities.get(eUid)!
+                                let shapeComponent = entityComponents[Comps.ComponentTypes.Shape] as Comps.Shape
+
+                                for (let shapeUid of shapeComponent.shapesEntityUid) {
+                                    if (shapeUid == iC.elementA.id) {
+                                        elementAParentUid = eUid
+                                    }
+                                    if (shapeUid == iC.elementB.id) {
+                                        elementBParentUid = eUid
+                                    }
+                                }
+                            }
+
+                            let attacherParentUid: number
+                            let attachedToParentUid: number
+
+                            if (elementAParentUid == undefined) {
+                                elementAParentUid = oldParentUid
+                            }
+                            if (elementBParentUid == undefined) {
+                                elementBParentUid = oldParentUid
+                            }
+
+                            if (isBAttachedToA) {
+                                attacherParentUid = elementBParentUid
+                                attachedToParentUid = elementAParentUid!
+                            } else {
+                                attacherParentUid = elementAParentUid
+                                attachedToParentUid = elementBParentUid!
+                            }
+
+                            let constraintComponent = new Comps.Constraints(attacherParentUid)
+                            constraintComponent.constraints.push(matchConstraint)
+                            matchConstraint.entityUidConstrainedTo = attachedToParentUid
+                            matchConstraint.changeType = undefined
+
+                            system.addComponent(constraintComponent)
+                        }
+                    }
+                }
+            }
+            for (let eUid of oldEntities) {
                 system.removeEntity(eUid)
             }
-            //for (let island of entityGraphComponent.graph.islands) {
-
-            //    let superComp = system.createEntity()
-
-            //    let positionComponent = new Comps.Position(new Mat.Vector3(0, 0.5, 0), superComp)
-            //    let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), superComp)
-            //    let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, superComp)
-            //    let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Compound, superComp)
-            //    shapeComponent.shapesEntityUid = island.map(e => e.id)
-            //    let massComponent = new Comps.Mass(island.length, superComp)
-
-            //    system.addComponent(massComponent)
-            //    system.addComponent(positionComponent)
-            //    system.addComponent(rotationComponent)
-            //    system.addComponent(rigidBodyComponent)
-            //    system.addComponent(shapeComponent)
-            //}
         }
+
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -609,6 +916,14 @@ export class SyncPhysics implements ECS.Command {
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
+        /////////////////
+        // added entity graph
+        /////////////////
+        for (let aEGC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.EntityGraph]) {
+            let entityGraphComponent = aEGC as Comps.EntityGraph
+            entityGraphComponent.graph.updateIslands()
+            entityGraphComponent.graph.updateIslandConnections()
+        }
         /////////////////
         // added rigidbody
         /////////////////
@@ -920,72 +1235,74 @@ export class SyncPhysics implements ECS.Command {
             forceComponent.zToApply = 0
         }
         /////////////////
-        // added constraint
+        // added constraints
         /////////////////
-        for (let aCC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Constraint]) {
+        for (let aCC of resources.componentChanges.addedComponentsBuffer[Comps.ComponentTypes.Constraints]) {
             let entityComponentsA = system.entities.get(aCC.entityUid)!
-            let constraintComponent = aCC as Comps.Constraint
+            let constraintsComponent = aCC as Comps.Constraints
 
-            let entityComponentsB = system.entities.get(constraintComponent.entityUidConstrainedTo)!
+            for (let constraint of constraintsComponent.constraints) {
+                let entityComponentsB = system.entities.get(constraint.entityUidConstrainedTo)!
 
-            let rigidBodyAComponent = entityComponentsA[Comps.ComponentTypes.RigidBody] as Comps.RigidBody
-            let rigidBodyBComponent = entityComponentsB[Comps.ComponentTypes.RigidBody] as Comps.RigidBody
+                let rigidBodyAComponent = entityComponentsA[Comps.ComponentTypes.RigidBody] as Comps.RigidBody
+                let rigidBodyBComponent = entityComponentsB[Comps.ComponentTypes.RigidBody] as Comps.RigidBody
 
-            let rigidBodyA = rigidBodyAComponent.body!
-            let rigidBodyB = rigidBodyBComponent.body!
+                let rigidBodyA = rigidBodyAComponent.body!
+                let rigidBodyB = rigidBodyBComponent.body!
 
-            let constraint: PhysXT.PxJoint
-            let localFrameA = new PhysX.PxTransform(
-                new PhysX.PxVec3(
-                    constraintComponent.pivotA!.x,
-                    constraintComponent.pivotA!.y,
-                    constraintComponent.pivotA!.z),
-                new PhysX.PxQuat(
-                    constraintComponent.axisA!.x,
-                    constraintComponent.axisA!.y,
-                    constraintComponent.axisA!.z,
-                    constraintComponent.axisA!.w));
+                let newConstraint: PhysXT.PxJoint
+                let localFrameA = new PhysX.PxTransform(
+                    new PhysX.PxVec3(
+                        constraint.pivotA!.x,
+                        constraint.pivotA!.y,
+                        constraint.pivotA!.z),
+                    new PhysX.PxQuat(
+                        constraint.axisA!.x,
+                        constraint.axisA!.y,
+                        constraint.axisA!.z,
+                        constraint.axisA!.w));
+                let localFrameB = new PhysX.PxTransform(
+                    new PhysX.PxVec3(
+                        constraint.pivotB!.x,
+                        constraint.pivotB!.y,
+                        constraint.pivotB!.z),
+                    new PhysX.PxQuat(
+                        constraint.axisB!.x,
+                        constraint.axisB!.y,
+                        constraint.axisB!.z,
+                        constraint.axisB!.w));
 
-            let localFrameB = new PhysX.PxTransform(
-                new PhysX.PxVec3(
-                    constraintComponent.pivotB!.x,
-                    constraintComponent.pivotB!.y,
-                    constraintComponent.pivotB!.z),
-                new PhysX.PxQuat(
-                    constraintComponent.axisB!.x,
-                    constraintComponent.axisB!.y,
-                    constraintComponent.axisB!.z,
-                    constraintComponent.axisB!.w));
+                switch (constraint.constraintType) {
+                    case Comps.ConstraintTypes.Lock: {
+                        newConstraint = (PhysX.PxTopLevelFunctions.prototype as any).FixedJointCreate(
+                            resources.physics.physics,
+                            rigidBodyA,
+                            localFrameA,
+                            rigidBodyB,
+                            localFrameB)
+                    } break;
+                    case Comps.ConstraintTypes.Distance: {
+                        console.log("not yet")
+                        continue // remove
+                    } break;
 
-            switch (constraintComponent.constraintType) {
-                case Comps.ConstraintTypes.Lock: {
-                    constraint = (PhysX.PxTopLevelFunctions.prototype as any).FixedJointCreate(
-                        resources.physics.physics,
-                        rigidBodyA,
-                        localFrameA,
-                        rigidBodyB,
-                        localFrameB)
-                } break;
-                case Comps.ConstraintTypes.Distance: {
-                    console.log("not yet")
-                    continue // remove
-                } break;
+                    case Comps.ConstraintTypes.Hinge: {
+                        newConstraint = (PhysX.PxTopLevelFunctions.prototype as any).RevoluteJointCreate(
+                            resources.physics.physics,
+                            rigidBodyB,
+                            localFrameB,
+                            rigidBodyA, // changed
+                            localFrameA) as PhysXT.PxRevoluteJoint
 
-                case Comps.ConstraintTypes.Hinge: {
-                    constraint = (PhysX.PxTopLevelFunctions.prototype as any).RevoluteJointCreate(
-                        resources.physics.physics,
-                        rigidBodyB,
-                        localFrameB,
-                        rigidBodyA, // changed
-                        localFrameA) as PhysXT.PxRevoluteJoint
+                        (newConstraint as PhysXT.PxRevoluteJoint)
+                            .setRevoluteJointFlag((PhysX.PxRevoluteJointFlagEnum as any)
+                                .eDRIVE_ENABLED, true)
 
-                    (constraint as PhysXT.PxRevoluteJoint)
-                        .setRevoluteJointFlag((PhysX.PxRevoluteJointFlagEnum as any)
-                            .eDRIVE_ENABLED, true)
-
-                } break;
+                    } break;
+                }
+                constraint.constraintReference = newConstraint;
+                constraint.changeType = undefined
             }
-            constraintComponent.constraint = constraint
         }
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -993,6 +1310,86 @@ export class SyncPhysics implements ECS.Command {
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
+        /////////////////
+        // changed constraints
+        /////////////////
+        for (let cCC of resources.componentChanges.changedComponentsBuffer[Comps.ComponentTypes.Constraints]) {
+            let constraintsComponent = cCC as Comps.Constraints
+
+            for (let i = constraintsComponent.constraints.length - 1; i >= 0; i--) {
+                let constraint = constraintsComponent.constraints[i]
+
+                switch (constraint.changeType) {
+                    case Comps.ChangeTypes.Remove: {
+                        constraintsComponent.constraints.splice(i, 1)
+                        constraint.constraintReference?.release()
+                    } break;
+                    case Comps.ChangeTypes.Add: {
+                        let entityComponentsA = system.entities.get(cCC.entityUid)!
+                        let entityComponentsB = system.entities.get(constraint.entityUidConstrainedTo)!
+
+                        let rigidBodyAComponent = entityComponentsA[Comps.ComponentTypes.RigidBody] as Comps.RigidBody
+                        let rigidBodyBComponent = entityComponentsB[Comps.ComponentTypes.RigidBody] as Comps.RigidBody
+
+                        let rigidBodyA = rigidBodyAComponent.body!
+                        let rigidBodyB = rigidBodyBComponent.body!
+
+                        let newConstraint: PhysXT.PxJoint
+                        let localFrameA = new PhysX.PxTransform(
+                            new PhysX.PxVec3(
+                                constraint.pivotA!.x,
+                                constraint.pivotA!.y,
+                                constraint.pivotA!.z),
+                            new PhysX.PxQuat(
+                                constraint.axisA!.x,
+                                constraint.axisA!.y,
+                                constraint.axisA!.z,
+                                constraint.axisA!.w));
+                        let localFrameB = new PhysX.PxTransform(
+                            new PhysX.PxVec3(
+                                constraint.pivotB!.x,
+                                constraint.pivotB!.y,
+                                constraint.pivotB!.z),
+                            new PhysX.PxQuat(
+                                constraint.axisB!.x,
+                                constraint.axisB!.y,
+                                constraint.axisB!.z,
+                                constraint.axisB!.w));
+
+                        switch (constraint.constraintType) {
+                            case Comps.ConstraintTypes.Lock: {
+                                newConstraint = (PhysX.PxTopLevelFunctions.prototype as any).FixedJointCreate(
+                                    resources.physics.physics,
+                                    rigidBodyA,
+                                    localFrameA,
+                                    rigidBodyB,
+                                    localFrameB)
+                            } break;
+                            case Comps.ConstraintTypes.Distance: {
+                                console.log("not yet")
+                                continue // remove
+                            } break;
+
+                            case Comps.ConstraintTypes.Hinge: {
+                                newConstraint = (PhysX.PxTopLevelFunctions.prototype as any).RevoluteJointCreate(
+                                    resources.physics.physics,
+                                    rigidBodyB,
+                                    localFrameB,
+                                    rigidBodyA, // changed
+                                    localFrameA) as PhysXT.PxRevoluteJoint
+
+                                (newConstraint as PhysXT.PxRevoluteJoint)
+                                    .setRevoluteJointFlag((PhysX.PxRevoluteJointFlagEnum as any)
+                                        .eDRIVE_ENABLED, true)
+
+                            } break;
+                        }
+                        constraint.constraintReference = newConstraint;
+                        constraint.changeType = undefined;
+                    } break;
+                }
+            }
+        }
         /////////////////
         // changed angular velocity
         /////////////////
@@ -1169,8 +1566,8 @@ export class SyncPhysics implements ECS.Command {
 
             let shapeComponent = entityComponents[Comps.ComponentTypes.Shape] as Comps.Shape
             let rigidBodyComponent = entityComponents[Comps.ComponentTypes.RigidBody] as Comps.RigidBody
-            let body = rigidBodyComponent.body as PhysXT.PxRigidDynamic
-            let transform = body.getGlobalPose();
+            let rigidBody = rigidBodyComponent.body as PhysXT.PxRigidDynamic
+            let transform = rigidBody.getGlobalPose();
 
             let rigidBodyPosition = transform.p
             let rigidBodyQuaternion = transform.q
@@ -1186,7 +1583,7 @@ export class SyncPhysics implements ECS.Command {
                     //resources.cameraViewEntities.updateEntity(childPositionComponent)
 
                     let shapeTransform = (PhysX.PxShapeExt.prototype as any)
-                        .getGlobalPose(childShapeComponent.shape, body) as PhysXT.PxTransform;
+                        .getGlobalPose(childShapeComponent.shape, rigidBody) as PhysXT.PxTransform;
 
                     let shapePosition = shapeTransform.p
                     let shapeRotation = shapeTransform.q
@@ -1228,7 +1625,7 @@ export class SyncPhysics implements ECS.Command {
 
             let linearVelocityComponent = entityComponents[Comps.ComponentTypes.LinearVelocity] as Comps.LinearVelocity
             if (linearVelocityComponent != undefined) {
-                let rigidBodyLinearVelocity = body.getLinearVelocity()
+                let rigidBodyLinearVelocity = rigidBody.getLinearVelocity()
                 if (
                     rigidBodyLinearVelocity.x != linearVelocityComponent.x ||
                     rigidBodyLinearVelocity.y != linearVelocityComponent.y ||
@@ -1242,7 +1639,7 @@ export class SyncPhysics implements ECS.Command {
 
             let angularVelocityComponent = entityComponents[Comps.ComponentTypes.AngularVelocity] as Comps.AngularVelocity
             if (angularVelocityComponent != undefined) {
-                let rigidBodyAngularVelocity = body.getAngularVelocity()
+                let rigidBodyAngularVelocity = rigidBody.getAngularVelocity()
                 if (
                     rigidBodyAngularVelocity.x != angularVelocityComponent.x ||
                     rigidBodyAngularVelocity.y != angularVelocityComponent.y ||
@@ -1256,70 +1653,3 @@ export class SyncPhysics implements ECS.Command {
         }
     }
 }
-//  1. if element number in island is 0, remove island
-//  
-//  2. if no element in island connects to any other islands' element, the rigidbody is completely free 
-//  
-//  -------
-//  Graph 1:
-//            o                            _  _   _               
-//           / \           <- this graph  |_||_|^|_|
-//          o   o             represents
-//         / \   \                        two rigid bodies  
-//        o   o ^ o                       attached
-//               these two are 
-//               siblings
-//  
-//  case 1:
-//            o                            _  _   _               
-//           / \           <- this graph  |_||_| |_|
-//          o   o             represents
-//         / \   \                        two rigid bodies  
-//        o   o   o                       free
-//               removed link 
-//  
-//  case 2:
-//            o                            _   _               
-//           / \           <- this graph  |_|^|_|
-//          o   o             represents
-//         / \   \                        two rigid bodies attached 
-//        x   o ^ o                       and one element missing
-//               removed element 
-//  case 3:
-//            o                            _      _               
-//           / \           <- this graph  |_|    |_|
-//          o   o             represents
-//         / \   \                        two rigid bodies free 
-//        o   x   o                       and one element missing
-//               removed element 
-//  -------
-//  Graph 2:
-//            o                            _  _  _   _               
-//           / \           <- this graph  |_||_||_|^|_|
-//        - o   o             represents
-//      /  / \   \                        two rigid bodies attached 
-//     o  o   o ^ o                       
-//  
-//  case 1:
-//          _ o                            _     _   _               
-//        /  / \           <- this graph  |_|   |_|^|_|
-//       o  o   o             represents
-//      /  / \   \                        three rigid bodies, one free 
-//     o  x   o ^ o                       and two attached
-//                removed element
-//  
-//  
-//  Conclusions:
-//  
-//  
-//  1.(graph 2, case 1):
-//          constraints are dependent on what element is in contact with other islands
-//  
-//  
-//  solution:
-//  
-//  1. get the smallest area of change in the graph
-//  
-//  2. rebuild it
-
-

@@ -1,3 +1,4 @@
+import { Utils } from "utils/Utils";
 import * as Mat from "./math"
 
 export function replaceRange(
@@ -24,17 +25,6 @@ export class AssetFetchCache {
     }
 }
 
-class Island {
-    id: number
-    elements: GraphElement[]
-    siblingIslands: Island[]
-    constructor(newId: number) {
-        this.id = newId
-        this.elements = []
-        this.siblingIslands = []
-    }
-
-}
 class GraphElement {
     id: number
     siblingElements: GraphElement[]
@@ -62,17 +52,28 @@ class IslandConnection {
         this.elementB = newElementB
     }
 }
+export class Island {
+    id: number
+    elements: GraphElement[]
+    constructor() {
+        this.id = newUid()
+        this.elements = [];
+    }
+
+}
 export class Graph {
     elements: GraphElement[]
-    islands: GraphElement[][]
-    private alreadyVisitedElements: GraphElement[]
-    private currentIsland: GraphElement[]
+    islands: Island[]
+    islandConnections: IslandConnection[]
+    private currentIsland: Island | undefined
+    private isAlreadyVisited: Map<number, undefined>
 
     constructor() {
         this.elements = []
         this.islands = []
-        this.alreadyVisitedElements = []
-        this.currentIsland = []
+        this.isAlreadyVisited = new Map()
+        this.currentIsland = undefined
+        this.islandConnections = [];
     }
     removeSiblings(elementIdA: number, elementIdB: number) {
         for (let e of this.elements) {
@@ -146,32 +147,66 @@ export class Graph {
             break;
         }
     }
+    updateIslandConnections() {
+        this.isAlreadyVisited.clear()
+        this.islandConnections = []
+
+        for (let island of this.islands) {
+            for (let e of island.elements) {
+                this.recursiveGetIslandConnections(e, island)
+            }
+        }
+    }
+    private recursiveGetIslandConnections(element: GraphElement, islandA: Island): Island | undefined {
+        if (this.isAlreadyVisited.has(element.id)) return
+        this.isAlreadyVisited.set(element.id, undefined);
+
+        for (let s of element.siblingElements) {
+            if (this.isAlreadyVisited.has(s.id)) continue
+
+            let islandB = this.getElementIsland(s.id)
+            if (islandA.id != islandB!.id) {
+                this.islandConnections.push(
+                    new IslandConnection(islandA, islandB!, element, s))
+            }
+            this.recursiveGetIslandConnections(s, islandB!)
+        }
+    }
+    getElementIsland(elementId: number): Island | undefined {
+        for (let island of this.islands) {
+            for (let e of island.elements) {
+                if (e.id == elementId) {
+                    return island
+                }
+            }
+        }
+        return undefined
+    }
     updateIslands() {
-        this.alreadyVisitedElements = []
+        this.isAlreadyVisited.clear()
         this.islands = []
 
         for (let e of this.elements) {
-            this.currentIsland = []
-            this.recursiveSearch(e)
-            if (this.currentIsland.length > 0) {
+            this.currentIsland = new Island()
+            this.recursiveFindIslands(e)
+            if (this.currentIsland.elements.length > 0) {
                 this.islands.push(this.currentIsland)
             }
         }
     }
-    private recursiveSearch(element: GraphElement) {
-        for (let e of this.alreadyVisitedElements) {
-            if (e.id == element.id) {
-                return
-            }
-        }
-        this.alreadyVisitedElements.push(element)
+    private recursiveFindIslands(element: GraphElement) {
+        if (this.isAlreadyVisited.has(element.id)) return
+        this.isAlreadyVisited.set(element.id, undefined)
+
         if (element.stop) {
-            this.islands.push([element])
+            let newIsland = new Island()
+            newIsland.elements.push(element)
+            this.islands.push(newIsland)
             return
         }
-        this.currentIsland.push(element)
+        this.currentIsland!.elements.push(element)
         for (let s of element.siblingElements) {
-            this.recursiveSearch(s)
+            this.recursiveFindIslands(s)
         }
     }
 }

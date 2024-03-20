@@ -19,7 +19,7 @@ export enum ComponentTypes {
     HardCodedId,
     Code,
     RigidBody,
-    Constraint,
+    Constraints,
     Wheel,
     RobotComponent,
     Robot,
@@ -41,9 +41,12 @@ export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the num
     return n
 })()
 
-
 export enum TimerTypes {
     Animation
+}
+export enum ChangeTypes {
+    Remove,
+    Add,
 }
 export enum EntityTypes {
     Stickman,
@@ -94,7 +97,24 @@ export enum RobotComponentTypes {
     SteelPlate,
     WoodenStick,
 }
-
+export class Constraint {
+    entityUidConstrainedTo: number
+    constraintType: ConstraintTypes
+    distance: number | undefined
+    pivotA: Math.Vector3 | undefined
+    pivotB: Math.Vector3 | undefined
+    axisA: Math.Quaternion | undefined
+    axisB: Math.Quaternion | undefined
+    constraintReference: PhysXT.PxJoint | undefined
+    changeType: ChangeTypes | undefined
+    constructor(
+        newConstraintType: ConstraintTypes,
+        newEntityUidConstrainedTo: number,
+    ) {
+        this.constraintType = newConstraintType
+        this.entityUidConstrainedTo = newEntityUidConstrainedTo
+    }
+}
 export class Switch implements ECS.Component {
     entityUid: number
     componentUid: number
@@ -216,30 +236,18 @@ export class Code implements ECS.Component {
         this.code = newCode
     }
 }
-export class Constraint implements ECS.Component {
+export class Constraints implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-
-    entityUidConstrainedTo: number
-    constraintType: ConstraintTypes
-    distance: number | undefined
-    pivotA: Math.Vector3 | undefined
-    pivotB: Math.Vector3 | undefined
-    axisA: Math.Quaternion | undefined
-    axisB: Math.Quaternion | undefined
-
-    constraint: PhysXT.PxJoint | undefined
+    constraints: Constraint[]
     constructor(
-        newConstraintType: ConstraintTypes,
-        newEntityUidConstrainedTo: number,
-        newEntityUid: number,
+        newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.componentType = ComponentTypes.Constraint
-        this.constraintType = newConstraintType
-        this.entityUidConstrainedTo = newEntityUidConstrainedTo
+        this.componentType = ComponentTypes.Constraints
+        this.constraints = []
     }
 }
 export class RigidBody implements ECS.Component {
@@ -540,7 +548,6 @@ export class Rotation implements ECS.Component {
         this.componentType = ComponentTypes.Rotation
     }
 }
-
 export class Timer implements ECS.Component {
     entityUid: number
     componentUid: number

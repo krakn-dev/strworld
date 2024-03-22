@@ -20,6 +20,7 @@ export enum ComponentTypes {
     Code,
     RigidBody,
     Constraints,
+    AxisLocks,
     Wheel,
     RobotComponent,
     Robot,
@@ -76,7 +77,8 @@ export enum ShapeTypes {
     Box,
     Capsule,
     Cylinder,
-    Compound
+    Compound,
+    Sphere,
 }
 export enum ConstraintTypes {
     Lock,
@@ -97,6 +99,16 @@ export enum RobotComponentTypes {
     SteelPlate,
     WoodenStick,
 }
+export class AxisLock {
+    x: boolean
+    y: boolean
+    z: boolean
+    constructor() {
+        this.x = false
+        this.y = false
+        this.z = false
+    }
+}
 export class Constraint {
     entityUidConstrainedTo: number
     constraintType: ConstraintTypes
@@ -113,6 +125,22 @@ export class Constraint {
     ) {
         this.constraintType = newConstraintType
         this.entityUidConstrainedTo = newEntityUidConstrainedTo
+    }
+}
+export class AxisLocks {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    linearLock: AxisLock
+    angularLock: AxisLock
+    constructor(
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.AxisLocks
+        this.linearLock = new AxisLock()
+        this.angularLock = new AxisLock()
     }
 }
 export class Switch implements ECS.Component {

@@ -64,7 +64,7 @@ export class Options {
 //    modifiedCode: string 
 //}
 export enum Keys {
-    W, A, S, D, Up, Left, Down, Right
+    W, A, S, D, Up, Left, Down, Right, Space,
 }
 export class Input {
     changedKey: Keys

@@ -64,6 +64,10 @@ export class CustomElement extends HTMLElement {
             case "ArrowRight":
                 this.sendKeyChange(Ser.Keys.Right, true)
                 break;
+
+            case "Space":
+                this.sendKeyChange(Ser.Keys.Space, true)
+                break;
         }
     }
     private onKeyUp(event: KeyboardEvent) {
@@ -100,6 +104,10 @@ export class CustomElement extends HTMLElement {
 
             case "ArrowRight":
                 this.sendKeyChange(Ser.Keys.Right, false)
+                break;
+
+            case "Space":
+                this.sendKeyChange(Ser.Keys.Space, false)
                 break;
         }
     }

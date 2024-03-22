@@ -97,7 +97,7 @@ class Materials {
     default: PhysXT.PxMaterial
     constructor(physics: PhysXT.PxPhysics) {
         this.default = physics.createMaterial(0.5, 0.5, 0)
-        this.wheel = physics.createMaterial(0.5, 0.8, 0.5)
+        this.wheel = physics.createMaterial(0.5, 5, 0.5)
     }
 }
 class CustomConvexShapes {
@@ -440,6 +440,7 @@ class InputResource {
         this.keys.set(Ser.Keys.Up, false)
         this.keys.set(Ser.Keys.Down, false)
         this.keys.set(Ser.Keys.Right, false)
+        this.keys.set(Ser.Keys.Space, false)
     }
     isKeyDown(key: Ser.Keys): boolean {
         let isDown = this.keys.get(key)

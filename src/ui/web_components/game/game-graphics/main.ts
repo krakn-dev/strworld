@@ -70,14 +70,19 @@ export class CustomElement extends HTMLElement {
                     switch (shapeComponent!.shapeType) {
                         case Comps.ShapeTypes.Box: {
                             geometry = new THREE.BoxGeometry(
-                                shapeComponent!.size!.x,
-                                shapeComponent!.size!.y,
-                                shapeComponent!.size!.z);
+                                shapeComponent.size!.x,
+                                shapeComponent.size!.y,
+                                shapeComponent.size!.z);
+                        } break;
+                        case Comps.ShapeTypes.Sphere: {
+                            geometry = new THREE.SphereGeometry(
+                                shapeComponent.radius!);
                         } break;
                         case Comps.ShapeTypes.Capsule: {
                             geometry = new THREE.CapsuleGeometry(
-                                shapeComponent!.radius,
-                                shapeComponent.height);
+                                shapeComponent.radius!,
+                                shapeComponent.height!,
+                                shapeComponent.sideNumber);
                         } break;
                         case Comps.ShapeTypes.Cylinder: {
                             geometry = new THREE.CylinderGeometry(
@@ -153,7 +158,6 @@ export class CustomElement extends HTMLElement {
                 case Comps.ComponentTypes.Rotation: {
                     if (graphicEntity.object == undefined) continue
                     let rotationComponent = aC as Comps.Rotation
-
                     graphicEntity.object.setRotationFromQuaternion(
                         new THREE.Quaternion(
                             rotationComponent.x,

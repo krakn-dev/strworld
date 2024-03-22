@@ -88,6 +88,9 @@ export function divideVector2(vectorA: Vector2, vectorB: Vector2): Vector2 {
 }
 export function normalizeVector2(vector: Vector2): Vector2 {
     let magnitude = Math.hypot(vector.x, vector.y)
+    if (magnitude == 0) {
+        return new Vector2(0, 0)
+    }
     return new Vector2(
         vector.x / magnitude,
         vector.y / magnitude)
@@ -127,6 +130,9 @@ export function divideVector3(vectorA: Vector3, vectorB: Vector3): Vector3 {
 }
 export function normalizeVector3(vector: Vector3): Vector3 {
     let magnitude = Math.hypot(vector.x, vector.y, vector.z)
+    if (magnitude == 0) {
+        return new Vector3(0, 0, 0)
+    }
     return new Vector3(
         vector.x / magnitude,
         vector.y / magnitude,
@@ -135,6 +141,12 @@ export function normalizeVector3(vector: Vector3): Vector3 {
 //////////////
 // Misc
 //////////////
+export function dotProduct(vectorA: Vector3, vectorB: Vector3) {
+    return (
+        (vectorA.x * vectorB.x) +
+        (vectorA.y * vectorB.y) +
+        (vectorA.z * vectorB.z))
+}
 export function crossProduct(vectorA: Vector3, vectorB: Vector3): Vector3 {
     return new Vector3(
         (vectorA.y * vectorB.z) - (vectorA.z * vectorB.y),

@@ -58,6 +58,45 @@ export function multiplyQuaternion(a: Quaternion, b: Quaternion): Quaternion {
         a.w * b.z + a.z * b.w + a.x * b.y - a.y * b.x,
         a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z)
 }
+export function normalizeQuaternion(quaternion: Quaternion): Quaternion {
+    let magnitude = Math.hypot(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
+    return new Quaternion(
+        quaternion.x / magnitude,
+        quaternion.y / magnitude,
+        quaternion.z / magnitude,
+        quaternion.w / magnitude)
+}
+export function dotProductQuaternion(quaternionA: Quaternion, quaternionB: Quaternion): number {
+    return (
+        quaternionA.x * quaternionB.x + quaternionA.y *
+        quaternionB.y + quaternionA.z * quaternionB.z +
+        quaternionA.w * quaternionB.w);
+}
+export function negateQuaternion(quaternion: Quaternion): Quaternion {
+    return new Quaternion(-quaternion.x, -quaternion.y, -quaternion.z, -quaternion.w)
+}
+export function slerpQuaternion(quaternionA: Quaternion, quaternionB: Quaternion, t: number): Quaternion {
+    let l2 = dotProductQuaternion(quaternionA, quaternionB);
+    if (l2 < 0) {
+        quaternionB = negateQuaternion(quaternionB);
+    }
+    return new Quaternion(
+        quaternionA.x - t * (quaternionA.x - quaternionB.x),
+        quaternionA.y - t * (quaternionA.y - quaternionB.y),
+        quaternionA.z - t * (quaternionA.z - quaternionB.z),
+        quaternionA.w - t * (quaternionA.w - quaternionB.w));
+}
+export function getForwardFromQuaternion(quaternionA: Quaternion, quaternionB: Quaternion, t: number): Quaternion {
+    let l2 = dotProductQuaternion(quaternionA, quaternionB);
+    if (l2 < 0) {
+        quaternionB = negateQuaternion(quaternionB);
+    }
+    return new Quaternion(
+        quaternionA.x - t * (quaternionA.x - quaternionB.x),
+        quaternionA.y - t * (quaternionA.y - quaternionB.y),
+        quaternionA.z - t * (quaternionA.z - quaternionB.z),
+        quaternionA.w - t * (quaternionA.w - quaternionB.w));
+}
 //////////////
 // Vector2
 //////////////
@@ -98,6 +137,12 @@ export function normalizeVector2(vector: Vector2): Vector2 {
 //////////////
 // Vector3
 //////////////
+export function lerpVector3(vectorA: Vector3, vectorB: Vector3, t: number): Vector3 {
+    return new Vector3(
+        vectorA.x + (vectorB.x - vectorA.x) * t,
+        vectorA.y + (vectorB.y - vectorA.y) * t,
+        vectorA.z + (vectorB.z - vectorA.z) * t)
+}
 export function copyVector3(vector: Vector3): Vector3 {
     return new Vector3(
         vector.x,
@@ -138,14 +183,80 @@ export function normalizeVector3(vector: Vector3): Vector3 {
         vector.y / magnitude,
         vector.z / magnitude)
 }
-//////////////
-// Misc
-//////////////
-export function dotProduct(vectorA: Vector3, vectorB: Vector3) {
+export function applyQuaternionToVector3(vector: Vector3, quaternion: Quaternion): Vector3 {
+    const tx = 2 * (quaternion.y * vector.z - quaternion.z * vector.y);
+    const ty = 2 * (quaternion.z * vector.x - quaternion.x * vector.z);
+    const tz = 2 * (quaternion.x * vector.y - quaternion.y * vector.x);
+
+    return new Vector3(
+        vector.x + quaternion.w * tx + quaternion.y * tz - quaternion.z * ty,
+        vector.y + quaternion.w * ty + quaternion.z * tx - quaternion.x * tz,
+        vector.z + quaternion.w * tz + quaternion.x * ty - quaternion.y * tx)
+}
+export function dotProductVector3(vectorA: Vector3, vectorB: Vector3): number {
     return (
         (vectorA.x * vectorB.x) +
         (vectorA.y * vectorB.y) +
         (vectorA.z * vectorB.z))
+}
+//////////////
+// Misc
+//////////////
+export function lerp(x: number, y: number, t: number) {
+    return (1 - t) * x + t * y;
+}
+export function lookAt(to: Vector3, from: Vector3, up: Vector3): Quaternion {
+    let forward = normalizeVector3(
+        new Vector3(
+            from.x - to.x,
+            from.y - to.y,
+            from.z - to.z));
+
+    let right = normalizeVector3(crossProduct(up, forward));
+    up = crossProduct(forward, right);
+
+    let num8 = (right.x + up.y) + forward.z;
+    let quaternion = new Quaternion(0, 0, 0, 1);
+    if (num8 > 0) {
+        let num = Math.sqrt(num8 + 1);
+        quaternion.w = num * 0.5;
+        num = 0.5 / num;
+        quaternion.x = (up.z - forward.y) * num;
+        quaternion.y = (forward.x - right.z) * num;
+        quaternion.z = (right.y - up.x) * num;
+        return quaternion;
+    }
+    if ((right.x >= up.y) && (right.x >= forward.z)) {
+        let num7 = Math.sqrt(((1 + right.x) - up.y) - forward.z);
+        let num4 = 0.5 / num7;
+        quaternion.x = 0.5 * num7;
+        quaternion.y = (right.y + up.x) * num4;
+        quaternion.z = (right.z + forward.x) * num4;
+        quaternion.w = (up.z - forward.y) * num4;
+        return quaternion;
+    }
+    if (up.y > forward.z) {
+        let num6 = Math.sqrt(((1 + up.y) - right.x) - forward.z);
+        let num3 = 0.5 / num6;
+        quaternion.x = (up.x + right.y) * num3;
+        quaternion.y = 0.5 * num6;
+        quaternion.z = (forward.y + up.z) * num3;
+        quaternion.w = (forward.x - right.z) * num3;
+        return quaternion;
+    }
+    let num5 = Math.sqrt(((1 + forward.z) - right.x) - up.y);
+    let num2 = 0.5 / num5;
+    quaternion.x = (forward.x + right.z) * num2;
+    quaternion.y = (forward.y + up.z) * num2;
+    quaternion.z = 0.5 * num5;
+    quaternion.w = (right.y - up.x) * num2;
+    return quaternion;
+}
+export function axisAngletoQuaternion(axis: Vector3, angle: number): Quaternion {
+    let s = Math.sin(angle / 2)
+    let u = normalizeVector3(axis)
+    return new Quaternion(
+        u.x * s, u.y * s, u.z * s, Math.cos(angle / 2))
 }
 export function crossProduct(vectorA: Vector3, vectorB: Vector3): Vector3 {
     return new Vector3(
@@ -164,30 +275,30 @@ export function eulerToQuaternion(vector: Vector3): Quaternion {
         (Math.cos(x) * Math.cos(y) * Math.cos(z)) + (Math.sin(x) * Math.sin(y) * Math.sin(z)))
 }
 export function rotatePoint(vector: Vector3, point: Vector3) {
-    var cosa = Math.cos(vector.y);
-    var sina = Math.sin(vector.y);
+    let cosa = Math.cos(vector.y);
+    let sina = Math.sin(vector.y);
 
-    var cosb = Math.cos(vector.x);
-    var sinb = Math.sin(vector.x);
+    let cosb = Math.cos(vector.x);
+    let sinb = Math.sin(vector.x);
 
-    var cosc = Math.cos(vector.z);
-    var sinc = Math.sin(vector.z);
+    let cosc = Math.cos(vector.z);
+    let sinc = Math.sin(vector.z);
 
-    var Axx = cosa * cosb;
-    var Axy = cosa * sinb * sinc - sina * cosc;
-    var Axz = cosa * sinb * cosc + sina * sinc;
+    let Axx = cosa * cosb;
+    let Axy = cosa * sinb * sinc - sina * cosc;
+    let Axz = cosa * sinb * cosc + sina * sinc;
 
-    var Ayx = sina * cosb;
-    var Ayy = sina * sinb * sinc + cosa * cosc;
-    var Ayz = sina * sinb * cosc - cosa * sinc;
+    let Ayx = sina * cosb;
+    let Ayy = sina * sinb * sinc + cosa * cosc;
+    let Ayz = sina * sinb * cosc - cosa * sinc;
 
-    var Azx = -sinb;
-    var Azy = cosb * sinc;
-    var Azz = cosb * cosc;
+    let Azx = -sinb;
+    let Azy = cosb * sinc;
+    let Azz = cosb * cosc;
 
-    var px = point.x;
-    var py = point.y;
-    var pz = point.z;
+    let px = point.x;
+    let py = point.y;
+    let pz = point.z;
 
     return new Vector3(
         Axx * px + Axy * py + Axz * pz,
@@ -195,7 +306,10 @@ export function rotatePoint(vector: Vector3, point: Vector3) {
         Azx * px + Azy * py + Azz * pz);
 }
 export function deg2rad(degrees: number): number {
-    return degrees * (3.1416 / 180)
+    return degrees * (Math.PI / 180)
+}
+export function rad2deg(radians: number): number {
+    return radians * (180 / Math.PI)
 }
 export function getRandomNumberInclusive(min: number, max: number) {
     const minCeiled = Math.ceil(min);

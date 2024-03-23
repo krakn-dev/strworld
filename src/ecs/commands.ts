@@ -6,6 +6,8 @@ import * as Funs from "./functions"
 import * as Ser from "../serialization"
 import * as Utils from "../utils"
 import { PhysX, PhysXT } from "../physx/physx"
+import { Vector3 } from "three"
+import { Quaternion } from "cannon-es"
 
 // order in which they get executed
 export enum CommandTypes {
@@ -55,7 +57,7 @@ export class RunCode implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        if (resources.input.isKeyDown(Ser.Keys.Up)) {
+        if (resources.input.isButtonPressed(Ser.Buttons.Up)) {
             if (resources.isFirstTime.get()) {
                 let entityGraphComponent = system.components[Comps.ComponentTypes.EntityGraph][0] as Comps.EntityGraph;
                 let entityUid = entityGraphComponent.graph.elements[0].id
@@ -89,13 +91,30 @@ export class CameraFollowPlayer implements ECS.Command {
         if (playerEntityComponents == undefined || cameraEntityComponents == undefined) return
 
 
+        let playerRotationComponent = playerEntityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
+        let cameraRotationComponent = cameraEntityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
+
         let playerPositionComponent = playerEntityComponents[Comps.ComponentTypes.Position] as Comps.Position
         let cameraPositionComponent = cameraEntityComponents[Comps.ComponentTypes.Position] as Comps.Position
 
-        let offset = new Mat.Vector3(0, 13, 13)
-        cameraPositionComponent.x = playerPositionComponent.x + offset.x
-        cameraPositionComponent.y = playerPositionComponent.y + offset.y
-        cameraPositionComponent.z = playerPositionComponent.z + offset.z
+        let positionOffset = new Mat.Vector3(1.2, 3.2, 6)
+        positionOffset = Mat.applyQuaternionToVector3(positionOffset, playerRotationComponent)
+        positionOffset = Mat.sumVector3(playerPositionComponent, positionOffset)
+        positionOffset = Mat.lerpVector3(cameraPositionComponent, positionOffset, 0.2)
+        cameraPositionComponent.x = positionOffset.x
+        cameraPositionComponent.y = positionOffset.y
+        cameraPositionComponent.z = positionOffset.z
+
+        let lookAtOffset = new Mat.Vector3(1.5, 1.5, 0)
+        lookAtOffset = Mat.applyQuaternionToVector3(lookAtOffset, playerRotationComponent)
+        lookAtOffset = Mat.sumVector3(playerPositionComponent, lookAtOffset)
+
+        let rotation = Mat.lookAt(lookAtOffset, cameraPositionComponent, new Mat.Vector3(0, 1, 0))
+
+        cameraRotationComponent.x = rotation.x
+        cameraRotationComponent.y = rotation.y
+        cameraRotationComponent.z = rotation.z
+        cameraRotationComponent.w = rotation.w
     }
 }
 export class CreateScene implements ECS.Command {
@@ -113,8 +132,8 @@ export class CreateScene implements ECS.Command {
                 500,
                 resources.domState.windowWidth! / resources.domState.windowHeight!,
                 camera)
-            let positionComponent = new Comps.Position(new Mat.Vector3(0, 50, 50), camera)
-            let rotationComponent = new Comps.Rotation(new Mat.Vector3(-45, 0, 0), camera)
+            let positionComponent = new Comps.Position(new Mat.Vector3(0, 5, 10), camera)
+            let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), camera)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Camera, camera)
             system.addComponent(cameraComponent)
             system.addComponent(rotationComponent)
@@ -438,7 +457,7 @@ export class CreateStickman implements ECS.Command {
         shapeComponent.materialType = Comps.MaterialTypes.Wheel
         shapeComponent.height = 1.5
         shapeComponent.radius = 0.5
-        shapeComponent.sideNumber = 8
+        shapeComponent.sideNumber = 5
         let torqueComponent = new Comps.Torque(stickman)
         let forceComponent = new Comps.Force(stickman)
         let linearVelocityComponent = new Comps.LinearVelocity(stickman)
@@ -469,7 +488,6 @@ export class MovePlayer implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        let start = performance.now()
         let entityComponents: (ECS.Component | undefined)[] | undefined
 
         for (let eTC of system.components[Comps.ComponentTypes.EntityType]) {
@@ -481,144 +499,77 @@ export class MovePlayer implements ECS.Command {
             }
         }
         if (entityComponents == undefined) return
+
         let forceComponent = entityComponents[Comps.ComponentTypes.Force] as Comps.Force
         let positionComponent = entityComponents[Comps.ComponentTypes.Position] as Comps.Position
+        let rotationComponent = entityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
         let linearVelocityComponent = entityComponents[Comps.ComponentTypes.LinearVelocity] as Comps.LinearVelocity
 
-        let direction = Mat.normalizeVector2(
+        let inputDirection = Mat.normalizeVector2(
             Funs.getMovementDirection(resources))
+        let forward = Mat.applyQuaternionToVector3(new Vector3(0, 0, -1), rotationComponent)
+        let right = Mat.applyQuaternionToVector3(new Vector3(1, 0, 0), rotationComponent)
+        console.log(forward)
 
-        let force = 120
+        let groundForce = 70
+        let jumpForce = 80
+        let airForce = 15
         let velocityLimit = 10
 
-        let velocitySum = Math.abs(linearVelocityComponent.x) + Math.abs(linearVelocityComponent.z)
-        if (
-            velocitySum < velocityLimit ||
-            (velocitySum > velocityLimit &&
-                (linearVelocityComponent.z > 0 && -direction.y < 0) ||
-                (linearVelocityComponent.z < 0 && -direction.y > 0))
-        ) {
-            forceComponent.zToApply = -direction.y * force
-        }
-        if (
-            velocitySum < velocityLimit ||
-            (velocitySum > velocityLimit &&
-                (linearVelocityComponent.x > 0 && direction.x < 0) ||
-                (linearVelocityComponent.x < 0 && direction.x > 0))
-        ) {
-            forceComponent.xToApply = direction.x * force
-        }
-        if (resources.input.isKeyDown(Ser.Keys.Space)) {
-            let buffer = new PhysX.PxRaycastBuffer10()
-            resources.physics.scene.raycast(
+        let buffer = new PhysX.PxOverlapBuffer10()
+        resources.physics.scene.overlap(
+            new PhysX.PxBoxGeometry(0.25, 0.1, 0.25),
+            new PhysX.PxTransform(
                 new PhysX.PxVec3(
                     positionComponent.x,
                     positionComponent.y - 1.5,
                     positionComponent.z),
-                new PhysX.PxVec3(0, -1, 0),
-                0.1,
-                buffer)
-            if (buffer.hasAnyHits()) {
-                forceComponent.yToApply = 100
-            }
+                new PhysX.PxQuat(0, 0, 0, 1)),
+            buffer)
+        let isTouchingGround = buffer.hasAnyHits()
+
+
+        let velocitySum = Math.abs(linearVelocityComponent.x) + Math.abs(linearVelocityComponent.z)
+        if (
+            inputDirection.y != 0
+        ) {
+            forceComponent.xToApply += forward.x * inputDirection.y * groundForce
+            forceComponent.yToApply += forward.y * inputDirection.y * groundForce
+            forceComponent.zToApply += forward.z * inputDirection.y * groundForce
         }
-        let end = performance.now()
-        console.log(end - start)
+        if (
+            inputDirection.x != 0
+        ) {
+            forceComponent.xToApply += right.x * inputDirection.x * groundForce
+            forceComponent.yToApply += right.y * inputDirection.x * groundForce
+            forceComponent.zToApply += right.z * inputDirection.x * groundForce
+        }
 
-        //    let acceleration = 0.003
-        //    let forceLimit = 0.02
-        //    // get playerUid
-        //    let foundEntityTypeComponents = system.find([ECS.Get.All, [Comps.ComponentTypes.EntityType], ECS.By.Any, null])
-        //    if (foundEntityTypeComponents[0].length == 0) {
-        //        console.log("no entity types found")
-        //        return
-        //    }
-        //    let playerUid: number | null = null
-        //    for (let fC of foundEntityTypeComponents[0]) {
-        //        let entityTypeComponent = fC as Comps.EntityType
-        //        if (entityTypeComponent.entityType == Comps.EntityTypes.Stickman) {
-        //            playerUid = entityTypeComponent.entityUid
-        //        }
-        //    }
-        //    if (playerUid == null)
-        //        return
+        if (resources.input.isButtonPressed(Ser.Buttons.Space) && isTouchingGround) {
+            forceComponent.yToApply = jumpForce
+        }
+        let tilt = 0.5
+        let euler = new Mat.Vector3(
+            Mat.deg2rad(linearVelocityComponent.z * tilt),
+            0,
+            Mat.deg2rad(-linearVelocityComponent.x * tilt))
+        let tiltRotation =
+            Mat.eulerToQuaternion(euler);
+        //let rotation = Mat.multiplyQuaternion(quat, tiltRotation)
 
-        //    // if was found, move it
-        //    if (resources.input.movementDirection.x == 0 &&
-        //        resources.input.movementDirection.y == 0
-        //    ) {
-        //        let foundEntityState = system.find(
-        //            [
-        //                ECS.Get.All,
-        //                [
-        //                    Comps.ComponentTypes.EntityState,
-        //                ],
-        //                ECS.By.EntityUid,
-        //                foundEntityTypeComponents[0][0].entityUid
-        //            ]
-        //        )
-        //        if (foundEntityState[0].length == 0) {
-        //            console.log("entityState not found")
-        //            return
-        //        }
+        let mouseMovement = resources.input.mouseMovement
+        if (mouseMovement.x == 0) return
+        let quat = Mat.axisAngletoQuaternion(
+            new Mat.Vector3(0, mouseMovement.x / mouseMovement.x, 0),
+            Mat.deg2rad(-mouseMovement.x * 0.2))
 
-        //        for (let fC of foundEntityState[0]) {
-        //            let entityStateComponent = fC as Comps.EntityState
+        let rotation = Mat.multiplyQuaternion(rotationComponent, quat)
 
-        //            if (entityStateComponent.entityUid == playerUid) {
-        //                // cannot change state to idle if wasnt runnning
-        //                let indexOfRun = entityStateComponent.states.indexOf(Comps.EntityStates.Run)
-        //                if (indexOfRun != -1) {
-        //                    entityStateComponent.states.splice(indexOfRun, 1)
+        rotationComponent.x = rotation.x
+        rotationComponent.y = rotation.y
+        rotationComponent.z = rotation.z
+        rotationComponent.w = rotation.w
 
-        //                    if (entityStateComponent.states.includes(Comps.EntityStates.Idle)) return
-        //                    entityStateComponent.states.push(Comps.EntityStates.Idle)
-        //                }
-        //                return
-        //            }
-        //        }
-        //    }
-
-        //    let foundForceComponent = system.find([ECS.Get.One, [Comps.ComponentTypes.Force], ECS.By.EntityUid, playerUid])
-        //    if (foundForceComponent[0].length == 0) {
-        //        console.log("no player force found found")
-        //        return
-        //    }
-        //    let forceComponent = foundForceComponent[0][0] as Comps.Force
-        //    let newForce = new Utils.Vector3(0, 0, 0)
-        //    newForce.x = forceComponent.x + resources.input.movementDirection.x * acceleration
-        //    newForce.z = forceComponent.z + (-resources.input.movementDirection.y) * acceleration
-
-        //    if (Math.abs(newForce.x) > forceLimit) {
-        //        newForce.x = forceLimit * (newForce.x < 0 ? -1 : 1)
-        //    }
-        //    if (Math.abs(newForce.z) > forceLimit) {
-        //        newForce.z = forceLimit * (newForce.z < 0 ? -1 : 1)
-        //    }
-
-        //    let foundEntityState = system.find(
-        //        [ECS.Get.One, [Comps.ComponentTypes.EntityState], ECS.By.EntityUid, playerUid])
-
-        //    if (foundEntityState[0].length == 0) {
-        //        console.log("player entityState not found")
-        //        return
-        //    }
-        //    let entityStateComponent = foundEntityState[0][0] as Comps.EntityState
-
-        //    if (!entityStateComponent.states.includes(Comps.EntityStates.Run)) {
-        //        entityStateComponent.states.push(Comps.EntityStates.Run)
-        //    }
-        //    let indexOfIdle = entityStateComponent.states.indexOf(Comps.EntityStates.Idle)
-        //    if (indexOfIdle != -1) {
-        //        entityStateComponent.states.splice(indexOfIdle, 1)
-        //    }
-
-        //    if (resources.input.movementDirection.x != 0) {
-        //        forceComponent.x = newForce.x
-        //    }
-        //    if (resources.input.movementDirection.y != 0) {
-        //        forceComponent.z = newForce.z
-        //    }
     }
 }
 export class SendGraphicComponentsToRender implements ECS.Command {

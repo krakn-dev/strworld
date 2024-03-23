@@ -97,7 +97,7 @@ class Materials {
     default: PhysXT.PxMaterial
     constructor(physics: PhysXT.PxPhysics) {
         this.default = physics.createMaterial(0.5, 0.5, 0)
-        this.wheel = physics.createMaterial(0.5, 5, 0.5)
+        this.wheel = physics.createMaterial(0.5, 5, 0)
     }
 }
 class CustomConvexShapes {
@@ -429,23 +429,15 @@ class DOMStateResource {
     }
 }
 class InputResource {
-    keys: Map<Ser.Keys, boolean>
+    keys: Map<Ser.Buttons, boolean>
+    mouseMovement: Mat.Vector2
     constructor() {
         this.keys = new Map()
-        this.keys.set(Ser.Keys.W, false)
-        this.keys.set(Ser.Keys.A, false)
-        this.keys.set(Ser.Keys.S, false)
-        this.keys.set(Ser.Keys.D, false)
-        this.keys.set(Ser.Keys.Left, false)
-        this.keys.set(Ser.Keys.Up, false)
-        this.keys.set(Ser.Keys.Down, false)
-        this.keys.set(Ser.Keys.Right, false)
-        this.keys.set(Ser.Keys.Space, false)
+        this.mouseMovement = new Mat.Vector2(0, 0)
     }
-    isKeyDown(key: Ser.Keys): boolean {
+    isButtonPressed(key: Ser.Buttons): boolean {
         let isDown = this.keys.get(key)
         if (isDown == undefined) {
-            console.log("key doesn't exist")
             return false
         }
         return isDown

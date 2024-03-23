@@ -82,6 +82,7 @@ export class CustomElement extends HTMLElement {
                             geometry = new THREE.CapsuleGeometry(
                                 shapeComponent.radius!,
                                 shapeComponent.height!,
+                                shapeComponent.sideNumber,
                                 shapeComponent.sideNumber);
                         } break;
                         case Comps.ShapeTypes.Cylinder: {

@@ -2,6 +2,7 @@ import * as ECS from "./ecs/ecs"
 import * as Ser from "./serialization"
 import * as Res from "./ecs/resources"
 import * as Comps from "./ecs/components"
+import * as Mat from "./math"
 import * as Cmds from "./ecs/commands"
 import { start } from "./physx/physx"
 
@@ -28,9 +29,13 @@ async function initialize() {
                 system.addCommand(new Cmds.TheFirst())
                 startInterval()
             } break;
-            case Ser.Messages.Input: {
-                let newData = msg.data as Ser.Input
-                resources.input.keys.set(newData.changedKey, newData.isKeyDown)
+            case Ser.Messages.ButtonPress: {
+                let newData = msg.data as Ser.ButtonPress
+                resources.input.keys.set(newData.changedButton, newData.isButtonDown)
+            } break;
+            case Ser.Messages.MouseMovement: {
+                let newData = msg.data as Mat.Vector2
+                resources.input.mouseMovement = newData
             } break;
             case Ser.Messages.RobotComponents: {
                 let newData = msg.data as Comps.RobotComponent[]

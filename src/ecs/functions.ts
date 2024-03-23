@@ -10,17 +10,17 @@ export function triggerComponentChange(component: ECS.Component) {
 export function getMovementDirection(resources: Res.Resources): Mat.Vector2 {
     let direction = new Mat.Vector2(0, 0)
 
-    let isUpPressed = resources.input.isKeyDown(Ser.Keys.Up)
-    let isWPressed = resources.input.isKeyDown(Ser.Keys.W)
+    let isUpPressed = resources.input.isButtonPressed(Ser.Buttons.Up)
+    let isWPressed = resources.input.isButtonPressed(Ser.Buttons.W)
 
-    let isLeftPressed = resources.input.isKeyDown(Ser.Keys.Left)
-    let isAPressed = resources.input.isKeyDown(Ser.Keys.A)
+    let isLeftPressed = resources.input.isButtonPressed(Ser.Buttons.Left)
+    let isAPressed = resources.input.isButtonPressed(Ser.Buttons.A)
 
-    let isDownPressed = resources.input.isKeyDown(Ser.Keys.Down)
-    let isSPressed = resources.input.isKeyDown(Ser.Keys.S)
+    let isDownPressed = resources.input.isButtonPressed(Ser.Buttons.Down)
+    let isSPressed = resources.input.isButtonPressed(Ser.Buttons.S)
 
-    let isRightPressed = resources.input.isKeyDown(Ser.Keys.Right)
-    let isDPressed = resources.input.isKeyDown(Ser.Keys.D)
+    let isRightPressed = resources.input.isButtonPressed(Ser.Buttons.Right)
+    let isDPressed = resources.input.isButtonPressed(Ser.Buttons.D)
 
     if (isUpPressed || isWPressed) direction.y++
     if (isDownPressed || isSPressed) direction.y--

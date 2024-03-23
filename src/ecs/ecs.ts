@@ -238,5 +238,7 @@ export class System {
         this.commandChangesBuffer.clearChanges()
         this.resources.componentChanges.cycleChanges()
         this.changedComponents.clear()
+        this.resources.input.mouseMovement.x = 0
+        this.resources.input.mouseMovement.y = 0
     }
 }

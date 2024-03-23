@@ -1,6 +1,7 @@
 import * as Utils from "./utils"
 import * as ECS from "./ecs/ecs"
 import * as Comps from "./ecs/components"
+import * as Mat from "./math"
 
 export class Scroll {
     scrollLeft: number
@@ -63,18 +64,19 @@ export class Options {
 //    submitedCode: string
 //    modifiedCode: string 
 //}
-export enum Keys {
-    W, A, S, D, Up, Left, Down, Right, Space,
+export enum Buttons {
+    E, W, A, S, D, Up, Left, Down, Right, Space, RightClick,
+    LMB, RMB
 }
-export class Input {
-    changedKey: Keys
-    isKeyDown: boolean
+export class ButtonPress {
+    changedButton: Buttons
+    isButtonDown: boolean
     constructor(
-        newChangedKey: Keys,
-        newIsKeyDown: boolean
+        newChangedButton: Buttons,
+        newIsButtonDown: boolean
     ) {
-        this.changedKey = newChangedKey
-        this.isKeyDown = newIsKeyDown
+        this.changedButton = newChangedButton
+        this.isButtonDown = newIsButtonDown
     }
 }
 
@@ -103,7 +105,8 @@ export class AvailableRobotComponents {
 }
 export enum Messages {
     Start,
-    Input,
+    ButtonPress,
+    MouseMovement,
     Options,
     GraphicChanges,
     GetAvailableRobotComponents,
@@ -117,10 +120,10 @@ export enum Messages {
 
 export class Message {
     message: Messages
-    data: Input | Comps.RobotComponent[] | AvailableRobotComponents | DOMData | GraphicChanges | Options | null
+    data: Mat.Vector2 | ButtonPress | Comps.RobotComponent[] | AvailableRobotComponents | DOMData | GraphicChanges | Options | null
     constructor(
         newMessage: Messages,
-        newData: Input | Comps.RobotComponent[] | AvailableRobotComponents | GraphicChanges | Options | DOMData | null = null
+        newData: Mat.Vector2 | ButtonPress | Comps.RobotComponent[] | AvailableRobotComponents | GraphicChanges | Options | DOMData | null = null
     ) {
         this.message = newMessage
         this.data = newData

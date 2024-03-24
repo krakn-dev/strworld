@@ -230,8 +230,6 @@ export class System {
         }
     }
     run() {
-        let start = performance.now()
-        console.log()
         for (let c of this.commands) {
             this.currentExecutingCommand.command = c.commandType
             c.run(this, this.resources)
@@ -242,7 +240,8 @@ export class System {
         this.changedComponents.clear()
         this.resources.input.mouseMovement.x = 0
         this.resources.input.mouseMovement.y = 0
-        let end = performance.now()
-        console.log(end - start)
+        //let start = performance.now()
+        //let end = performance.now()
+        //console.log(end - start)
     }
 }

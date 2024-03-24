@@ -102,19 +102,32 @@ export class CameraFollowPlayer implements ECS.Command {
         let positionOffset = new Mat.Vector3(1.2, 3.2, 6)
         positionOffset = Mat.applyQuaternionToVector3(positionOffset, playerRotationComponent)
         positionOffset = Mat.sumVector3(playerPositionComponent, positionOffset)
+
+        let mouseAddedMovement = resources.input.mouseAddedMovement
+
+        let yMin = playerPositionComponent.y - 3
+        let yMax = playerPositionComponent.y + 5
+
+        let ySensitivity = 0.01
+        let alphaY = playerPositionComponent.y + mouseAddedMovement.y * ySensitivity
+
+        if (alphaY < yMin) {
+            alphaY = yMin
+            mouseAddedMovement.y -= resources.input.mouseMovement.y
+        }
+        else if (alphaY > yMax) {
+            alphaY = yMax
+            mouseAddedMovement.y -= resources.input.mouseMovement.y
+        }
+
+        positionOffset.y = alphaY
         positionOffset = Mat.lerpVector3(cameraPositionComponent, positionOffset, 0.25)
         cameraPositionComponent.x = positionOffset.x
         cameraPositionComponent.y = positionOffset.y
         cameraPositionComponent.z = positionOffset.z
 
-        let mouseMovement = resources.input.mouseAddedMovement
         let lookAtOffset = new Mat.Vector3(1.5, 1.5, 0)
         lookAtOffset = Mat.applyQuaternionToVector3(lookAtOffset, playerRotationComponent)
-        cameraPositionComponent.y = Mat.clamp(
-            cameraPositionComponent.y + mouseMovement.y * 0.002,
-            playerPositionComponent.y - 4,
-            playerPositionComponent.y + 6)
-
         lookAtOffset = Mat.sumVector3(playerPositionComponent, lookAtOffset)
         let rotation = Mat.lookAt(lookAtOffset, cameraPositionComponent, new Mat.Vector3(0, 1, 0))
         rotation = Mat.slerpQuaternion(cameraRotationComponent, rotation, 0.7)
@@ -141,7 +154,7 @@ export class CreateScene implements ECS.Command {
                 500,
                 resources.domState.windowWidth! / resources.domState.windowHeight!,
                 camera)
-            let positionComponent = new Comps.Position(new Mat.Vector3(0, 5, 10), camera)
+            let positionComponent = new Comps.Position(new Mat.Vector3(0, 3, 10), camera)
             let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), camera)
             let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Camera, camera)
             system.addComponent(cameraComponent)
@@ -466,7 +479,6 @@ export class CreateStickman implements ECS.Command {
         shapeComponent.materialType = Comps.MaterialTypes.Wheel
         shapeComponent.height = 1.5
         shapeComponent.radius = 0.5
-        shapeComponent.sideNumber = 5
         let torqueComponent = new Comps.Torque(stickman)
         let forceComponent = new Comps.Force(stickman)
         let linearVelocityComponent = new Comps.LinearVelocity(stickman)
@@ -620,23 +632,13 @@ export class MovePlayer implements ECS.Command {
         if (resources.input.isButtonPressed(Ser.Buttons.Space) && isTouchingGround) {
             forceComponent.yToApply = jumpForce
         }
-        let tilt = 0.5
-        let euler = new Mat.Vector3(
-            Mat.deg2rad(linearVelocityComponent.z * tilt),
-            0,
-            Mat.deg2rad(-linearVelocityComponent.x * tilt))
-        let tiltRotation =
-            Mat.eulerToQuaternion(euler);
 
-        let mouseMovement = resources.input.mouseMovement
-        if (mouseMovement.x == 0) return
+        let mouseMovement = resources.input.mouseAddedMovement
         let quat = Mat.axisAngletoQuaternion(
             new Mat.Vector3(0, 1, 0),
-            Mat.deg2rad(-mouseMovement.x * 0.2))
+            Mat.deg2rad(-mouseMovement.x * 0.1))
 
-        let rotation = Mat.multiplyQuaternion(rotationComponent, quat)
-
-        //rotation = Mat.slerpQuaternion(rotationComponent, rotation, 0.1)
+        let rotation = Mat.slerpQuaternion(rotationComponent, quat, 0.4)
         rotationComponent.x = rotation.x
         rotationComponent.y = rotation.y
         rotationComponent.z = rotation.z

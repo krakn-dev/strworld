@@ -57,7 +57,6 @@ export enum EntityTypes {
     Light,
     GeometricShape,
     Robot,
-    Wieldable,
     RobotComponent,
     RobotSuperComponent
 }

@@ -334,6 +334,8 @@ export class CustomElement extends HTMLElement {
                 throw "robot component is not an asset"
             case Comps.EntityTypes.RobotSuperComponent:
                 throw "robot super component is not an asset"
+            case Comps.EntityTypes.Gun:
+                throw "robot super component is not an asset"
         }
     }
     private getAnimationToPlayByEntityStates(entityStates: Comps.EntityStates[]): string {

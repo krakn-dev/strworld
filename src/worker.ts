@@ -31,7 +31,7 @@ async function initialize() {
             } break;
             case Ser.Messages.ButtonPress: {
                 let newData = msg.data as Ser.ButtonPress
-                resources.input.keys.set(newData.changedButton, newData.isButtonDown)
+                resources.input.buttons.set(newData.changedButton, newData.isButtonDown)
             } break;
             case Ser.Messages.MouseMovement: {
                 let newData = msg.data as Mat.Vector2

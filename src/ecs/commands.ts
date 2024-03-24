@@ -15,6 +15,7 @@ export enum CommandTypes {
     CreateRobot,
     CreateScene,
     CreateGun,
+    Shoot,
     TorqueWheels,
     MovePlayer,
     MoveVehicle,
@@ -45,6 +46,7 @@ export class TheFirst implements ECS.Command {
         system.addCommand(new CreateRobot())
         system.addCommand(new CreateGun())
         system.addCommand(new RunCode())
+        system.addCommand(new Shoot())
         system.addCommand(new CreateStickman())
         system.addCommand(new CameraFollowPlayer())
 
@@ -59,15 +61,6 @@ export class RunCode implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        if (resources.input.isButtonPressed(Ser.Buttons.Up)) {
-            if (resources.isFirstTime.get()) {
-                let entityGraphComponent = system.components[Comps.ComponentTypes.EntityGraph][0] as Comps.EntityGraph;
-                let entityUid = entityGraphComponent.graph.elements[0].id
-                system.removeEntity(entityUid)
-                entityGraphComponent.graph.removeElement(entityUid)
-                Funs.triggerComponentChange(entityGraphComponent)
-            }
-        }
     }
 }
 export class CameraFollowPlayer implements ECS.Command {
@@ -92,6 +85,7 @@ export class CameraFollowPlayer implements ECS.Command {
         }
         if (playerEntityComponents == undefined || cameraEntityComponents == undefined) return
 
+        let playerWieldComponent = playerEntityComponents[Comps.ComponentTypes.Wield] as Comps.Wield
 
         let playerRotationComponent = playerEntityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
         let cameraRotationComponent = cameraEntityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
@@ -100,6 +94,9 @@ export class CameraFollowPlayer implements ECS.Command {
         let cameraPositionComponent = cameraEntityComponents[Comps.ComponentTypes.Position] as Comps.Position
 
         let positionOffset = new Mat.Vector3(1.2, 3.2, 6)
+        if (resources.input.isButtonPressed(Ser.Buttons.RMB)) {
+            positionOffset = new Mat.Vector3(2, 1, 3)
+        }
         positionOffset = Mat.applyQuaternionToVector3(positionOffset, playerRotationComponent)
         positionOffset = Mat.sumVector3(playerPositionComponent, positionOffset)
 
@@ -108,7 +105,7 @@ export class CameraFollowPlayer implements ECS.Command {
         let yMin = playerPositionComponent.y - 3
         let yMax = playerPositionComponent.y + 5
 
-        let ySensitivity = 0.01
+        let ySensitivity = 0.006
         let alphaY = playerPositionComponent.y + mouseAddedMovement.y * ySensitivity
 
         if (alphaY < yMin) {
@@ -120,23 +117,37 @@ export class CameraFollowPlayer implements ECS.Command {
             mouseAddedMovement.y -= resources.input.mouseMovement.y
         }
 
+
         positionOffset.y = alphaY
-        positionOffset = Mat.lerpVector3(cameraPositionComponent, positionOffset, 0.25)
+        positionOffset = Mat.lerpVector3(cameraPositionComponent, positionOffset, 0.45)
         cameraPositionComponent.x = positionOffset.x
         cameraPositionComponent.y = positionOffset.y
         cameraPositionComponent.z = positionOffset.z
 
         let lookAtOffset = new Mat.Vector3(1.5, 1.5, 0)
+        if (resources.input.isButtonPressed(Ser.Buttons.RMB)) {
+            lookAtOffset = new Mat.Vector3(1.5, 0.5, 0)
+        }
         lookAtOffset = Mat.applyQuaternionToVector3(lookAtOffset, playerRotationComponent)
         lookAtOffset = Mat.sumVector3(playerPositionComponent, lookAtOffset)
         let rotation = Mat.lookAt(lookAtOffset, cameraPositionComponent, new Mat.Vector3(0, 1, 0))
         rotation = Mat.slerpQuaternion(cameraRotationComponent, rotation, 0.7)
 
-
         cameraRotationComponent.x = rotation.x
         cameraRotationComponent.y = rotation.y
         cameraRotationComponent.z = rotation.z
         cameraRotationComponent.w = rotation.w
+
+
+        if (playerWieldComponent.wieldingEntityUid != undefined) {
+            let gunEntityComponents = system.entities.get(playerWieldComponent.wieldingEntityUid)!
+            let gunRotationComponent = gunEntityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
+
+            gunRotationComponent.x = rotation.x
+            gunRotationComponent.y = rotation.y
+            gunRotationComponent.z = rotation.z
+            gunRotationComponent.w = rotation.w
+        }
     }
 }
 export class CreateScene implements ECS.Command {
@@ -464,7 +475,7 @@ export class CreateStickman implements ECS.Command {
     run(system: ECS.System, resources: Res.Resources) {
 
         let stickman = system.createEntity()
-        let positionComponent = new Comps.Position(new Mat.Vector3(0, 10, 0), stickman)
+        let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), stickman)
         let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), stickman)
         let entityStateComponent = new Comps.EntityState([Comps.EntityStates.Idle], stickman)
         let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.Stickman, stickman)
@@ -476,6 +487,7 @@ export class CreateStickman implements ECS.Command {
         let massComponent = new Comps.Mass(1, stickman)
         let shapeColorComponent = new Comps.ShapeColor(0xff0000, stickman)
         let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Capsule, stickman)
+        let wieldComponent = new Comps.Wield(stickman)
         shapeComponent.materialType = Comps.MaterialTypes.Wheel
         shapeComponent.height = 1.5
         shapeComponent.radius = 0.5
@@ -484,6 +496,7 @@ export class CreateStickman implements ECS.Command {
         let linearVelocityComponent = new Comps.LinearVelocity(stickman)
 
 
+        system.addComponent(wieldComponent)
         system.addComponent(linearVelocityComponent)
         system.addComponent(forceComponent)
         system.addComponent(axisLockComponent)
@@ -512,9 +525,12 @@ export class CreateGun implements ECS.Command {
 
         let gun = system.createEntity()
 
-        let positionComponent = new Comps.Position(new Mat.Vector3(0, 2, 0), gun)
+        let positionComponent = new Comps.Position(new Mat.Vector3(-2, 0, 2), gun)
+        let switchComponent = new Comps.Switch(false, gun)
         let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), gun)
+        let entityType = new Comps.EntityType(Comps.EntityTypes.Gun, gun)
         let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, gun)
+        let constraintComponent = new Comps.Constraints(gun)
         let massComponent = new Comps.Mass(0.1, gun)
         let shapeColorComponent = new Comps.ShapeColor(0x00fff0, gun)
         let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, gun)
@@ -524,6 +540,9 @@ export class CreateGun implements ECS.Command {
         let linearVelocityComponent = new Comps.LinearVelocity(gun)
 
 
+        system.addComponent(switchComponent)
+        system.addComponent(entityType)
+        system.addComponent(constraintComponent)
         system.addComponent(linearVelocityComponent)
         system.addComponent(forceComponent)
         system.addComponent(torqueComponent)
@@ -535,7 +554,6 @@ export class CreateGun implements ECS.Command {
         system.addComponent(positionComponent)
 
 
-        //system.addCommand(new MovePlayer())
         system.removeCommand(this.commandType)
     }
 }
@@ -546,24 +564,117 @@ export class PickUp implements ECS.Command {
     }
 
     run(system: ECS.System, resources: Res.Resources) {
-        let playerEntityComponents: (ECS.Component | undefined)[] | undefined
-        let gunEntityComponents: (ECS.Component | undefined)[] | undefined
+        let playerEntityUid: number | undefined
+        let gunEntityUid: number | undefined
 
         for (let eTC of system.components[Comps.ComponentTypes.EntityType]) {
             let entityTypeComponent = eTC as Comps.EntityType
 
             if (entityTypeComponent.entityType == Comps.EntityTypes.Stickman) {
-                playerEntityComponents = system.entities.get(eTC.entityUid)
-                break;
+                playerEntityUid = eTC.entityUid
             }
-            //            if (entityTypeComponent.entityType == Comps.EntityTypes.Gun) {
-            //                gunEntityComponents = system.entities.get(eTC.entityUid)
-            //                break;
-            //            }
+            if (entityTypeComponent.entityType == Comps.EntityTypes.Gun) {
+                gunEntityUid = eTC.entityUid
+            }
         }
-        if (playerEntityComponents == undefined || gunEntityComponents == undefined) return
+        if (playerEntityUid == undefined || gunEntityUid == undefined) return
+
+        let playerEntityComponents = system.entities.get(playerEntityUid)!
+        let gunEntityComponents = system.entities.get(gunEntityUid)!
+
+        let playerWieldComponent = playerEntityComponents[Comps.ComponentTypes.Wield] as Comps.Wield
+        let playerPositionComponent = playerEntityComponents[Comps.ComponentTypes.Position] as Comps.Position
+        let gunPositionComponent = gunEntityComponents[Comps.ComponentTypes.Position] as Comps.Position
+        let gunConstraintComponent = gunEntityComponents[Comps.ComponentTypes.Constraints] as Comps.Constraints
+
+        if (playerWieldComponent.wieldingEntityUid == gunEntityUid) {
+            return // gun already wielded
+        }
+
+        let distance = Math.hypot(
+            playerPositionComponent.x - gunPositionComponent.x,
+            playerPositionComponent.y - gunPositionComponent.y,
+            playerPositionComponent.z - gunPositionComponent.z)
 
 
+        if (distance < 2 && resources.input.isButtonPressed(Ser.Buttons.E)) {
+            playerWieldComponent.wieldingEntityUid = gunEntityUid
+            let newConstraint = new Comps.Constraint(Comps.ConstraintTypes.Hinge, playerEntityUid)
+            newConstraint.pivotA = new Mat.Vector3(-0.7, 0, 0)
+            newConstraint.changeType = Comps.ChangeTypes.Add
+            gunConstraintComponent.constraints.push(newConstraint)
+            Funs.triggerComponentChange(gunConstraintComponent)
+            console.log("wielding")
+        }
+    }
+}
+export class Shoot implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.Shoot
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        if (!resources.input.isButtonPressed(Ser.Buttons.LMB)) return
+        resources.input.buttons.set(Ser.Buttons.LMB, false)
+
+        let playerEntityUid: number | undefined
+        let gunEntityUid: number | undefined
+
+        for (let eTC of system.components[Comps.ComponentTypes.EntityType]) {
+            let entityTypeComponent = eTC as Comps.EntityType
+
+            if (entityTypeComponent.entityType == Comps.EntityTypes.Stickman) {
+                playerEntityUid = eTC.entityUid
+            }
+            if (entityTypeComponent.entityType == Comps.EntityTypes.Gun) {
+                gunEntityUid = eTC.entityUid
+            }
+        }
+        if (playerEntityUid == undefined || gunEntityUid == undefined) return
+
+        let playerEntityComponents = system.entities.get(playerEntityUid)!
+        let gunEntityComponents = system.entities.get(gunEntityUid)!
+
+        let playerWieldComponent = playerEntityComponents[Comps.ComponentTypes.Wield] as Comps.Wield
+        let gunRotationComponent = gunEntityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
+        let gunPositionComponent = gunEntityComponents[Comps.ComponentTypes.Position] as Comps.Position
+
+        if (playerWieldComponent.wieldingEntityUid != gunEntityUid) {
+            return // gun already wielded
+        }
+
+        let gunDirection = Mat.normalizeVector3(Mat.applyQuaternionToVector3(new Mat.Vector3(0, 0, -1), gunRotationComponent))
+
+        let gunLength = 0.8
+        let gunTip = new Mat.Vector3(
+            gunPositionComponent.x + (gunDirection.x * gunLength),
+            gunPositionComponent.y + (gunDirection.y * gunLength),
+            gunPositionComponent.z + (gunDirection.z * gunLength))
+
+        let buffer = new PhysX.PxRaycastBuffer10()
+        resources.physics.scene.raycast(
+            new PhysX.PxVec3(
+                gunTip.x,
+                gunTip.y,
+                gunTip.z),
+            new PhysX.PxVec3(
+                gunDirection.x,
+                gunDirection.y,
+                gunDirection.z),
+            100, buffer)
+        for (let i = 0; i < buffer.getNbTouches(); i++) {
+            let shape = buffer.getTouch(i).shape
+
+            let shapeEntityUid = resources.physics.shapePtrToEntityUid.get((shape as any).ptr)!
+
+            system.removeEntity(shapeEntityUid)
+
+            let entityGraphComponent = system.components[Comps.ComponentTypes.EntityGraph][0] as Comps.EntityGraph;
+            entityGraphComponent.graph.removeElement(shapeEntityUid)
+            Funs.triggerComponentChange(entityGraphComponent)
+            break;
+        }
     }
 }
 export class MovePlayer implements ECS.Command {
@@ -590,8 +701,7 @@ export class MovePlayer implements ECS.Command {
         let rotationComponent = entityComponents[Comps.ComponentTypes.Rotation] as Comps.Rotation
         let linearVelocityComponent = entityComponents[Comps.ComponentTypes.LinearVelocity] as Comps.LinearVelocity
 
-        let inputDirection = Mat.normalizeVector2(
-            Funs.getMovementDirection(resources))
+        let inputDirection = Mat.normalizeVector2(Funs.getMovementDirection(resources))
         let forward = Mat.applyQuaternionToVector3(new Mat.Vector3(0, 0, -1), rotationComponent)
         let right = Mat.applyQuaternionToVector3(new Mat.Vector3(1, 0, 0), rotationComponent)
 
@@ -636,7 +746,7 @@ export class MovePlayer implements ECS.Command {
         let mouseMovement = resources.input.mouseAddedMovement
         let quat = Mat.axisAngletoQuaternion(
             new Mat.Vector3(0, 1, 0),
-            Mat.deg2rad(-mouseMovement.x * 0.1))
+            Mat.deg2rad(-mouseMovement.x * 0.05))
 
         let rotation = Mat.slerpQuaternion(rotationComponent, quat, 0.4)
         rotationComponent.x = rotation.x
@@ -1407,10 +1517,13 @@ export class SyncPhysics implements ECS.Command {
                             localFrameB)
                     } break;
                     case Comps.ConstraintTypes.Distance: {
-                        console.log("not yet")
-                        continue // remove
+                        newConstraint = (PhysX.PxTopLevelFunctions.prototype as any).DistanceJointCreate(
+                            resources.physics.physics,
+                            rigidBodyA,
+                            localFrameA,
+                            rigidBodyB,
+                            localFrameB)
                     } break;
-
                     case Comps.ConstraintTypes.Hinge: {
                         newConstraint = (PhysX.PxTopLevelFunctions.prototype as any).RevoluteJointCreate(
                             resources.physics.physics,
@@ -1491,10 +1604,13 @@ export class SyncPhysics implements ECS.Command {
                                     localFrameB)
                             } break;
                             case Comps.ConstraintTypes.Distance: {
-                                console.log("not yet")
-                                continue // remove
+                                newConstraint = (PhysX.PxTopLevelFunctions.prototype as any).DistanceJointCreate(
+                                    resources.physics.physics,
+                                    rigidBodyA,
+                                    localFrameA,
+                                    rigidBodyB,
+                                    localFrameB)
                             } break;
-
                             case Comps.ConstraintTypes.Hinge: {
                                 newConstraint = (PhysX.PxTopLevelFunctions.prototype as any).RevoluteJointCreate(
                                     resources.physics.physics,

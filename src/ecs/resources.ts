@@ -429,16 +429,16 @@ class DOMStateResource {
     }
 }
 class InputResource {
-    keys: Map<Ser.Buttons, boolean>
+    buttons: Map<Ser.Buttons, boolean>
     mouseMovement: Mat.Vector2
     mouseAddedMovement: Mat.Vector2
     constructor() {
-        this.keys = new Map()
+        this.buttons = new Map()
         this.mouseMovement = new Mat.Vector2(0, 0)
         this.mouseAddedMovement = new Mat.Vector2(0, 0)
     }
-    isButtonPressed(key: Ser.Buttons): boolean {
-        let isDown = this.keys.get(key)
+    isButtonPressed(button: Ser.Buttons): boolean {
+        let isDown = this.buttons.get(button)
         if (isDown == undefined) {
             return false
         }

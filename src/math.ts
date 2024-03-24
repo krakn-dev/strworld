@@ -315,3 +315,6 @@ export function getRandomNumberInclusive(min: number, max: number) {
     const minCeiled = Math.ceil(min);
     return Math.floor(Math.random() * (Math.floor(max) - minCeiled + 1) + minCeiled);
 }
+export function clamp(val: number, min: number, max: number): number {
+    return Math.min(Math.max(val, min), max)
+}

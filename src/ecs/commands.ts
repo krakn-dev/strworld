@@ -6,19 +6,19 @@ import * as Funs from "./functions"
 import * as Ser from "../serialization"
 import * as Utils from "../utils"
 import { PhysX, PhysXT } from "../physx/physx"
-import { Vector3 } from "three"
-import { Quaternion } from "cannon-es"
 
 // order in which they get executed
 export enum CommandTypes {
     TheFirst = 0,
     SendGraphicComponentsToRender,
     CreateStickman,
-    MovePlayer,
-    MoveVehicle,
-    TorqueWheels,
     CreateRobot,
     CreateScene,
+    CreateGun,
+    TorqueWheels,
+    MovePlayer,
+    MoveVehicle,
+    PickUp,
     DestroyRobotComponent,
     RunCode,
     SyncPhysics,
@@ -38,10 +38,12 @@ export class TheFirst implements ECS.Command {
         system.addCommand(new SendGraphicComponentsToRender)
         system.addCommand(new SyncPhysics())
         system.addCommand(new DestroyRobotComponent())
+        system.addCommand(new PickUp())
         system.addCommand(new TorqueWheels())
         system.addCommand(new MoveVehicle())
         system.addCommand(new MovePlayer())
         system.addCommand(new CreateRobot())
+        system.addCommand(new CreateGun())
         system.addCommand(new RunCode())
         system.addCommand(new CreateStickman())
         system.addCommand(new CameraFollowPlayer())
@@ -100,16 +102,23 @@ export class CameraFollowPlayer implements ECS.Command {
         let positionOffset = new Mat.Vector3(1.2, 3.2, 6)
         positionOffset = Mat.applyQuaternionToVector3(positionOffset, playerRotationComponent)
         positionOffset = Mat.sumVector3(playerPositionComponent, positionOffset)
-        positionOffset = Mat.lerpVector3(cameraPositionComponent, positionOffset, 0.2)
+        positionOffset = Mat.lerpVector3(cameraPositionComponent, positionOffset, 0.25)
         cameraPositionComponent.x = positionOffset.x
         cameraPositionComponent.y = positionOffset.y
         cameraPositionComponent.z = positionOffset.z
 
+        let mouseMovement = resources.input.mouseAddedMovement
         let lookAtOffset = new Mat.Vector3(1.5, 1.5, 0)
         lookAtOffset = Mat.applyQuaternionToVector3(lookAtOffset, playerRotationComponent)
-        lookAtOffset = Mat.sumVector3(playerPositionComponent, lookAtOffset)
+        cameraPositionComponent.y = Mat.clamp(
+            cameraPositionComponent.y + mouseMovement.y * 0.002,
+            playerPositionComponent.y - 4,
+            playerPositionComponent.y + 6)
 
+        lookAtOffset = Mat.sumVector3(playerPositionComponent, lookAtOffset)
         let rotation = Mat.lookAt(lookAtOffset, cameraPositionComponent, new Mat.Vector3(0, 1, 0))
+        rotation = Mat.slerpQuaternion(cameraRotationComponent, rotation, 0.7)
+
 
         cameraRotationComponent.x = rotation.x
         cameraRotationComponent.y = rotation.y
@@ -481,6 +490,70 @@ export class CreateStickman implements ECS.Command {
         system.removeCommand(this.commandType)
     }
 }
+export class CreateGun implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.CreateGun
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+
+        let gun = system.createEntity()
+
+        let positionComponent = new Comps.Position(new Mat.Vector3(0, 2, 0), gun)
+        let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), gun)
+        let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, gun)
+        let massComponent = new Comps.Mass(0.1, gun)
+        let shapeColorComponent = new Comps.ShapeColor(0x00fff0, gun)
+        let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, gun)
+        shapeComponent.size = new Mat.Vector3(0.1, 0.18, 0.8)
+        let torqueComponent = new Comps.Torque(gun)
+        let forceComponent = new Comps.Force(gun)
+        let linearVelocityComponent = new Comps.LinearVelocity(gun)
+
+
+        system.addComponent(linearVelocityComponent)
+        system.addComponent(forceComponent)
+        system.addComponent(torqueComponent)
+        system.addComponent(rotationComponent)
+        system.addComponent(rigidBodyComponent)
+        system.addComponent(massComponent)
+        system.addComponent(shapeColorComponent)
+        system.addComponent(shapeComponent)
+        system.addComponent(positionComponent)
+
+
+        //system.addCommand(new MovePlayer())
+        system.removeCommand(this.commandType)
+    }
+}
+export class PickUp implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.PickUp
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        let playerEntityComponents: (ECS.Component | undefined)[] | undefined
+        let gunEntityComponents: (ECS.Component | undefined)[] | undefined
+
+        for (let eTC of system.components[Comps.ComponentTypes.EntityType]) {
+            let entityTypeComponent = eTC as Comps.EntityType
+
+            if (entityTypeComponent.entityType == Comps.EntityTypes.Stickman) {
+                playerEntityComponents = system.entities.get(eTC.entityUid)
+                break;
+            }
+            //            if (entityTypeComponent.entityType == Comps.EntityTypes.Gun) {
+            //                gunEntityComponents = system.entities.get(eTC.entityUid)
+            //                break;
+            //            }
+        }
+        if (playerEntityComponents == undefined || gunEntityComponents == undefined) return
+
+
+    }
+}
 export class MovePlayer implements ECS.Command {
     readonly commandType: CommandTypes
     constructor() {
@@ -507,9 +580,8 @@ export class MovePlayer implements ECS.Command {
 
         let inputDirection = Mat.normalizeVector2(
             Funs.getMovementDirection(resources))
-        let forward = Mat.applyQuaternionToVector3(new Vector3(0, 0, -1), rotationComponent)
-        let right = Mat.applyQuaternionToVector3(new Vector3(1, 0, 0), rotationComponent)
-        console.log(forward)
+        let forward = Mat.applyQuaternionToVector3(new Mat.Vector3(0, 0, -1), rotationComponent)
+        let right = Mat.applyQuaternionToVector3(new Mat.Vector3(1, 0, 0), rotationComponent)
 
         let groundForce = 70
         let jumpForce = 80
@@ -555,16 +627,16 @@ export class MovePlayer implements ECS.Command {
             Mat.deg2rad(-linearVelocityComponent.x * tilt))
         let tiltRotation =
             Mat.eulerToQuaternion(euler);
-        //let rotation = Mat.multiplyQuaternion(quat, tiltRotation)
 
         let mouseMovement = resources.input.mouseMovement
         if (mouseMovement.x == 0) return
         let quat = Mat.axisAngletoQuaternion(
-            new Mat.Vector3(0, mouseMovement.x / mouseMovement.x, 0),
+            new Mat.Vector3(0, 1, 0),
             Mat.deg2rad(-mouseMovement.x * 0.2))
 
         let rotation = Mat.multiplyQuaternion(rotationComponent, quat)
 
+        //rotation = Mat.slerpQuaternion(rotationComponent, rotation, 0.1)
         rotationComponent.x = rotation.x
         rotationComponent.y = rotation.y
         rotationComponent.z = rotation.z

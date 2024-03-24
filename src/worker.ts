@@ -36,6 +36,8 @@ async function initialize() {
             case Ser.Messages.MouseMovement: {
                 let newData = msg.data as Mat.Vector2
                 resources.input.mouseMovement = newData
+                resources.input.mouseAddedMovement.x += newData.x
+                resources.input.mouseAddedMovement.y += newData.y
             } break;
             case Ser.Messages.RobotComponents: {
                 let newData = msg.data as Comps.RobotComponent[]

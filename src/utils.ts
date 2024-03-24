@@ -111,6 +111,18 @@ export class Graph {
             console.log("element does not exist")
             return
         }
+        for (let s of elementA.siblingElements) {
+            if (s.id == elementIdB) {
+                console.log("alread")
+                return
+            }
+        }
+        for (let s of elementB.siblingElements) {
+            if (s.id == elementIdA) {
+                console.log("alread")
+                return
+            }
+        }
         elementA.siblingElements.push(elementB)
         elementB.siblingElements.push(elementA)
     }

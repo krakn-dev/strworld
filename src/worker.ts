@@ -41,8 +41,9 @@ async function initialize() {
                 resources.input.mouseAddedMovement.y += newData.y
             } break;
             case Ser.Messages.RobotComponents: {
-                let newData = msg.data as Comps.RobotComponent[]
-                resources.newRobot.components = newData
+                let newData = msg.data as [ECS.Component[][], [number, number[]][]]
+                resources.newRobot.components = newData[0]
+                resources.newRobot.elements = newData[1]
             } break;
             case Ser.Messages.RefreshGraphics: {
                 let graphicChanges = new Ser.GraphicChanges()

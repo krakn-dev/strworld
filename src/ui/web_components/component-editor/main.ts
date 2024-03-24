@@ -5,6 +5,7 @@ import * as CoolButton from "../shared/cool-button/main"
 import * as Comps from '../../../ecs/components';
 import * as ComponentSelector from "./component-selector/main"
 import * as Ser from "../../../serialization"
+import * as ECS from "../../../ecs/ecs"
 import * as Mat from '../../../math';
 import * as HelpMenu from "./help-menu/main"
 import * as QuitMenu from "./quit-menu/main"
@@ -55,25 +56,32 @@ export class CustomElement extends HTMLElement {
         this.componentSelectorElement.addAvailableRobotComponents(robotComponents)
     }
     private serializeAndSendRobotComponents(robotComponents: RobotVisualizer.RobotComponent[]) {
-        let serializedComponents: Comps.RobotComponent[] = []
+        let serializedComponents: [ECS.Component[][], any] = [[], undefined]
+        for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {
+            serializedComponents[0].push([])
+        }
         for (let rC of robotComponents) {
-            let robotComponent = new Comps.RobotComponent(rC.robotComponentType, 0, 0)
-
             let positionComponent = new Comps.Position(
                 new Mat.Vector3(
                     rC.object.position.x,
                     rC.object.position.y,
-                    rC.object.position.z), 0)
+                    rC.object.position.z), rC.glueBody.id)
             let rotationComponent = new Comps.Rotation(
                 new Mat.Quaternion(
                     rC.object.quaternion.x,
                     rC.object.quaternion.y,
                     rC.object.quaternion.z,
-                    rC.object.quaternion.w), 0)
-            serializedComponents.push(robotComponent)
+                    rC.object.quaternion.w), rC.glueBody.id)
+
+            serializedComponents[0][Comps.ComponentTypes.Position].push(positionComponent)
+            serializedComponents[0][Comps.ComponentTypes.Rotation].push(rotationComponent)
         }
+        serializedComponents[1] = this.robotVisualizerElement.physics.graph.elements.map(
+            e => [e.id, e.siblingElements.map(s => s.id)])
+
         this.worker!.postMessage(
             new Ser.Message(Ser.Messages.RobotComponents, serializedComponents))
+        console.log("sent")
     }
     private isAnyMenuOpen() {
         return (

@@ -15,8 +15,8 @@ export class CustomElement extends HTMLElement {
     }
     connectedCallback() {
         document.addEventListener("keyup", this.onKeyboardPressEvent.bind(this),);
-        document.addEventListener("mouseup", this.onMousePressEvent.bind(this));
         document.addEventListener("keydown", this.onKeyboardPressEvent.bind(this));
+        document.addEventListener("mouseup", this.onMousePressEvent.bind(this));
         document.addEventListener("mousedown", this.onMousePressEvent.bind(this));
         document.addEventListener("mousemove", this.onMouseMove.bind(this));
     }

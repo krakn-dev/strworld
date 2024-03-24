@@ -32,7 +32,7 @@ export class CustomElement extends HTMLElement {
     private onComponentPlace: CustomEvent
     private onComponentRemove: CustomEvent
     private showPlacementConfirm: CustomEvent
-    private physics: Physics
+    physics: Physics
     private mode: Mode
     private mouseRaycast: MouseRaycast
     private graphicEffects: GraphicEffects
@@ -597,7 +597,7 @@ class GraphElement {
     }
 }
 class Graph {
-    private elements: GraphElement[]
+    elements: GraphElement[]
 
     islands: number[][]
     private alreadyVisitedElements: number[]

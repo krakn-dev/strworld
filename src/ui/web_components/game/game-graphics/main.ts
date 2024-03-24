@@ -49,9 +49,9 @@ export class CustomElement extends HTMLElement {
 
             switch (aC.componentType) {
                 case Comps.ComponentTypes.EntityType: {
+                    if (this.graphicEntities.get(aC.entityUid)?.object != undefined) continue
                     let entityTypeComponent = aC as Comps.EntityType
                     switch (entityTypeComponent.entityType) {
-                        case Comps.EntityTypes.Stickman:
                         case Comps.EntityTypes.Grass:
                         case Comps.EntityTypes.Dog:
                             let modelBlob: Blob = await Utils.AssetFetchCache.fetch(
@@ -64,6 +64,7 @@ export class CustomElement extends HTMLElement {
                     }
                 } break;
                 case Comps.ComponentTypes.Shape: {
+                    if (this.graphicEntities.get(aC.entityUid)?.object != undefined) continue
                     let shapeComponent = aC as Comps.Shape
                     let material = new THREE.MeshPhongMaterial();
                     let geometry: THREE.BufferGeometry;
@@ -147,7 +148,6 @@ export class CustomElement extends HTMLElement {
                 } break;
                 case Comps.ComponentTypes.ShapeColor: {
                     if (graphicEntity.object == undefined) continue
-                    let rotationComponent = aC as Comps.Rotation
 
                     let shapeColorComponent = aC as Comps.ShapeColor
                     let newMaterial = new THREE.MeshPhongMaterial({
@@ -202,6 +202,7 @@ export class CustomElement extends HTMLElement {
             ) {
                 continue
             };
+
             this.graphicContextElement.addObject(
                 graphicEntity.object,
                 graphicEntity.animationMixer);

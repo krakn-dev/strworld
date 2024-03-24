@@ -38,10 +38,8 @@ export class Resources {
     }
 }
 class NewRobotResource {
-    components: Comps.RobotComponent[]
-    constructor() {
-        this.components = []
-    }
+    components: ECS.Component[][] | undefined
+    elements: [number, number[]][] | undefined
 }
 class AvailableRobotComponentsResource {
     robotComponentTypes: Comps.RobotComponentTypes[]

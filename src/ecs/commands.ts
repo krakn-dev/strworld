@@ -13,6 +13,7 @@ export enum CommandTypes {
     SendGraphicComponentsToRender,
     CreateStickman,
     CreateRobot,
+    CreateRobot2,
     CreateScene,
     CreateGun,
     Shoot,
@@ -44,6 +45,7 @@ export class TheFirst implements ECS.Command {
         system.addCommand(new MoveVehicle())
         system.addCommand(new MovePlayer())
         system.addCommand(new CreateRobot())
+        system.addCommand(new CreateRobot2())
         system.addCommand(new CreateGun())
         system.addCommand(new RunCode())
         system.addCommand(new Shoot())
@@ -202,7 +204,7 @@ export class CreateScene implements ECS.Command {
             let floor = system.createEntity()
             let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Static, floor)
             let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, floor)
-            shapeComponent.size = new Mat.Vector3(50, 10, 50)
+            shapeComponent.size = new Mat.Vector3(200, 5, 200)
             let positionComponent = new Comps.Position(new Mat.Vector3(0, -10, 0), floor)
             let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), floor)
             let shapeColorComponent = new Comps.ShapeColor(0xffffff, floor)
@@ -216,6 +218,85 @@ export class CreateScene implements ECS.Command {
             system.addComponent(entityTypeComponent)
         }
         system.removeCommand(this.commandType)
+    }
+}
+export class CreateRobot2 implements ECS.Command {
+    readonly commandType: CommandTypes
+    constructor() {
+        this.commandType = CommandTypes.CreateRobot2
+    }
+
+    run(system: ECS.System, resources: Res.Resources) {
+        if (!resources.input.isButtonPressed(Ser.Buttons.E)) return
+        if (resources.newRobot.elements == undefined) return
+
+        let components = resources.newRobot.components!
+        let elements = resources.newRobot.elements
+
+        let subEnts = []
+        let ent;
+        let id = Math.round(performance.now())
+        {
+            for (let i = 0; i < components[Comps.ComponentTypes.Position].length; i++) {
+                let localPosition = components[Comps.ComponentTypes.Position][i] as Comps.Position
+                let localRotation = components[Comps.ComponentTypes.Rotation][i] as Comps.Rotation
+
+                let subEnt = system.createEntity(localRotation.entityUid + id)
+                subEnts.push(subEnt)
+
+                let positionComponent = new Comps.Position(new Mat.Vector3(0, 0, 0), subEnt)
+                let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), subEnt)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Box, subEnt)
+                shapeComponent.size = new Mat.Vector3(1, 1, 1)
+                shapeComponent.positionOffset = new Mat.Vector3(localPosition.x, localPosition.y, localPosition.z)
+                shapeComponent.rotationOffset = new Mat.Quaternion(localRotation.x, localRotation.y, localRotation.z, localRotation.w)
+                let shapeColorComponent = new Comps.ShapeColor(0x00ff00, subEnt)
+                let entityTypeComponent = new Comps.EntityType(Comps.EntityTypes.RobotComponent, subEnt)
+
+                system.addComponent(positionComponent)
+                system.addComponent(rotationComponent)
+                system.addComponent(shapeComponent)
+                system.addComponent(shapeColorComponent)
+                system.addComponent(entityTypeComponent)
+            }
+            {
+                ent = system.createEntity()
+
+                let positionComponent = new Comps.Position(new Mat.Vector3(2, 0, 6), ent)
+                let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), ent)
+                let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, ent)
+                let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Compound, ent)
+                let linearVelocityComponent = new Comps.LinearVelocity(ent)
+                let angularVelocityComponent = new Comps.AngularVelocity(ent)
+                shapeComponent.shapesEntityUid = subEnts
+                let massComponent = new Comps.Mass(subEnts.length / 2, ent)
+
+                system.addComponent(angularVelocityComponent)
+                system.addComponent(massComponent)
+                system.addComponent(linearVelocityComponent)
+                system.addComponent(positionComponent)
+                system.addComponent(rotationComponent)
+                system.addComponent(rigidBodyComponent)
+                system.addComponent(shapeComponent)
+            }
+        }
+        {
+            let superEnt = system.createEntity()
+
+            let entityGraphComponent = new Comps.EntityGraph(superEnt)
+
+            for (let i = 0; i < subEnts.length; i++) {
+                entityGraphComponent.graph.createElement(
+                    subEnts[i] + id)
+            }
+            for (let e of elements) {
+                for (let s of e[1]) {
+                    entityGraphComponent.graph.addSiblings(e[0] + id, s + id)
+                }
+            }
+
+            system.addComponent(entityGraphComponent)
+        }
     }
 }
 export class CreateRobot implements ECS.Command {
@@ -646,11 +727,11 @@ export class Shoot implements ECS.Command {
 
         let gunDirection = Mat.normalizeVector3(Mat.applyQuaternionToVector3(new Mat.Vector3(0, 0, -1), gunRotationComponent))
 
-        let gunLength = 0.8
+        let gunLength = 0.4
         let gunTip = new Mat.Vector3(
-            gunPositionComponent.x + (gunDirection.x * gunLength),
-            gunPositionComponent.y + (gunDirection.y * gunLength),
-            gunPositionComponent.z + (gunDirection.z * gunLength))
+            gunPositionComponent.x + (gunDirection.x),
+            gunPositionComponent.y + (gunDirection.y),
+            gunPositionComponent.z + (gunDirection.z))
 
         let buffer = new PhysX.PxRaycastBuffer10()
         resources.physics.scene.raycast(
@@ -663,18 +744,28 @@ export class Shoot implements ECS.Command {
                 gunDirection.y,
                 gunDirection.z),
             100, buffer)
+        let shortestTouch: PhysXT.PxRaycastHit | undefined
         for (let i = 0; i < buffer.getNbTouches(); i++) {
-            let shape = buffer.getTouch(i).shape
+            let touch = buffer.getTouch(i)
+            let rigidBody = touch.actor
+            if (rigidBody.getType() == (PhysX.PxActorTypeEnum as any).eRIGID_STATIC) continue
 
-            let shapeEntityUid = resources.physics.shapePtrToEntityUid.get((shape as any).ptr)!
-
-            system.removeEntity(shapeEntityUid)
-
-            let entityGraphComponent = system.components[Comps.ComponentTypes.EntityGraph][0] as Comps.EntityGraph;
-            entityGraphComponent.graph.removeElement(shapeEntityUid)
-            Funs.triggerComponentChange(entityGraphComponent)
-            break;
+            if (i == 0 || shortestTouch == undefined) {
+                shortestTouch = touch
+                continue
+            }
+            if (touch.distance < shortestTouch.distance) {
+                shortestTouch = touch
+            }
         }
+        if (shortestTouch == undefined) return
+
+        let shape = shortestTouch.shape
+        let shapeEntityUid = resources.physics.shapePtrToEntityUid.get((shape as any).ptr)!
+        system.removeEntity(shapeEntityUid)
+        let entityGraphComponent = system.components[Comps.ComponentTypes.EntityGraph][0] as Comps.EntityGraph;
+        entityGraphComponent.graph.removeElement(shapeEntityUid)
+        Funs.triggerComponentChange(entityGraphComponent)
     }
 }
 export class MovePlayer implements ECS.Command {

@@ -120,10 +120,10 @@ export enum Messages {
 
 export class Message {
     message: Messages
-    data: Mat.Vector2 | ButtonPress | ECS.Component[] | AvailableRobotComponents | DOMData | GraphicChanges | Options | null
+    data: Mat.Vector2 | ButtonPress | [ECS.Component[][], [number, number[]][]] | AvailableRobotComponents | DOMData | GraphicChanges | Options | null
     constructor(
         newMessage: Messages,
-        newData: Mat.Vector2 | ButtonPress | ECS.Component[] | AvailableRobotComponents | GraphicChanges | Options | DOMData | null = null
+        newData: Mat.Vector2 | ButtonPress | [ECS.Component[][], [number, number[]][]] | AvailableRobotComponents | GraphicChanges | Options | DOMData | null = null
     ) {
         this.message = newMessage
         this.data = newData

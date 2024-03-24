@@ -63,8 +63,13 @@ export class System {
         this.commandChangesBuffer.addedCommands.push(command)
     }
 
-    createEntity(): number {
-        let entityUid = Utils.newUid()
+    createEntity(newUid: number | undefined = undefined): number {
+        let entityUid: number
+        if (newUid == undefined) {
+            entityUid = Utils.newUid()
+        } else {
+            entityUid = newUid
+        }
 
         let components: Component | undefined[] = []
         for (let _ = 0; _ < Comps.NUMBER_OF_COMPONENTS; _++) {

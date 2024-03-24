@@ -235,7 +235,8 @@ export class CreateRobot2 implements ECS.Command {
 
         let subEnts = []
         let ent;
-        let id = Math.round(performance.now())
+
+        let id = Utils.newUid()
         {
             for (let i = 0; i < components[Comps.ComponentTypes.Position].length; i++) {
                 let localPosition = components[Comps.ComponentTypes.Position][i] as Comps.Position
@@ -262,7 +263,7 @@ export class CreateRobot2 implements ECS.Command {
             {
                 ent = system.createEntity()
 
-                let positionComponent = new Comps.Position(new Mat.Vector3(2, 0, 6), ent)
+                let positionComponent = new Comps.Position(new Mat.Vector3(Mat.getRandomNumberInclusive(-15, 30), 5, Mat.getRandomNumberInclusive(-15, 30)), ent)
                 let rotationComponent = new Comps.Rotation(new Mat.Vector3(0, 0, 0), ent)
                 let rigidBodyComponent = new Comps.RigidBody(Comps.BodyTypes.Dynamic, ent)
                 let shapeComponent = new Comps.Shape(Comps.ShapeTypes.Compound, ent)
@@ -287,7 +288,7 @@ export class CreateRobot2 implements ECS.Command {
 
             for (let i = 0; i < subEnts.length; i++) {
                 entityGraphComponent.graph.createElement(
-                    subEnts[i] + id)
+                    subEnts[i])
             }
             for (let e of elements) {
                 for (let s of e[1]) {
@@ -457,28 +458,28 @@ export class CreateRobot implements ECS.Command {
                 system.addComponent(shapeComponent)
             }
         }
-        {
-            let superEnt = system.createEntity()
+        //{
+        //    let superEnt = system.createEntity()
 
-            let entityGraphComponent = new Comps.EntityGraph(superEnt)
+        //    let entityGraphComponent = new Comps.EntityGraph(superEnt)
 
-            for (let i = 0; i < subEntsEntityUid.length; i++) {
-                entityGraphComponent.graph.createElement(
-                    subEntsEntityUid[i])
-            }
-            for (let i = 0; i < subEntsEntityUid.length; i++) {
-                if (i == subEntsEntityUid.length - 1) break;
-                entityGraphComponent.graph.addSiblings(
-                    subEntsEntityUid[i],
-                    subEntsEntityUid[i + 1])
-            }
+        //    for (let i = 0; i < subEntsEntityUid.length; i++) {
+        //        entityGraphComponent.graph.createElement(
+        //            subEntsEntityUid[i])
+        //    }
+        //    for (let i = 0; i < subEntsEntityUid.length; i++) {
+        //        if (i == subEntsEntityUid.length - 1) break;
+        //        entityGraphComponent.graph.addSiblings(
+        //            subEntsEntityUid[i],
+        //            subEntsEntityUid[i + 1])
+        //    }
 
-            entityGraphComponent.graph.createElement(constraintSubEnt0)
-            entityGraphComponent.graph.addSiblings(constraintSubEnt0, subEntsEntityUid[0])
-            entityGraphComponent.graph.setStopElement(true, constraintSubEnt0)
+        //    entityGraphComponent.graph.createElement(constraintSubEnt0)
+        //    entityGraphComponent.graph.addSiblings(constraintSubEnt0, subEntsEntityUid[0])
+        //    entityGraphComponent.graph.setStopElement(true, constraintSubEnt0)
 
-            system.addComponent(entityGraphComponent)
-        }
+        //    system.addComponent(entityGraphComponent)
+        //}
         system.removeCommand(this.commandType)
     }
 }
@@ -763,7 +764,21 @@ export class Shoot implements ECS.Command {
         let shape = shortestTouch.shape
         let shapeEntityUid = resources.physics.shapePtrToEntityUid.get((shape as any).ptr)!
         system.removeEntity(shapeEntityUid)
-        let entityGraphComponent = system.components[Comps.ComponentTypes.EntityGraph][0] as Comps.EntityGraph;
+
+        let entityGraphComponent: Comps.EntityGraph | undefined
+        for (let eGC of system.components[Comps.ComponentTypes.EntityGraph]) {
+            let entityGraphComp = eGC as Comps.EntityGraph
+            let breakFor = false
+            for (let e of entityGraphComp.graph.elements) {
+                if (e.id == shapeEntityUid) {
+                    entityGraphComponent = entityGraphComp
+                    breakFor = true
+                    break;
+                }
+            }
+            if (breakFor) break
+        }
+        if (entityGraphComponent == undefined) return
         entityGraphComponent.graph.removeElement(shapeEntityUid)
         Funs.triggerComponentChange(entityGraphComponent)
     }

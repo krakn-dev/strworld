@@ -6,6 +6,7 @@ import * as Ser from "../../../../serialization"
 
 export class CustomElement extends HTMLElement {
     private worker: Worker | undefined
+    private pointerLockId: number | undefined
 
     constructor() {
         super()
@@ -14,17 +15,26 @@ export class CustomElement extends HTMLElement {
         this.worker = undefined
     }
     connectedCallback() {
-        document.addEventListener("keyup", this.onKeyboardPressEvent.bind(this),);
+        document.addEventListener("keyup", this.onKeyboardPressEvent.bind(this));
         document.addEventListener("keydown", this.onKeyboardPressEvent.bind(this));
         document.addEventListener("mouseup", this.onMousePressEvent.bind(this));
         document.addEventListener("mousedown", this.onMousePressEvent.bind(this));
         document.addEventListener("mousemove", this.onMouseMove.bind(this));
     }
+    disconnectedCallback() {
+        document.removeEventListener("keyup", this.onKeyboardPressEvent);
+        document.removeEventListener("keydown", this.onKeyboardPressEvent);
+        document.removeEventListener("mouseup", this.onMousePressEvent);
+        document.removeEventListener("mousedown", this.onMousePressEvent);
+        document.removeEventListener("mousemove", this.onMouseMove);
+    }
     addWorker(newWorker: Worker) {
         this.worker = newWorker
     }
-    private onMousePressEvent(event: MouseEvent) {
-        this.requestPointerLock();
+    private async onMousePressEvent(event: MouseEvent) {
+        if (this.pointerLockId == undefined) {
+            this.requestPointerLock();
+        }
         let isButtonPressed: boolean
         let button: Ser.Buttons | undefined
 

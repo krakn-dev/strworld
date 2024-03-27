@@ -81,7 +81,6 @@ export class CustomElement extends HTMLElement {
 
         this.worker!.postMessage(
             new Ser.Message(Ser.Messages.RobotComponents, serializedComponents))
-        console.log("sent")
     }
     private isAnyMenuOpen() {
         return (

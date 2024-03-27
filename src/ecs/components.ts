@@ -13,7 +13,7 @@ export enum ComponentTypes {
     Aggregate,
     EntityGraph,
     Switch,
-    Wield,
+    Holding,
     Shape,
     Mass,
     ShapeColor,
@@ -33,6 +33,8 @@ export enum ComponentTypes {
     AngularVelocity,
     Position,
     Rotation,
+    Damage,
+    Resistance
 }
 
 export const NUMBER_OF_COMPONENTS = (() => { // fill component list with the number of component types
@@ -51,13 +53,11 @@ export enum ChangeTypes {
     Add,
 }
 export enum EntityTypes {
-    Stickman,
-    Grass,
-    Dog,
-    Gun,
+    Structure,
+    Character,
+    Weapon,
     Camera,
     Light,
-    GeometricShape,
     Robot,
     RobotComponent,
     RobotSuperComponent
@@ -87,7 +87,7 @@ export enum ConstraintTypes {
     Distance,
     Hinge,
 }
-export enum BodyTypes {
+export enum RigidBodyTypes {
     Dynamic,
     Static,
 }
@@ -133,6 +133,37 @@ export class Constraint {
         this.axisB = new Mat.Quaternion(0, 0, 0, 1)
     }
 }
+
+export class Damage {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    damage: number
+    constructor(
+        newDamage: number,
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Damage
+        this.damage = newDamage
+    }
+}
+export class Resistance {
+    entityUid: number
+    componentUid: number
+    componentType: ComponentTypes
+    resistance: number
+    constructor(
+        newResistance: number,
+        newEntityUid: number
+    ) {
+        this.componentUid = Utils.newUid()
+        this.entityUid = newEntityUid
+        this.componentType = ComponentTypes.Resistance
+        this.resistance = newResistance
+    }
+}
 export class AxisLocks {
     entityUid: number
     componentUid: number
@@ -149,17 +180,17 @@ export class AxisLocks {
         this.angularLock = new AxisLock()
     }
 }
-export class Wield implements ECS.Component {
+export class Holding implements ECS.Component {
     entityUid: number
     componentUid: number
     componentType: ComponentTypes
-    wieldingEntityUid: number | undefined
+    holdingEntityUid: number | undefined
     constructor(
         newEntityUid: number
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
-        this.componentType = ComponentTypes.Wield
+        this.componentType = ComponentTypes.Holding
     }
 }
 export class Switch implements ECS.Component {
@@ -304,15 +335,15 @@ export class RigidBody implements ECS.Component {
     componentUid: number
     componentType: ComponentTypes
     body: PhysXT.PxRigidActor | undefined
-    bodyType: BodyTypes
+    rigidBodyType: RigidBodyTypes
     constructor(
-        newBodyType: BodyTypes,
+        newBodyType: RigidBodyTypes,
         newEntityUid: number,
     ) {
         this.componentUid = Utils.newUid()
         this.entityUid = newEntityUid
         this.componentType = ComponentTypes.RigidBody
-        this.bodyType = newBodyType
+        this.rigidBodyType = newBodyType
     }
 }
 export class HardCodedId implements ECS.Component {

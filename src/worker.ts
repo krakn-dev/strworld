@@ -17,7 +17,7 @@ async function initialize() {
     let systemInterval: any | undefined = undefined
     function startInterval() {
         if (systemInterval != undefined) return
-        systemInterval = setInterval(system.run.bind(system), 20)
+        systemInterval = setInterval(system.run.bind(system), 10)
     }
     onmessage = (data) => {
         let msg = data.data as Ser.Message
@@ -63,7 +63,7 @@ async function initialize() {
                 postMessage(
                     new Ser.Message(
                         Ser.Messages.GraphicChanges,
-                        JSON.parse(JSON.stringify(graphicChanges))))
+                        graphicChanges))
             } break;
             case Ser.Messages.Stop: {
                 clearInterval(systemInterval)

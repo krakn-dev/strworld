@@ -23,13 +23,16 @@ export class CustomElement extends HTMLElement {
         this.shadowRoot!.innerHTML = html + `<style>${css[0][1]}</style>`
         this.mainComponentElement = this.shadowRoot!.getElementById("main-component") as HTMLDivElement
     }
+    addWorker(newWorker: Worker) {
+        this.worker = newWorker
+        this.worker.onmessage = this._onWorkerMessage.bind(this)
+    }
     private addInitialElements() {
         this._addGameGraphicsElement()
         this._addGameInputElement()
         this._addRobotMenuElement()
         //this._addComponentEditorElement()
     }
-
     private _onCloseComponentEditor() {
         this._addGameInputElement()
         this._addRobotMenuElement()
@@ -52,10 +55,6 @@ export class CustomElement extends HTMLElement {
         this._addCodeEditorElement()
         this.gameInputElement?.remove()
         this.robotMenuElement?.remove()
-    }
-    addWorker(newWorker: Worker) {
-        this.worker = newWorker
-        this.worker.onmessage = this._onWorkerMessage.bind(this)
     }
 
     private _onWorkerMessage(data: any) {

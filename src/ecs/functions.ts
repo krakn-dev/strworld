@@ -4,6 +4,11 @@ import * as ECS from "./ecs"
 import * as Res from "./resources"
 import * as Ser from "../serialization"
 
+export function shouldDestroyEntity(damage: number, resistance: number): boolean {
+    if (resistance - damage < 0) return true
+    if (Mat.getRandomNumberInclusive(0, resistance - damage) == 0) return true
+    return false
+}
 export function triggerComponentChange(component: ECS.Component) {
     component.entityUid = component.entityUid
 }

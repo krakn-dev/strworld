@@ -52,15 +52,14 @@ export class CustomElement extends HTMLElement {
                     if (this.graphicEntities.get(aC.entityUid)?.object != undefined) continue
                     let entityTypeComponent = aC as Comps.EntityType
                     switch (entityTypeComponent.entityType) {
-                        case Comps.EntityTypes.Grass:
-                        case Comps.EntityTypes.Dog:
-                            let modelBlob: Blob = await Utils.AssetFetchCache.fetch(
-                                this.getModelNameByEntityType(entityTypeComponent.entityType))
+                        case Comps.EntityTypes.Character:
+                        //let modelBlob: Blob = await Utils.AssetFetchCache.fetch(
+                        //    this.getModelNameByEntityType(entityTypeComponent.entityType))
 
-                            let obj = await this.loader.parseAsync(await modelBlob.arrayBuffer(), "");
-                            graphicEntity.object = obj.scene;
-                            graphicEntity.animationClips = obj.animations;
-                            graphicEntity.animationMixer = new THREE.AnimationMixer(obj.scene);
+                        //let obj = await this.loader.parseAsync(await modelBlob.arrayBuffer(), "");
+                        //graphicEntity.object = obj.scene;
+                        //graphicEntity.animationClips = obj.animations;
+                        //graphicEntity.animationMixer = new THREE.AnimationMixer(obj.scene);
                     }
                 } break;
                 case Comps.ComponentTypes.Shape: {
@@ -315,30 +314,30 @@ export class CustomElement extends HTMLElement {
     }
 
 
-    private getModelNameByEntityType(entityType: Comps.EntityTypes): string {
-        switch (entityType) {
-            case Comps.EntityTypes.Stickman:
-                return "stickman.glb"
-            case Comps.EntityTypes.Grass:
-                return "grass.glb"
-            case Comps.EntityTypes.Dog:
-                return "dog.glb"
-            case Comps.EntityTypes.Camera:
-                throw "camera is not an asset"
-            case Comps.EntityTypes.Light:
-                throw "light is not an asset"
-            case Comps.EntityTypes.GeometricShape:
-                throw "geometric shape is not an asset"
-            case Comps.EntityTypes.Robot:
-                throw "robot shape is not an asset"
-            case Comps.EntityTypes.RobotComponent:
-                throw "robot component is not an asset"
-            case Comps.EntityTypes.RobotSuperComponent:
-                throw "robot super component is not an asset"
-            case Comps.EntityTypes.Gun:
-                throw "robot super component is not an asset"
-        }
-    }
+    //private getModelNameByEntityType(entityType: Comps.EntityTypes): string {
+    //    switch (entityType) {
+    //        case Comps.EntityTypes.Stickman:
+    //            return "stickman.glb"
+    //        case Comps.EntityTypes.Grass:
+    //            return "grass.glb"
+    //        case Comps.EntityTypes.Dog:
+    //            return "dog.glb"
+    //        case Comps.EntityTypes.Camera:
+    //            throw "camera is not an asset"
+    //        case Comps.EntityTypes.Light:
+    //            throw "light is not an asset"
+    //        case Comps.EntityTypes.GeometricShape:
+    //            throw "geometric shape is not an asset"
+    //        case Comps.EntityTypes.Robot:
+    //            throw "robot shape is not an asset"
+    //        case Comps.EntityTypes.RobotComponent:
+    //            throw "robot component is not an asset"
+    //        case Comps.EntityTypes.RobotSuperComponent:
+    //            throw "robot super component is not an asset"
+    //        case Comps.EntityTypes.Weapon:
+    //            throw "robot super component is not an asset"
+    //    }
+    //}
     private getAnimationToPlayByEntityStates(entityStates: Comps.EntityStates[]): string {
         let animationToPlay: string | undefined = undefined
         for (let eS of entityStates) {
